@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Auth;
+using Pharmacy.Application.Features.Auth.Commands.ChangePassword;
 using Pharmacy.Application.Features.Auth.Commands.Login;
 using Pharmacy.Application.Features.Auth.Queries.GetCurrentUser;
 
@@ -45,6 +46,24 @@ namespace PharmacyProjectApi.Controllers.Auth
         {
             var result = await _mediator.Send(new GetCurrentUserQuery());
             return Ok(result);
+        }
+
+        [Authorize]
+        [HttpPost("change-password")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestDto request)
+        {
+            var command = new ChangePasswordCommand
+            {
+                CurrentPassword = request.CurrentPassword,
+                NewPassword = request.NewPassword
+            };
+
+            await _mediator.Send(command);
+
+            return Ok(new { message = "تم تغيير كلمة المرور بنجاح" });
         }
     }
 }
