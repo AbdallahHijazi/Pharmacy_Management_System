@@ -1,7 +1,10 @@
-namespace Pharmacy.Application.Common.Interfaces;
 
-public interface IUserPasswordHasher
+
+namespace Pharmacy.Application.Common.Interfaces
 {
-    string HashPassword(string password);
-    bool VerifyPassword(string hashedPassword, string providedPassword);
+    public interface IUserPasswordHasher
+    {
+        string Hash(string password);
+        bool Verify(string password, string passwordHash);
+    }
 }

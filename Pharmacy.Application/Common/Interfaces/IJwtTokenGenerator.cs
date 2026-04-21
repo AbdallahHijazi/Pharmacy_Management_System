@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Pharmacy.Domain.Entities.Identity;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +7,8 @@ using System.Threading.Tasks;
 
 namespace Pharmacy.Application.Common.Interfaces
 {
-    internal interface IJwtTokenGenerator
+    public interface IJwtTokenGenerator
     {
+        string GenerateToken(User user);
     }
 }

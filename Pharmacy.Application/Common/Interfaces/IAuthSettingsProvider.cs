@@ -1,6 +1,10 @@
-namespace Pharmacy.Application.Common.Interfaces;
-
-public interface IAuthSettingsProvider
+namespace Pharmacy.Application.Common.Interfaces
 {
-    int RefreshTokenExpiryDays { get; }
+    public interface IAuthSettingsProvider
+    {
+        string Secret { get; }
+        string Issuer { get; }
+        string Audience { get; }
+        int ExpiryMinutes { get; }
+    }
 }

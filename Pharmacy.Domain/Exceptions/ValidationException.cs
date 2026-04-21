@@ -1,12 +1,14 @@
-namespace Pharmacy.Domain.Exceptions;
 
-public class ValidationException : Exception
+namespace Pharmacy.Domain.Exceptions
 {
-    public IReadOnlyDictionary<string, string[]> Errors { get; }
-
-    public ValidationException(string message, IReadOnlyDictionary<string, string[]> errors)
-        : base(message)
+    public class ValidationException : Exception
     {
-        Errors = errors;
+        public IReadOnlyDictionary<string, string[]> Errors { get; }
+
+        public ValidationException(string message, IReadOnlyDictionary<string, string[]> errors)
+            : base(message)
+        {
+            Errors = errors;
+        }
     }
 }

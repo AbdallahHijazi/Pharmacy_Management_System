@@ -1,5 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Pharmacy.Application.DTOs.Auth;
+using Pharmacy.Application.Features.Auth.Commands.Login;
 
 namespace PharmacyProjectApi.Controllers.Auth
 {
@@ -7,5 +10,25 @@ namespace PharmacyProjectApi.Controllers.Auth
     [ApiController]
     public class AuthController : ControllerBase
     {
+        private readonly IMediator _mediator;
+
+        public AuthController(IMediator mediator)
+        {
+            _mediator = mediator;
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
+        {
+            var command = new LoginCommand
+            {
+                Email = request.Email,
+                Password = request.Password
+            };
+
+            var result = await _mediator.Send(command);
+
+            return Ok(result);
+        }
     }
 }

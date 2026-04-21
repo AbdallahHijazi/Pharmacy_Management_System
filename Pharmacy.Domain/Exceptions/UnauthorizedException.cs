@@ -1,8 +1,11 @@
-namespace Pharmacy.Domain.Exceptions;
-
-public class UnauthorizedException : Exception
+namespace Pharmacy.Domain.Exceptions 
 {
-    public UnauthorizedException(string message) : base(message)
+    public class UnauthorizedException : Exception
     {
+        public UnauthorizedException(string message) : base(message)
+        {
+        }
     }
 }
+
+

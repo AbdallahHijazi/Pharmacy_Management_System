@@ -1,44 +1,46 @@
-﻿using Pharmacy.Application.Common.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
+using Pharmacy.Application.Common.Interfaces;
 
 namespace Pharmacy.Infrastructure.Persistence.Repositories
 {
-    //public class GenericRepository<T> : IRepository<T> where T : class
-    //{
-    //    private readonly AppDbContext context;
+    public class GenericRepository<T> : IRepository<T> where T : class
+    {
+        private readonly AppDbContext context;
 
-    //    public GenericRepository(AppDbContext context)
-    //    {
-    //        this.context = context;
-    //    }
-    //    public T Add(T entity)
-    //    {
-    //        var newEntity = context.Set<T>().Add(entity);
-    //        return newEntity.Entity;
-    //    }
+        public GenericRepository(AppDbContext context)
+        {
+            this.context = context;
+        }
 
-    //    public T? Delete(T entity)
-    //    {
-    //        if (entity == null)
-    //            return null;
+        public T Add(T entity)
+        {
+            var newEntity = context.Set<T>().Add(entity);
+            return newEntity.Entity;
+        }
 
-    //        context.Set<T>().Remove(entity);
-    //        return entity;
-    //    }
+        public T? Delete(T entity)
+        {
+            if (entity == null)
+                return null;
 
-    //    public T? Get(Guid id)
-    //    {
-    //        return context.Set<T>().Find(id);
-    //    }
+            context.Set<T>().Remove(entity);
+            return entity;
+        }
 
-    //    public IQueryable<T> GetAll()
-    //    {
-    //        return context.Set<T>().AsNoTracking();
-    //    }
+        public T? Get(Guid id)
+        {
+            return context.Set<T>().Find(id);
+        }
 
-    //    public T Update(T entity)
-    //    {
-    //        var updatedEntity = context.Set<T>().Update(entity);
-    //        return updatedEntity.Entity;
-    //    }
-    //}
+        public IQueryable<T> GetAll()
+        {
+            return context.Set<T>().AsQueryable();
+        }
+
+        public T Update(T entity)
+        {
+            var updatedEntity = context.Set<T>().Update(entity);
+            return updatedEntity.Entity;
+        }
+    }
 }

@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 
 namespace Pharmacy.Application.Common.Interfaces
 {
-    internal interface ICurrentUserService
+    public interface ICurrentUserService
     {
+        Guid? UserId { get; }
+        Guid? BranchId { get; }
+        string? Email { get; }
     }
 }
