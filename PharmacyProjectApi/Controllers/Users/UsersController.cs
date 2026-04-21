@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Users;
+using Pharmacy.Application.Features.Users.Queries.GetUserById;
 using Pharmacy.Application.Features.Users.Queries.GetUsers;
 
 namespace PharmacyProjectApi.Controllers.Users
@@ -25,6 +26,20 @@ namespace PharmacyProjectApi.Controllers.Users
         public async Task<IActionResult> GetUsers()
         {
             var result = await _mediator.Send(new GetUsersQuery());
+            return Ok(result);
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(UserDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetUserById(Guid id)
+        {
+            var result = await _mediator.Send(new GetUserByIdQuery
+            {
+                UserId = id
+            });
+
             return Ok(result);
         }
     }
