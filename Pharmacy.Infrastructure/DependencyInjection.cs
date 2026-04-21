@@ -11,6 +11,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+
 namespace Pharmacy.Infrastructure
 {
     public static class DependencyInjection
@@ -25,6 +26,8 @@ namespace Pharmacy.Infrastructure
             services.AddScoped<IUserPasswordHasher, PasswordHasher>();
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
             services.AddScoped<IAuthSettingsProvider, AuthSettingsProvider>();
+            services.AddHttpContextAccessor();
+            services.AddScoped<ICurrentUserService, CurrentUserService>();
             return services;
         }
     }
