@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Users;
 using Pharmacy.Application.Features.Users.Commands.CreateUser;
+using Pharmacy.Application.Features.Users.Commands.DeleteUser;
 using Pharmacy.Application.Features.Users.Commands.UpdateUser;
 using Pharmacy.Application.Features.Users.Queries.GetUserById;
 using Pharmacy.Application.Features.Users.Queries.GetUsers;
@@ -89,6 +90,20 @@ namespace PharmacyProjectApi.Controllers.Users
             var result = await _mediator.Send(command);
 
             return Ok(result);
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteUser(Guid id)
+        {
+            await _mediator.Send(new DeleteUserCommand
+            {
+                UserId = id
+            });
+
+            return Ok(new { message = "تم حذف المستخدم بنجاح" });
         }
     }
 }
