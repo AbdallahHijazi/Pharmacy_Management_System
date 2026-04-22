@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Purchases;
 using Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseInvoice;
+using Pharmacy.Application.Features.Purchases.Queries.GetPurchaseInvoiceById;
 using Pharmacy.Application.Features.Purchases.Queries.GetPurchaseInvoices;
 
 namespace PharmacyProjectApi.Controllers.Purchases
@@ -47,7 +48,21 @@ namespace PharmacyProjectApi.Controllers.Purchases
                 Items = request.Items
             });
 
-            return CreatedAtAction(nameof(GetPurchaseInvoices), new { id = result.PurchaseInvoiceId }, result);
+            return CreatedAtAction(nameof(GetPurchaseInvoiceById), new { id = result.PurchaseInvoiceId }, result);
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(PurchaseInvoiceDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetPurchaseInvoiceById(Guid id)
+        {
+            var result = await _mediator.Send(new GetPurchaseInvoiceByIdQuery
+            {
+                PurchaseInvoiceId = id
+            });
+
+            return Ok(result);
         }
     }
 }
