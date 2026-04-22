@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Suppliers;
 using Pharmacy.Application.Features.Suppliers.Commands.CreateSupplier;
+using Pharmacy.Application.Features.Suppliers.Queries.GetSupplierById;
 using Pharmacy.Application.Features.Suppliers.Queries.GetSuppliers;
 
 namespace PharmacyProjectApi.Controllers.Suppliers
@@ -43,7 +44,21 @@ namespace PharmacyProjectApi.Controllers.Suppliers
                 Address = request.Address
             });
 
-            return CreatedAtAction(nameof(GetSuppliers), new { id = result.SupplierId }, result);
+            return CreatedAtAction(nameof(GetSupplierById), new { id = result.SupplierId }, result);
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(SupplierDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetSupplierById(Guid id)
+        {
+            var result = await _mediator.Send(new GetSupplierByIdQuery
+            {
+                SupplierId = id
+            });
+
+            return Ok(result);
         }
     }
 }
