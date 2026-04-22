@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Customers;
+using Pharmacy.Application.Features.Customers.Commands.CreateCustomer;
 using Pharmacy.Application.Features.Customers.Queries.GetCustomers;
 
 namespace PharmacyProjectApi.Controllers.Customers
@@ -26,6 +27,22 @@ namespace PharmacyProjectApi.Controllers.Customers
         {
             var result = await _mediator.Send(new GetCustomersQuery());
             return Ok(result);
+        }
+
+        [HttpPost]
+        [ProducesResponseType(typeof(CustomerDetailsDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomerRequestDto request)
+        {
+            var result = await _mediator.Send(new CreateCustomerCommand
+            {
+                FullName = request.FullName,
+                Phone = request.Phone,
+                Address = request.Address
+            });
+
+            return CreatedAtAction(nameof(GetCustomers), new { id = result.CustomerId }, result);
         }
     }
 }
