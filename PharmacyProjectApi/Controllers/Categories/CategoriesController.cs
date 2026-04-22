@@ -5,6 +5,7 @@ using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Categories;
 using Pharmacy.Application.Features.Categories.Commands.CreateCategory;
 using Pharmacy.Application.Features.Categories.Queries.GetCategories;
+using Pharmacy.Application.Features.Categories.Queries.GetCategoryById;
 
 namespace PharmacyProjectApi.Controllers.Categories
 {
@@ -42,7 +43,21 @@ namespace PharmacyProjectApi.Controllers.Categories
                 Name = request.Name
             });
 
-            return CreatedAtAction(nameof(GetCategories), new { id = result.CategoryId }, result);
+            return CreatedAtAction(nameof(GetCategoryById), new { id = result.CategoryId }, result);
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(CategoryDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetCategoryById(Guid id)
+        {
+            var result = await _mediator.Send(new GetCategoryByIdQuery
+            {
+                CategoryId = id
+            });
+
+            return Ok(result);
         }
     }
 }
