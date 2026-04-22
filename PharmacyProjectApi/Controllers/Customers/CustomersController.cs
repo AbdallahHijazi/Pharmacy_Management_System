@@ -8,6 +8,7 @@ using Pharmacy.Application.Features.Customers.Commands.DeleteCustomer;
 using Pharmacy.Application.Features.Customers.Commands.UpdateCustomer;
 using Pharmacy.Application.Features.Customers.Queries.GetCustomerById;
 using Pharmacy.Application.Features.Customers.Queries.GetCustomers;
+using Pharmacy.Application.Features.Customers.Queries.SearchCustomers;
 
 namespace PharmacyProjectApi.Controllers.Customers
 {
@@ -92,6 +93,19 @@ namespace PharmacyProjectApi.Controllers.Customers
             });
 
             return Ok(new { message = "تم حذف الزبون بنجاح" });
+        }
+
+        [HttpGet("search")]
+        [ProducesResponseType(typeof(List<CustomerListItemDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> SearchCustomers([FromQuery] string query)
+        {
+            var result = await _mediator.Send(new SearchCustomersQuery
+            {
+                Query = query
+            });
+
+            return Ok(result);
         }
     }
 }
