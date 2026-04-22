@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Settings;
+using Pharmacy.Application.Features.Settings.Commands.UpdateSetting;
 using Pharmacy.Application.Features.Settings.Queries.GetSettings;
 
 namespace PharmacyProjectApi.Controllers.Settings
@@ -27,6 +28,19 @@ namespace PharmacyProjectApi.Controllers.Settings
         {
             var result = await _mediator.Send(new GetSettingsQuery());
             return Ok(result);
+        }
+
+        [HttpPut]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<IActionResult> UpdateSetting([FromBody] UpdateSystemSettingRequestDto request)
+        {
+            await _mediator.Send(new UpdateSettingCommand
+            {
+                SettingId = request.SettingId,
+                Value = request.Value
+            });
+
+            return NoContent();
         }
     }
 }
