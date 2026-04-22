@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Pharmacy.Application.Common.Interfaces;
 using Pharmacy.Application.DTOs.Dashboard;
 using Pharmacy.Domain.Entities.Sales;

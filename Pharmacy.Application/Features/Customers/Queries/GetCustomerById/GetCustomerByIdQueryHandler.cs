@@ -34,7 +34,7 @@ namespace Pharmacy.Application.Features.Customers.Queries.GetCustomerById
                 throw new UnauthorizedException("لا يوجد فرع مرتبط بالمستخدم الحالي");
 
             var customer = await _customerRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .FirstOrDefaultAsync(
                     c => c.Id == request.CustomerId &&
                          !c.IsDeleted &&

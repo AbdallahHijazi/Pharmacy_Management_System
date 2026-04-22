@@ -43,8 +43,7 @@ namespace Pharmacy.Application.Features.Inventory.Queries.GetStockBatches
             var branchId = _currentUserService.BranchId.Value;
 
             var query = _stockBatchRepository
-                .GetAll()
-                .AsNoTracking()
+                .GetAllAsNoTracking()
                 .Include(sb => sb.Product)
                 .Include(sb => sb.Supplier)
                 .Where(sb => !sb.IsDeleted && sb.BranchId == branchId);

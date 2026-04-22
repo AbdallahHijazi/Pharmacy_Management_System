@@ -43,8 +43,7 @@ namespace Pharmacy.Application.Features.Customers.Queries.GetCustomers
             var branchId = _currentUserService.BranchId.Value;
 
             var query = _customerRepository
-                .GetAll()
-                .AsNoTracking()
+                .GetAllAsNoTracking()
                 .Where(c => !c.IsDeleted && c.BranchId == branchId);
 
             query = (request.SortBy?.ToLower(), request.SortDirection?.ToLower()) switch

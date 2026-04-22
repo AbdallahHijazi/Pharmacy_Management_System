@@ -43,8 +43,7 @@ namespace Pharmacy.Application.Features.Products.Queries.GetProducts
             var branchId = _currentUserService.BranchId.Value;
 
             var query = _productRepository
-                .GetAll()
-                .AsNoTracking()
+                .GetAllAsNoTracking()
                 .Include(p => p.Category)
                 .Where(p => !p.IsDeleted && p.BranchId == branchId);
 

@@ -38,7 +38,7 @@ namespace Pharmacy.Application.Features.Inventory.Queries.GetExpiringSoonBatches
             var maxDate = today.AddDays(30);
 
             var stockBatches = await _stockBatchRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Include(sb => sb.Product)
                 .Include(sb => sb.Supplier)
                 .Where(sb => !sb.IsDeleted &&

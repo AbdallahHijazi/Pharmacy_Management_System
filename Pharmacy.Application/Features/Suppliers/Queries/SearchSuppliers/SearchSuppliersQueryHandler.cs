@@ -42,7 +42,7 @@ namespace Pharmacy.Application.Features.Suppliers.Queries.SearchSuppliers
             var branchId = _currentUserService.BranchId.Value;
 
             var suppliers = await _supplierRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Where(s => !s.IsDeleted &&
                             s.BranchId == branchId &&
                             (

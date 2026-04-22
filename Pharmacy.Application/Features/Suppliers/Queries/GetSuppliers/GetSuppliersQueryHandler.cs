@@ -43,8 +43,7 @@ namespace Pharmacy.Application.Features.Suppliers.Queries.GetSuppliers
             var branchId = _currentUserService.BranchId.Value;
 
             var query = _supplierRepository
-                .GetAll()
-                .AsNoTracking()
+                .GetAllAsNoTracking()
                 .Where(s => !s.IsDeleted && s.BranchId == branchId);
 
             query = (request.SortBy?.ToLower(), request.SortDirection?.ToLower()) switch

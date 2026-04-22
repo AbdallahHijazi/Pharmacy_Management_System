@@ -34,7 +34,7 @@ namespace Pharmacy.Application.Features.Suppliers.Queries.GetSupplierById
                 throw new UnauthorizedException("لا يوجد فرع مرتبط بالمستخدم الحالي");
 
             var supplier = await _supplierRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .FirstOrDefaultAsync(
                     s => s.Id == request.SupplierId &&
                          !s.IsDeleted &&

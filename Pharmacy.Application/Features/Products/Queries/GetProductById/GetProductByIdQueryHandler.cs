@@ -34,7 +34,7 @@ namespace Pharmacy.Application.Features.Products.Queries.GetProductById
                 throw new UnauthorizedException("لا يوجد فرع مرتبط بالمستخدم الحالي");
 
             var product = await _productRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Include(p => p.Category)
                 .FirstOrDefaultAsync(
                     p => p.Id == request.ProductId &&

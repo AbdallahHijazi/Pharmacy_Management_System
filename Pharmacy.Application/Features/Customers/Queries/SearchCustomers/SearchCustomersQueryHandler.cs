@@ -42,7 +42,7 @@ namespace Pharmacy.Application.Features.Customers.Queries.SearchCustomers
             var branchId = _currentUserService.BranchId.Value;
 
             var customers = await _customerRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Where(c => !c.IsDeleted &&
                             c.BranchId == branchId &&
                             (

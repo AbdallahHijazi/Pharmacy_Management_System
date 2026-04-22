@@ -34,7 +34,7 @@ namespace Pharmacy.Application.Features.Inventory.Queries.GetStockBatchById
                 throw new UnauthorizedException("لا يوجد فرع مرتبط بالمستخدم الحالي");
 
             var stockBatch = await _stockBatchRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Include(sb => sb.Product)
                 .Include(sb => sb.Supplier)
                 .FirstOrDefaultAsync(
