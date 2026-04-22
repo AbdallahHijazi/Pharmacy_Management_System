@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Roles;
+using Pharmacy.Application.Features.Roles.Commands.CreateRole;
 using Pharmacy.Application.Features.Roles.Queries.GetRoles;
 
 namespace PharmacyProjectApi.Controllers.Roles
@@ -26,6 +27,24 @@ namespace PharmacyProjectApi.Controllers.Roles
         {
             var result = await _mediator.Send(new GetRolesQuery());
             return Ok(result);
+        }
+
+        [HttpPost]
+        [ProducesResponseType(typeof(RoleDetailsDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequestDto request)
+        {
+            var command = new CreateRoleCommand
+            {
+                Name = request.Name,
+                Description = request.Description
+            };
+
+            var result = await _mediator.Send(command);
+
+            return CreatedAtAction(nameof(GetRoles), new { id = result.RoleId }, result);
         }
     }
 }
