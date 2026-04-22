@@ -4,6 +4,8 @@ using Pharmacy.Application.Common.Interfaces;
 using Pharmacy.Application.DTOs.Search;
 using Pharmacy.Domain.Entities.Catalog;
 using Pharmacy.Domain.Entities.Partners;
+using Pharmacy.Domain.Entities.Purchases;
+using Pharmacy.Domain.Entities.Sales;
 using Pharmacy.Domain.Exceptions;
 using System;
 using System.Collections.Generic;
@@ -18,17 +20,23 @@ namespace Pharmacy.Application.Features.Search.Queries.GlobalSearch
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<Customer> _customerRepository;
         private readonly IRepository<Supplier> _supplierRepository;
+        private readonly IRepository<SalesInvoice> _salesInvoiceRepository;
+        private readonly IRepository<PurchaseInvoice> _purchaseInvoiceRepository;
         private readonly ICurrentUserService _currentUserService;
 
         public GlobalSearchQueryHandler(
-            IRepository<Product> productRepository,
-            IRepository<Customer> customerRepository,
-            IRepository<Supplier> supplierRepository,
-            ICurrentUserService currentUserService)
+                IRepository<Product> productRepository,
+                IRepository<Customer> customerRepository,
+                IRepository<Supplier> supplierRepository,
+                IRepository<SalesInvoice> salesInvoiceRepository,
+                IRepository<PurchaseInvoice> purchaseInvoiceRepository,
+                ICurrentUserService currentUserService)
         {
             _productRepository = productRepository;
             _customerRepository = customerRepository;
             _supplierRepository = supplierRepository;
+            _salesInvoiceRepository = salesInvoiceRepository;
+            _purchaseInvoiceRepository = purchaseInvoiceRepository;
             _currentUserService = currentUserService;
         }
 
@@ -100,10 +108,41 @@ namespace Pharmacy.Application.Features.Search.Queries.GlobalSearch
                     Subtitle = s.Phone
                 })
                 .ToListAsync(cancellationToken);
-
+            var salesInvoices = await _salesInvoiceRepository
+                .GetAll()
+                .Where(si => !si.IsDeleted &&
+                             si.BranchId == branchId &&
+                             si.InvoiceNumber.ToLower().Contains(normalizedQuery))
+                .OrderByDescending(si => si.CreatedAt)
+                .Take(5)
+                .Select(si => new GlobalSearchResultDto
+                {
+                    Type = "SalesInvoice",
+                    Id = si.Id,
+                    Title = si.InvoiceNumber,
+                    Subtitle = $"إجمالي: {si.GrandTotal}"
+                })
+                .ToListAsync(cancellationToken);
+            var purchaseInvoices = await _purchaseInvoiceRepository
+                .GetAll()
+                .Where(pi => !pi.IsDeleted &&
+                             pi.BranchId == branchId &&
+                             pi.InvoiceNumber.ToLower().Contains(normalizedQuery))
+                .OrderByDescending(pi => pi.CreatedAt)
+                .Take(5)
+                .Select(pi => new GlobalSearchResultDto
+                {
+                    Type = "PurchaseInvoice",
+                    Id = pi.Id,
+                    Title = pi.InvoiceNumber,
+                    Subtitle = $"إجمالي: {pi.GrandTotal}"
+                })
+                .ToListAsync(cancellationToken);
             return products
                 .Concat(customers)
                 .Concat(suppliers)
+                .Concat(salesInvoices)
+                .Concat(purchaseInvoices)
                 .ToList();
         }
     }
