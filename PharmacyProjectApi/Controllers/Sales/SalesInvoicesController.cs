@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
+using Pharmacy.Application.Common.Models;
 using Pharmacy.Application.DTOs.Sales;
 using Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice;
 using Pharmacy.Application.Features.Sales.Queries.GetSalesInvoiceById;
@@ -23,11 +24,23 @@ namespace PharmacyProjectApi.Controllers.Sales
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(List<SalesInvoiceListItemDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PagedResult<SalesInvoiceListItemDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> GetSalesInvoices()
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetSalesInvoices(
+                [FromQuery] int pageNumber = 1,
+                [FromQuery] int pageSize = 10,
+                [FromQuery] string? sortBy = "createdat",
+                [FromQuery] string? sortDirection = "desc")
         {
-            var result = await _mediator.Send(new GetSalesInvoicesQuery());
+            var result = await _mediator.Send(new GetSalesInvoicesQuery
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                SortBy = sortBy,
+                SortDirection = sortDirection
+            });
+
             return Ok(result);
         }
 

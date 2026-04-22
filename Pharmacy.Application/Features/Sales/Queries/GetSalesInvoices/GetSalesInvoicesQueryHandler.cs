@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Pharmacy.Application.Common.Interfaces;
+using Pharmacy.Application.Common.Models;
 using Pharmacy.Application.DTOs.Sales;
 using Pharmacy.Domain.Entities.Sales;
 using Pharmacy.Domain.Exceptions;
@@ -12,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Pharmacy.Application.Features.Sales.Queries.GetSalesInvoices
 {
-    public class GetSalesInvoicesQueryHandler : IRequestHandler<GetSalesInvoicesQuery, List<SalesInvoiceListItemDto>>
+    public class GetSalesInvoicesQueryHandler : IRequestHandler<GetSalesInvoicesQuery, PagedResult<SalesInvoiceListItemDto>>
     {
         private readonly IRepository<SalesInvoice> _salesInvoiceRepository;
         private readonly ICurrentUserService _currentUserService;
@@ -25,7 +26,7 @@ namespace Pharmacy.Application.Features.Sales.Queries.GetSalesInvoices
             _currentUserService = currentUserService;
         }
 
-        public async Task<List<SalesInvoiceListItemDto>> Handle(GetSalesInvoicesQuery request, CancellationToken cancellationToken)
+        public async Task<PagedResult<SalesInvoiceListItemDto>> Handle(GetSalesInvoicesQuery request, CancellationToken cancellationToken)
         {
             if (_currentUserService.UserId is null)
                 throw new UnauthorizedException("المستخدم غير مسجل الدخول");
@@ -33,12 +34,42 @@ namespace Pharmacy.Application.Features.Sales.Queries.GetSalesInvoices
             if (_currentUserService.BranchId is null)
                 throw new UnauthorizedException("لا يوجد فرع مرتبط بالمستخدم الحالي");
 
-            var invoices = await _salesInvoiceRepository
+            if (request.PageNumber <= 0)
+                throw new BadRequestException("رقم الصفحة يجب أن يكون أكبر من صفر");
+
+            if (request.PageSize <= 0 || request.PageSize > 100)
+                throw new BadRequestException("حجم الصفحة يجب أن يكون بين 1 و 100");
+
+            var branchId = _currentUserService.BranchId.Value;
+
+            var query = _salesInvoiceRepository
                 .GetAll()
+                .AsNoTracking()
                 .Include(si => si.Customer)
                 .Include(si => si.User)
-                .Where(si => !si.IsDeleted && si.BranchId == _currentUserService.BranchId.Value)
-                .OrderByDescending(si => si.CreatedAt)
+                .Where(si => !si.IsDeleted && si.BranchId == branchId);
+
+            query = (request.SortBy?.ToLower(), request.SortDirection?.ToLower()) switch
+            {
+                ("invoicenumber", "asc") => query.OrderBy(si => si.InvoiceNumber),
+                ("grandtotal", "asc") => query.OrderBy(si => si.GrandTotal),
+                ("paidamount", "asc") => query.OrderBy(si => si.PaidAmount),
+                ("remainingamount", "asc") => query.OrderBy(si => si.RemainingAmount),
+                ("createdat", "asc") => query.OrderBy(si => si.CreatedAt),
+
+                ("invoicenumber", _) => query.OrderByDescending(si => si.InvoiceNumber),
+                ("grandtotal", _) => query.OrderByDescending(si => si.GrandTotal),
+                ("paidamount", _) => query.OrderByDescending(si => si.PaidAmount),
+                ("remainingamount", _) => query.OrderByDescending(si => si.RemainingAmount),
+
+                _ => query.OrderByDescending(si => si.CreatedAt)
+            };
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var items = await query
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
                 .Select(si => new SalesInvoiceListItemDto
                 {
                     SalesInvoiceId = si.Id,
@@ -60,7 +91,13 @@ namespace Pharmacy.Application.Features.Sales.Queries.GetSalesInvoices
                 })
                 .ToListAsync(cancellationToken);
 
-            return invoices;
+            return new PagedResult<SalesInvoiceListItemDto>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize
+            };
         }
     }
 }

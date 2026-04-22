@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
+using Pharmacy.Application.Common.Models;
 using Pharmacy.Application.DTOs.Purchases;
 using Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseInvoice;
 using Pharmacy.Application.Features.Purchases.Queries.GetPurchaseInvoiceById;
@@ -23,11 +24,23 @@ namespace PharmacyProjectApi.Controllers.Purchases
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(List<PurchaseInvoiceListItemDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PagedResult<PurchaseInvoiceListItemDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> GetPurchaseInvoices()
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetPurchaseInvoices(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? sortBy = "createdat",
+            [FromQuery] string? sortDirection = "desc")
         {
-            var result = await _mediator.Send(new GetPurchaseInvoicesQuery());
+            var result = await _mediator.Send(new GetPurchaseInvoicesQuery
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                SortBy = sortBy,
+                SortDirection = sortDirection
+            });
+
             return Ok(result);
         }
 
