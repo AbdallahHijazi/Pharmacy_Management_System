@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Inventory;
 using Pharmacy.Application.Features.Inventory.Commands.CreateStockBatch;
+using Pharmacy.Application.Features.Inventory.Commands.DeleteStockBatch;
 using Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch;
 using Pharmacy.Application.Features.Inventory.Queries.GetStockBatchById;
 using Pharmacy.Application.Features.Inventory.Queries.GetStockBatches;
@@ -89,6 +90,20 @@ namespace PharmacyProjectApi.Controllers.Inventory
             });
 
             return Ok(result);
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteStockBatch(Guid id)
+        {
+            await _mediator.Send(new DeleteStockBatchCommand
+            {
+                StockBatchId = id
+            });
+
+            return Ok(new { message = "تم حذف دفعة المخزون بنجاح" });
         }
     }
 }
