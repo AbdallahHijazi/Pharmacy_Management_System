@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Notifications;
 using Pharmacy.Application.Features.Notifications.Queries.GetNotifications;
+using Pharmacy.Application.Features.Notifications.Queries.GetNotificationsCount;
 
 namespace PharmacyProjectApi.Controllers.Notifications
 {
@@ -25,6 +26,15 @@ namespace PharmacyProjectApi.Controllers.Notifications
         public async Task<IActionResult> GetNotifications()
         {
             var result = await _mediator.Send(new GetNotificationsQuery());
+            return Ok(result);
+        }
+
+        [HttpGet("count")]
+        [ProducesResponseType(typeof(NotificationsCountDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetNotificationsCount()
+        {
+            var result = await _mediator.Send(new GetNotificationsCountQuery());
             return Ok(result);
         }
     }
