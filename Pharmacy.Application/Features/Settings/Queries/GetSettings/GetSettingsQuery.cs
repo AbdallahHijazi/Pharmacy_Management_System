@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Pharmacy.Application.Features.Settings.Queries.GetSettings
 {
-    public class GetSettingsQuery : IRequest<SettingsDto>
+    public class GetSettingsQuery : IRequest<List<SystemSettingDto>>
     {
     }
 }

@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Pharmacy.Application.Features.Settings.Queries.GetSettings
 {
-    public class GetSettingsQueryHandler : IRequestHandler<GetSettingsQuery, SettingsDto>
+    public class GetSettingsQueryHandler : IRequestHandler<GetSettingsQuery, List<SystemSettingDto>>
     {
         private readonly IRepository<SystemSetting> _settingsRepository;
         private readonly ICurrentUserService _currentUserService;
@@ -25,22 +25,24 @@ namespace Pharmacy.Application.Features.Settings.Queries.GetSettings
             _currentUserService = currentUserService;
         }
 
-        public async Task<SettingsDto> Handle(GetSettingsQuery request, CancellationToken cancellationToken)
+        public async Task<List<SystemSettingDto>> Handle(GetSettingsQuery request, CancellationToken cancellationToken)
         {
             if (_currentUserService.UserId is null)
                 throw new UnauthorizedException("المستخدم غير مسجل الدخول");
 
-            var setting = await _settingsRepository
+            var settings = await _settingsRepository
                 .GetAll()
-                .FirstOrDefaultAsync(s => !s.IsDeleted, cancellationToken);
+                .Where(s => !s.IsDeleted)
+                .Select(s => new SystemSettingDto
+                {
+                    SettingId = s.Id,
+                    Key = s.Key,
+                    Value = s.Value,
+                    Description = s.Description
+                })
+                .ToListAsync(cancellationToken);
 
-            if (setting is null)
-                throw new NotFoundException("Setting", Guid.Empty);
-
-            return new SettingsDto
-            {
-                SettingId = setting.Id
-            };
+            return settings;
         }
     }
 }

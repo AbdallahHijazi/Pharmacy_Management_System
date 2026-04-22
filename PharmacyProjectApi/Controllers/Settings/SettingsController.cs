@@ -20,7 +20,7 @@ namespace PharmacyProjectApi.Controllers.Settings
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(SettingsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SystemSettingDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetSettings()

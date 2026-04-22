@@ -6,8 +6,11 @@ using System.Threading.Tasks;
 
 namespace Pharmacy.Application.DTOs.Settings
 {
-    public class SettingsDto
+    public class SystemSettingDto
     {
         public Guid SettingId { get; set; }
+        public string Key { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
     }
 }
