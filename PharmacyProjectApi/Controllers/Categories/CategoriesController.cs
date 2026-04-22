@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Categories;
+using Pharmacy.Application.Features.Categories.Commands.CreateCategory;
 using Pharmacy.Application.Features.Categories.Queries.GetCategories;
 
 namespace PharmacyProjectApi.Controllers.Categories
@@ -27,6 +28,21 @@ namespace PharmacyProjectApi.Controllers.Categories
         {
             var result = await _mediator.Send(new GetCategoriesQuery());
             return Ok(result);
+        }
+
+        [HttpPost]
+        [ProducesResponseType(typeof(CategoryListItemDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryRequestDto request)
+        {
+            var result = await _mediator.Send(new CreateCategoryCommand
+            {
+                Name = request.Name
+            });
+
+            return CreatedAtAction(nameof(GetCategories), new { id = result.CategoryId }, result);
         }
     }
 }
