@@ -36,7 +36,7 @@ namespace Pharmacy.Application.Features.Dashboard.Queries.GetTopSellingProducts
             var branchId = _currentUserService.BranchId.Value;
 
             var products = await _salesInvoiceItemRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Include(sii => sii.StockBatch)
                 .ThenInclude(sb => sb.Product)
                 .Include(sii => sii.SalesInvoice)

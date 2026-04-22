@@ -39,7 +39,7 @@ namespace Pharmacy.Application.Features.Reports.Queries.GetSalesReport
             var branchId = _currentUserService.BranchId.Value;
 
             var query = _salesInvoiceRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Where(si => !si.IsDeleted &&
                              si.BranchId == branchId &&
                              si.CreatedAt >= request.FromDate &&

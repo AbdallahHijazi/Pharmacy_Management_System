@@ -63,7 +63,7 @@ namespace Pharmacy.Application.Features.Search.Queries.GlobalSearch
             var normalizedQuery = query.ToLower();
 
             var products = await _productRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Where(p => !p.IsDeleted &&
                             p.BranchId == branchId &&
                             (p.Name.ToLower().Contains(normalizedQuery) ||
@@ -81,7 +81,7 @@ namespace Pharmacy.Application.Features.Search.Queries.GlobalSearch
                 .ToListAsync(cancellationToken);
 
             var customers = await _customerRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Where(c => !c.IsDeleted &&
                             c.BranchId == branchId &&
                             (c.FullName.ToLower().Contains(normalizedQuery) ||
@@ -98,7 +98,7 @@ namespace Pharmacy.Application.Features.Search.Queries.GlobalSearch
                 .ToListAsync(cancellationToken);
 
             var suppliers = await _supplierRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Where(s => !s.IsDeleted &&
                             s.BranchId == branchId &&
                             (s.Name.ToLower().Contains(normalizedQuery) ||
@@ -115,7 +115,7 @@ namespace Pharmacy.Application.Features.Search.Queries.GlobalSearch
                 })
                 .ToListAsync(cancellationToken);
             var salesInvoices = await _salesInvoiceRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Where(si => !si.IsDeleted &&
                              si.BranchId == branchId &&
                              si.InvoiceNumber.ToLower().Contains(normalizedQuery))
@@ -130,7 +130,7 @@ namespace Pharmacy.Application.Features.Search.Queries.GlobalSearch
                 })
                 .ToListAsync(cancellationToken);
             var purchaseInvoices = await _purchaseInvoiceRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Where(pi => !pi.IsDeleted &&
                              pi.BranchId == branchId &&
                              pi.InvoiceNumber.ToLower().Contains(normalizedQuery))
@@ -145,7 +145,7 @@ namespace Pharmacy.Application.Features.Search.Queries.GlobalSearch
                 })
                 .ToListAsync(cancellationToken);
             var salesReturns = await _salesReturnRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Include(sr => sr.SalesInvoice)
                 .Where(sr => !sr.IsDeleted &&
                              sr.SalesInvoice.BranchId == branchId &&
@@ -161,7 +161,7 @@ namespace Pharmacy.Application.Features.Search.Queries.GlobalSearch
                 })
                 .ToListAsync(cancellationToken);
             var purchaseReturns = await _purchaseReturnRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Include(pr => pr.PurchaseInvoice)
                 .Where(pr => !pr.IsDeleted &&
                                 pr.PurchaseInvoice.BranchId == branchId &&

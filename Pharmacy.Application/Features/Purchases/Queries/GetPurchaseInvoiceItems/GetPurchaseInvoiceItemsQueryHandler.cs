@@ -34,7 +34,7 @@ namespace Pharmacy.Application.Features.Purchases.Queries.GetPurchaseInvoiceItem
                 throw new UnauthorizedException("لا يوجد فرع مرتبط بالمستخدم");
 
             var items = await _purchaseInvoiceItemRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Include(i => i.Product)
                 .Include(i => i.PurchaseInvoice)
                 .Where(i => !i.IsDeleted &&

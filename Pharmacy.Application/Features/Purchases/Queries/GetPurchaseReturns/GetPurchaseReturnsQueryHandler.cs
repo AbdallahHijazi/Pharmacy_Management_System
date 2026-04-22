@@ -34,7 +34,7 @@ namespace Pharmacy.Application.Features.Purchases.Queries.GetPurchaseReturns
                 throw new UnauthorizedException("لا يوجد فرع مرتبط بالمستخدم الحالي");
 
             var returns = await _purchaseReturnRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Include(pr => pr.PurchaseInvoice)
                 .Include(pr => pr.User)
                 .Where(pr => !pr.IsDeleted && pr.PurchaseInvoice.BranchId == _currentUserService.BranchId.Value)

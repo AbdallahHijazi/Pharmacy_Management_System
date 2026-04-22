@@ -53,19 +53,19 @@ namespace Pharmacy.Application.Features.Dashboard.Queries.GetDashboardStats
             var expiringDate = DateTime.UtcNow.Date.AddDays(30);
 
             var totalProducts = await _productRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .CountAsync(p => !p.IsDeleted && p.BranchId == branchId, cancellationToken);
 
             var totalCustomers = await _customerRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .CountAsync(c => !c.IsDeleted && c.BranchId == branchId, cancellationToken);
 
             var totalSuppliers = await _supplierRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .CountAsync(s => !s.IsDeleted && s.BranchId == branchId, cancellationToken);
 
             var todayInvoicesCount = await _salesInvoiceRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .CountAsync(
                     si => !si.IsDeleted &&
                           si.BranchId == branchId &&
@@ -74,7 +74,7 @@ namespace Pharmacy.Application.Features.Dashboard.Queries.GetDashboardStats
                     cancellationToken);
 
             var todaySalesTotal = await _salesInvoiceRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Where(si => !si.IsDeleted &&
                              si.BranchId == branchId &&
                              si.CreatedAt >= today &&
@@ -83,7 +83,7 @@ namespace Pharmacy.Application.Features.Dashboard.Queries.GetDashboardStats
                 .SumAsync(cancellationToken) ?? 0m;
 
             var lowStockProductsCount = await _stockBatchRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Where(sb => !sb.IsDeleted && sb.BranchId == branchId)
                 .GroupBy(sb => sb.ProductId)
                 .Select(g => new
@@ -94,7 +94,7 @@ namespace Pharmacy.Application.Features.Dashboard.Queries.GetDashboardStats
                 .CountAsync(x => x.TotalAvailable > 0 && x.TotalAvailable <= 10, cancellationToken);
 
             var expiringSoonBatchesCount = await _stockBatchRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .CountAsync(
                     sb => !sb.IsDeleted &&
                           sb.BranchId == branchId &&

@@ -43,8 +43,7 @@ namespace Pharmacy.Application.Features.Sales.Queries.GetSalesInvoices
             var branchId = _currentUserService.BranchId.Value;
 
             var query = _salesInvoiceRepository
-                .GetAll()
-                .AsNoTracking()
+                .GetAllAsNoTracking()
                 .Include(si => si.Customer)
                 .Include(si => si.User)
                 .Where(si => !si.IsDeleted && si.BranchId == branchId);

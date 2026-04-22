@@ -38,7 +38,7 @@ namespace Pharmacy.Application.Features.Reports.Queries.GetInventoryReport
             var expiringSoonDate = today.AddDays(30);
 
             var baseQuery = _stockBatchRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Where(sb => !sb.IsDeleted && sb.BranchId == branchId);
 
             var totalProductsInStock = await baseQuery

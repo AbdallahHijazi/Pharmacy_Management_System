@@ -34,7 +34,7 @@ namespace Pharmacy.Application.Features.Sales.Queries.GetSalesInvoiceById
                 throw new UnauthorizedException("لا يوجد فرع مرتبط بالمستخدم");
 
             var invoice = await _salesInvoiceRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Include(si => si.Customer)
                 .Include(si => si.User)
                 .FirstOrDefaultAsync(

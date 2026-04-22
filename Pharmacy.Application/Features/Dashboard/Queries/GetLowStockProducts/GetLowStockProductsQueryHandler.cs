@@ -36,7 +36,7 @@ namespace Pharmacy.Application.Features.Dashboard.Queries.GetLowStockProducts
             var branchId = _currentUserService.BranchId.Value;
 
             var products = await _stockBatchRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Include(sb => sb.Product)
                 .Where(sb => !sb.IsDeleted &&
                              sb.BranchId == branchId &&

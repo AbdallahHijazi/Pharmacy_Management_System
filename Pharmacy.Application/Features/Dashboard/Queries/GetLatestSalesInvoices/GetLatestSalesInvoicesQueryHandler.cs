@@ -36,7 +36,7 @@ namespace Pharmacy.Application.Features.Dashboard.Queries.GetLatestSalesInvoices
             var branchId = _currentUserService.BranchId.Value;
 
             var invoices = await _salesInvoiceRepository
-                .GetAll()
+                .GetAllAsNoTracking()
                 .Include(si => si.Customer)
                 .Where(si => !si.IsDeleted && si.BranchId == branchId)
                 .OrderByDescending(si => si.CreatedAt)
