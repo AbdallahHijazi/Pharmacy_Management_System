@@ -6,6 +6,7 @@ using Pharmacy.Application.DTOs.Inventory;
 using Pharmacy.Application.Features.Inventory.Commands.CreateStockBatch;
 using Pharmacy.Application.Features.Inventory.Commands.DeleteStockBatch;
 using Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch;
+using Pharmacy.Application.Features.Inventory.Queries.GetExpiringSoonBatches;
 using Pharmacy.Application.Features.Inventory.Queries.GetLowStockBatches;
 using Pharmacy.Application.Features.Inventory.Queries.GetStockBatchById;
 using Pharmacy.Application.Features.Inventory.Queries.GetStockBatches;
@@ -113,6 +114,15 @@ namespace PharmacyProjectApi.Controllers.Inventory
         public async Task<IActionResult> GetLowStockBatches()
         {
             var result = await _mediator.Send(new GetLowStockBatchesQuery());
+            return Ok(result);
+        }
+
+        [HttpGet("expiring-soon")]
+        [ProducesResponseType(typeof(List<StockBatchListItemDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetExpiringSoonBatches()
+        {
+            var result = await _mediator.Send(new GetExpiringSoonBatchesQuery());
             return Ok(result);
         }
     }
