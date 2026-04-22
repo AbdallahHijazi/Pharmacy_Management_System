@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Customers;
 using Pharmacy.Application.Features.Customers.Commands.CreateCustomer;
+using Pharmacy.Application.Features.Customers.Commands.UpdateCustomer;
 using Pharmacy.Application.Features.Customers.Queries.GetCustomerById;
 using Pharmacy.Application.Features.Customers.Queries.GetCustomers;
 
@@ -55,6 +56,24 @@ namespace PharmacyProjectApi.Controllers.Customers
             var result = await _mediator.Send(new GetCustomerByIdQuery
             {
                 CustomerId = id
+            });
+
+            return Ok(result);
+        }
+
+        [HttpPut("{id:guid}")]
+        [ProducesResponseType(typeof(CustomerDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateCustomer(Guid id, [FromBody] UpdateCustomerRequestDto request)
+        {
+            var result = await _mediator.Send(new UpdateCustomerCommand
+            {
+                CustomerId = id,
+                FullName = request.FullName,
+                Phone = request.Phone,
+                Address = request.Address
             });
 
             return Ok(result);
