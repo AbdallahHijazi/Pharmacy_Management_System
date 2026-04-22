@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Roles;
 using Pharmacy.Application.Features.Roles.Commands.CreateRole;
+using Pharmacy.Application.Features.Roles.Commands.DeleteRole;
 using Pharmacy.Application.Features.Roles.Commands.UpdateRole;
 using Pharmacy.Application.Features.Roles.Queries.GetRoleById;
 using Pharmacy.Application.Features.Roles.Queries.GetRoles;
@@ -81,6 +82,20 @@ namespace PharmacyProjectApi.Controllers.Roles
             var result = await _mediator.Send(command);
 
             return Ok(result);
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteRole(Guid id)
+        {
+            await _mediator.Send(new DeleteRoleCommand
+            {
+                RoleId = id
+            });
+
+            return Ok(new { message = "تم حذف الدور بنجاح" });
         }
     }
 }
