@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Customers;
 using Pharmacy.Application.Features.Customers.Commands.CreateCustomer;
+using Pharmacy.Application.Features.Customers.Commands.DeleteCustomer;
 using Pharmacy.Application.Features.Customers.Commands.UpdateCustomer;
 using Pharmacy.Application.Features.Customers.Queries.GetCustomerById;
 using Pharmacy.Application.Features.Customers.Queries.GetCustomers;
@@ -77,6 +78,20 @@ namespace PharmacyProjectApi.Controllers.Customers
             });
 
             return Ok(result);
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteCustomer(Guid id)
+        {
+            await _mediator.Send(new DeleteCustomerCommand
+            {
+                CustomerId = id
+            });
+
+            return Ok(new { message = "تم حذف الزبون بنجاح" });
         }
     }
 }
