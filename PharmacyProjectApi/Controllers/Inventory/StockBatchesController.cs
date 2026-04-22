@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Inventory;
+using Pharmacy.Application.Features.Inventory.Commands.CreateStockBatch;
 using Pharmacy.Application.Features.Inventory.Queries.GetStockBatches;
 
 namespace PharmacyProjectApi.Controllers.Inventory
@@ -26,6 +27,28 @@ namespace PharmacyProjectApi.Controllers.Inventory
         {
             var result = await _mediator.Send(new GetStockBatchesQuery());
             return Ok(result);
+        }
+
+        [HttpPost]
+        [ProducesResponseType(typeof(StockBatchDetailsDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> CreateStockBatch([FromBody] CreateStockBatchRequestDto request)
+        {
+            var result = await _mediator.Send(new CreateStockBatchCommand
+            {
+                ProductId = request.ProductId,
+                BatchNumber = request.BatchNumber,
+                ExpiryDate = request.ExpiryDate,
+                PurchasePrice = request.PurchasePrice,
+                ReceivedQuantity = request.ReceivedQuantity,
+                AvailableQuantity = request.AvailableQuantity,
+                SupplierId = request.SupplierId
+            });
+
+            return CreatedAtAction(nameof(GetStockBatches), new { id = result.StockBatchId }, result);
         }
     }
 }
