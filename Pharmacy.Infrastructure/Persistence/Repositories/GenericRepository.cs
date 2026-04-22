@@ -42,5 +42,9 @@ namespace Pharmacy.Infrastructure.Persistence.Repositories
             var updatedEntity = context.Set<T>().Update(entity);
             return updatedEntity.Entity;
         }
+        public IQueryable<T> GetAllAsNoTracking()
+        {
+            return context.Set<T>().AsNoTracking();
+        }
     }
 }
