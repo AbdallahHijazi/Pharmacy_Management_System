@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Sales;
 using Pharmacy.Application.Features.Sales.Commands.CreateSalesReturn;
+using Pharmacy.Application.Features.Sales.Queries.GetSalesReturnById;
 using Pharmacy.Application.Features.Sales.Queries.GetSalesReturns;
 
 namespace PharmacyProjectApi.Controllers.Sales
@@ -43,7 +44,21 @@ namespace PharmacyProjectApi.Controllers.Sales
                 Items = request.Items
             });
 
-            return CreatedAtAction(nameof(GetSalesReturns), new { id = result.SalesReturnId }, result);
+            return CreatedAtAction(nameof(GetSalesReturnById), new { id = result.SalesReturnId }, result);
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(SalesReturnDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetSalesReturnById(Guid id)
+        {
+            var result = await _mediator.Send(new GetSalesReturnByIdQuery
+            {
+                SalesReturnId = id
+            });
+
+            return Ok(result);
         }
     }
 }
