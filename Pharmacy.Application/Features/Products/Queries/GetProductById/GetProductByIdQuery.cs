@@ -1,0 +1,15 @@
+﻿using MediatR;
+using Pharmacy.Application.DTOs.Products;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Pharmacy.Application.Features.Products.Queries.GetProductById
+{
+    public class GetProductByIdQuery : IRequest<ProductDetailsDto>
+    {
+        public Guid ProductId { get; set; }
+    }
+}

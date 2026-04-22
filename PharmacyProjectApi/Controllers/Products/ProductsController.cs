@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Products;
 using Pharmacy.Application.Features.Products.Commands.CreateProduct;
+using Pharmacy.Application.Features.Products.Queries.GetProductById;
 using Pharmacy.Application.Features.Products.Queries.GetProducts;
 
 namespace PharmacyProjectApi.Controllers.Products
@@ -47,7 +48,21 @@ namespace PharmacyProjectApi.Controllers.Products
                 DefaultSupplierId = request.DefaultSupplierId
             });
 
-            return CreatedAtAction(nameof(GetProducts), new { id = result.ProductId }, result);
+            return CreatedAtAction(nameof(GetProductById), new { id = result.ProductId }, result);
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ProductDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetProductById(Guid id)
+        {
+            var result = await _mediator.Send(new GetProductByIdQuery
+            {
+                ProductId = id
+            });
+
+            return Ok(result);
         }
     }
 }
