@@ -23,20 +23,26 @@ namespace Pharmacy.Application.Features.Search.Queries.GlobalSearch
         private readonly IRepository<SalesInvoice> _salesInvoiceRepository;
         private readonly IRepository<PurchaseInvoice> _purchaseInvoiceRepository;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IRepository<SalesReturn> _salesReturnRepository;
+        private readonly IRepository<PurchaseReturn> _purchaseReturnRepository;
 
         public GlobalSearchQueryHandler(
-                IRepository<Product> productRepository,
-                IRepository<Customer> customerRepository,
-                IRepository<Supplier> supplierRepository,
-                IRepository<SalesInvoice> salesInvoiceRepository,
-                IRepository<PurchaseInvoice> purchaseInvoiceRepository,
-                ICurrentUserService currentUserService)
+                    IRepository<Product> productRepository,
+                    IRepository<Customer> customerRepository,
+                    IRepository<Supplier> supplierRepository,
+                    IRepository<SalesInvoice> salesInvoiceRepository,
+                    IRepository<PurchaseInvoice> purchaseInvoiceRepository,
+                    IRepository<SalesReturn> salesReturnRepository,
+                    IRepository<PurchaseReturn> purchaseReturnRepository,
+                    ICurrentUserService currentUserService)
         {
             _productRepository = productRepository;
             _customerRepository = customerRepository;
             _supplierRepository = supplierRepository;
             _salesInvoiceRepository = salesInvoiceRepository;
             _purchaseInvoiceRepository = purchaseInvoiceRepository;
+            _salesReturnRepository = salesReturnRepository;
+            _purchaseReturnRepository = purchaseReturnRepository;
             _currentUserService = currentUserService;
         }
 
@@ -138,11 +144,45 @@ namespace Pharmacy.Application.Features.Search.Queries.GlobalSearch
                     Subtitle = $"إجمالي: {pi.GrandTotal}"
                 })
                 .ToListAsync(cancellationToken);
+            var salesReturns = await _salesReturnRepository
+                .GetAll()
+                .Include(sr => sr.SalesInvoice)
+                .Where(sr => !sr.IsDeleted &&
+                             sr.SalesInvoice.BranchId == branchId &&
+                             sr.SalesInvoice.InvoiceNumber.ToLower().Contains(normalizedQuery))
+                .OrderByDescending(sr => sr.CreatedAt)
+                .Take(5)
+                .Select(sr => new GlobalSearchResultDto
+                {
+                    Type = "SalesReturn",
+                    Id = sr.Id,
+                    Title = $"مرتجع بيع - {sr.SalesInvoice.InvoiceNumber}",
+                    Subtitle = $"استرداد: {sr.RefundAmount}"
+                })
+                .ToListAsync(cancellationToken);
+            var purchaseReturns = await _purchaseReturnRepository
+                .GetAll()
+                .Include(pr => pr.PurchaseInvoice)
+                .Where(pr => !pr.IsDeleted &&
+                                pr.PurchaseInvoice.BranchId == branchId &&
+                                pr.PurchaseInvoice.InvoiceNumber.ToLower().Contains(normalizedQuery))
+                .OrderByDescending(pr => pr.CreatedAt)
+                .Take(5)
+                .Select(pr => new GlobalSearchResultDto
+                {
+                    Type = "PurchaseReturn",
+                    Id = pr.Id,
+                    Title = $"مرتجع شراء - {pr.PurchaseInvoice.InvoiceNumber}",
+                    Subtitle = $"استرداد: {pr.RefundAmount}"
+                })
+                .ToListAsync(cancellationToken);
             return products
                 .Concat(customers)
                 .Concat(suppliers)
                 .Concat(salesInvoices)
                 .Concat(purchaseInvoices)
+                .Concat(salesReturns)
+                .Concat(purchaseReturns)
                 .ToList();
         }
     }
