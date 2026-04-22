@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Suppliers;
 using Pharmacy.Application.Features.Suppliers.Commands.CreateSupplier;
+using Pharmacy.Application.Features.Suppliers.Commands.UpdateSupplier;
 using Pharmacy.Application.Features.Suppliers.Queries.GetSupplierById;
 using Pharmacy.Application.Features.Suppliers.Queries.GetSuppliers;
 
@@ -56,6 +57,25 @@ namespace PharmacyProjectApi.Controllers.Suppliers
             var result = await _mediator.Send(new GetSupplierByIdQuery
             {
                 SupplierId = id
+            });
+
+            return Ok(result);
+        }
+
+        [HttpPut("{id:guid}")]
+        [ProducesResponseType(typeof(SupplierDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateSupplier(Guid id, [FromBody] UpdateSupplierRequestDto request)
+        {
+            var result = await _mediator.Send(new UpdateSupplierCommand
+            {
+                SupplierId = id,
+                Name = request.Name,
+                ContactPerson = request.ContactPerson,
+                Phone = request.Phone,
+                Address = request.Address
             });
 
             return Ok(result);
