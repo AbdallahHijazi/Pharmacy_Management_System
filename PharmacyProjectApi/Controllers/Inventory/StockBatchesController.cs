@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
+using Pharmacy.Application.Common.Models;
 using Pharmacy.Application.DTOs.Inventory;
 using Pharmacy.Application.Features.Inventory.Commands.CreateStockBatch;
 using Pharmacy.Application.Features.Inventory.Commands.DeleteStockBatch;
@@ -27,11 +28,23 @@ namespace PharmacyProjectApi.Controllers.Inventory
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(List<StockBatchListItemDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PagedResult<StockBatchListItemDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> GetStockBatches()
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetStockBatches(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? sortBy = "expirydate",
+            [FromQuery] string? sortDirection = "asc")
         {
-            var result = await _mediator.Send(new GetStockBatchesQuery());
+            var result = await _mediator.Send(new GetStockBatchesQuery
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                SortBy = sortBy,
+                SortDirection = sortDirection
+            });
+
             return Ok(result);
         }
 

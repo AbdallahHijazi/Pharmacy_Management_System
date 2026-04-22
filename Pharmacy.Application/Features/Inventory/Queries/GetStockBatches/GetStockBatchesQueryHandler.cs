@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Pharmacy.Application.Common.Interfaces;
+using Pharmacy.Application.Common.Models;
 using Pharmacy.Application.DTOs.Inventory;
 using Pharmacy.Domain.Entities.Catalog;
 using Pharmacy.Domain.Exceptions;
@@ -12,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Pharmacy.Application.Features.Inventory.Queries.GetStockBatches
 {
-    public class GetStockBatchesQueryHandler : IRequestHandler<GetStockBatchesQuery, List<StockBatchListItemDto>>
+    public class GetStockBatchesQueryHandler : IRequestHandler<GetStockBatchesQuery, PagedResult<StockBatchListItemDto>>
     {
         private readonly IRepository<StockBatch> _stockBatchRepository;
         private readonly ICurrentUserService _currentUserService;
@@ -25,7 +26,7 @@ namespace Pharmacy.Application.Features.Inventory.Queries.GetStockBatches
             _currentUserService = currentUserService;
         }
 
-        public async Task<List<StockBatchListItemDto>> Handle(GetStockBatchesQuery request, CancellationToken cancellationToken)
+        public async Task<PagedResult<StockBatchListItemDto>> Handle(GetStockBatchesQuery request, CancellationToken cancellationToken)
         {
             if (_currentUserService.UserId is null)
                 throw new UnauthorizedException("المستخدم غير مسجل الدخول");
@@ -33,13 +34,40 @@ namespace Pharmacy.Application.Features.Inventory.Queries.GetStockBatches
             if (_currentUserService.BranchId is null)
                 throw new UnauthorizedException("لا يوجد فرع مرتبط بالمستخدم الحالي");
 
-            var stockBatches = await _stockBatchRepository
+            if (request.PageNumber <= 0)
+                throw new BadRequestException("رقم الصفحة يجب أن يكون أكبر من صفر");
+
+            if (request.PageSize <= 0 || request.PageSize > 100)
+                throw new BadRequestException("حجم الصفحة يجب أن يكون بين 1 و 100");
+
+            var branchId = _currentUserService.BranchId.Value;
+
+            var query = _stockBatchRepository
                 .GetAll()
+                .AsNoTracking()
                 .Include(sb => sb.Product)
                 .Include(sb => sb.Supplier)
-                .Where(sb => !sb.IsDeleted && sb.BranchId == _currentUserService.BranchId.Value)
-                .OrderBy(sb => sb.ExpiryDate)
-                .ThenBy(sb => sb.BatchNumber)
+                .Where(sb => !sb.IsDeleted && sb.BranchId == branchId);
+
+            query = (request.SortBy?.ToLower(), request.SortDirection?.ToLower()) switch
+            {
+                ("expirydate", "desc") => query.OrderByDescending(sb => sb.ExpiryDate),
+                ("batchnumber", "desc") => query.OrderByDescending(sb => sb.BatchNumber),
+                ("availablequantity", "desc") => query.OrderByDescending(sb => sb.AvailableQuantity),
+                ("purchaseprice", "desc") => query.OrderByDescending(sb => sb.PurchasePrice),
+
+                ("batchnumber", _) => query.OrderBy(sb => sb.BatchNumber),
+                ("availablequantity", _) => query.OrderBy(sb => sb.AvailableQuantity),
+                ("purchaseprice", _) => query.OrderBy(sb => sb.PurchasePrice),
+
+                _ => query.OrderBy(sb => sb.ExpiryDate)
+            };
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var items = await query
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
                 .Select(sb => new StockBatchListItemDto
                 {
                     StockBatchId = sb.Id,
@@ -56,7 +84,13 @@ namespace Pharmacy.Application.Features.Inventory.Queries.GetStockBatches
                 })
                 .ToListAsync(cancellationToken);
 
-            return stockBatches;
+            return new PagedResult<StockBatchListItemDto>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize
+            };
         }
     }
 }

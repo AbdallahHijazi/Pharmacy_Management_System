@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
+using Pharmacy.Application.Common.Models;
 using Pharmacy.Application.DTOs.Inventory;
 using Pharmacy.Application.DTOs.Suppliers;
 using Pharmacy.Application.Features.Inventory.Queries.GetStockBatchById;
@@ -27,11 +28,23 @@ namespace PharmacyProjectApi.Controllers.Suppliers
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(List<SupplierListItemDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PagedResult<SupplierListItemDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> GetSuppliers()
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetSuppliers(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? sortBy = "name",
+            [FromQuery] string? sortDirection = "asc")
         {
-            var result = await _mediator.Send(new GetSuppliersQuery());
+            var result = await _mediator.Send(new GetSuppliersQuery
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                SortBy = sortBy,
+                SortDirection = sortDirection
+            });
+
             return Ok(result);
         }
 
