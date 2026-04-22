@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Suppliers;
+using Pharmacy.Application.Features.Suppliers.Commands.CreateSupplier;
 using Pharmacy.Application.Features.Suppliers.Queries.GetSuppliers;
 
 namespace PharmacyProjectApi.Controllers.Suppliers
@@ -26,6 +27,23 @@ namespace PharmacyProjectApi.Controllers.Suppliers
         {
             var result = await _mediator.Send(new GetSuppliersQuery());
             return Ok(result);
+        }
+
+        [HttpPost]
+        [ProducesResponseType(typeof(SupplierDetailsDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> CreateSupplier([FromBody] CreateSupplierRequestDto request)
+        {
+            var result = await _mediator.Send(new CreateSupplierCommand
+            {
+                Name = request.Name,
+                ContactPerson = request.ContactPerson,
+                Phone = request.Phone,
+                Address = request.Address
+            });
+
+            return CreatedAtAction(nameof(GetSuppliers), new { id = result.SupplierId }, result);
         }
     }
 }
