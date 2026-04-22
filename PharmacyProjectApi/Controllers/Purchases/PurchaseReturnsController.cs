@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Purchases;
+using Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseReturn;
 using Pharmacy.Application.Features.Purchases.Queries.GetPurchaseReturns;
 
 namespace PharmacyProjectApi.Controllers.Purchases
@@ -26,6 +27,23 @@ namespace PharmacyProjectApi.Controllers.Purchases
         {
             var result = await _mediator.Send(new GetPurchaseReturnsQuery());
             return Ok(result);
+        }
+
+        [HttpPost]
+        [ProducesResponseType(typeof(PurchaseReturnDetailsDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> CreatePurchaseReturn([FromBody] CreatePurchaseReturnRequestDto request)
+        {
+            var result = await _mediator.Send(new CreatePurchaseReturnCommand
+            {
+                PurchaseInvoiceId = request.PurchaseInvoiceId,
+                Reason = request.Reason,
+                Items = request.Items
+            });
+
+            return CreatedAtAction(nameof(GetPurchaseReturns), new { id = result.PurchaseReturnId }, result);
         }
     }
 }
