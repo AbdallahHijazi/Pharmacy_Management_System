@@ -5,6 +5,7 @@ using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Sales;
 using Pharmacy.Application.Features.Sales.Commands.CreateSalesReturn;
 using Pharmacy.Application.Features.Sales.Queries.GetSalesReturnById;
+using Pharmacy.Application.Features.Sales.Queries.GetSalesReturnItems;
 using Pharmacy.Application.Features.Sales.Queries.GetSalesReturns;
 
 namespace PharmacyProjectApi.Controllers.Sales
@@ -54,6 +55,19 @@ namespace PharmacyProjectApi.Controllers.Sales
         public async Task<IActionResult> GetSalesReturnById(Guid id)
         {
             var result = await _mediator.Send(new GetSalesReturnByIdQuery
+            {
+                SalesReturnId = id
+            });
+
+            return Ok(result);
+        }
+
+        [HttpGet("{id:guid}/items")]
+        [ProducesResponseType(typeof(List<SalesReturnItemDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetSalesReturnItems(Guid id)
+        {
+            var result = await _mediator.Send(new GetSalesReturnItemsQuery
             {
                 SalesReturnId = id
             });
