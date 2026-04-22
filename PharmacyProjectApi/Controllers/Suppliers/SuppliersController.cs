@@ -10,6 +10,7 @@ using Pharmacy.Application.Features.Suppliers.Commands.DeleteSupplier;
 using Pharmacy.Application.Features.Suppliers.Commands.UpdateSupplier;
 using Pharmacy.Application.Features.Suppliers.Queries.GetSupplierById;
 using Pharmacy.Application.Features.Suppliers.Queries.GetSuppliers;
+using Pharmacy.Application.Features.Suppliers.Queries.SearchSuppliers;
 
 namespace PharmacyProjectApi.Controllers.Suppliers
 {
@@ -98,6 +99,17 @@ namespace PharmacyProjectApi.Controllers.Suppliers
             return Ok(new { message = "تم حذف المورد بنجاح" });
         }
 
+        [HttpGet("search")]
+        [ProducesResponseType(typeof(List<SupplierListItemDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> SearchSuppliers([FromQuery] string query)
+        {
+            var result = await _mediator.Send(new SearchSuppliersQuery
+            {
+                Query = query
+            });
 
+            return Ok(result);
+        }
     }
 }
