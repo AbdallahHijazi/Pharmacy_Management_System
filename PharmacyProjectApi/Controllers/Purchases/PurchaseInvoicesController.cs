@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Purchases;
+using Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseInvoice;
 using Pharmacy.Application.Features.Purchases.Queries.GetPurchaseInvoices;
 
 namespace PharmacyProjectApi.Controllers.Purchases
@@ -26,6 +27,27 @@ namespace PharmacyProjectApi.Controllers.Purchases
         {
             var result = await _mediator.Send(new GetPurchaseInvoicesQuery());
             return Ok(result);
+        }
+
+        [HttpPost]
+        [ProducesResponseType(typeof(PurchaseInvoiceDetailsDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> CreatePurchaseInvoice([FromBody] CreatePurchaseInvoiceRequestDto request)
+        {
+            var result = await _mediator.Send(new CreatePurchaseInvoiceCommand
+            {
+                InvoiceNumber = request.InvoiceNumber,
+                SupplierId = request.SupplierId,
+                TaxRate = request.TaxRate,
+                PaidAmount = request.PaidAmount,
+                PaymentMethod = request.PaymentMethod,
+                Items = request.Items
+            });
+
+            return CreatedAtAction(nameof(GetPurchaseInvoices), new { id = result.PurchaseInvoiceId }, result);
         }
     }
 }
