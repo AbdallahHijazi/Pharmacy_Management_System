@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Categories;
 using Pharmacy.Application.Features.Categories.Commands.CreateCategory;
+using Pharmacy.Application.Features.Categories.Commands.DeleteCategory;
 using Pharmacy.Application.Features.Categories.Commands.UpdateCategory;
 using Pharmacy.Application.Features.Categories.Queries.GetCategories;
 using Pharmacy.Application.Features.Categories.Queries.GetCategoryById;
@@ -76,6 +77,20 @@ namespace PharmacyProjectApi.Controllers.Categories
             });
 
             return Ok(result);
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteCategory(Guid id)
+        {
+            await _mediator.Send(new DeleteCategoryCommand
+            {
+                CategoryId = id
+            });
+
+            return Ok(new { message = "تم حذف التصنيف بنجاح" });
         }
     }
 }
