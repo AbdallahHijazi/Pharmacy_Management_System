@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Products;
+using Pharmacy.Application.Features.Products.Commands.CreateProduct;
 using Pharmacy.Application.Features.Products.Queries.GetProducts;
 
 namespace PharmacyProjectApi.Controllers.Products
@@ -26,6 +27,27 @@ namespace PharmacyProjectApi.Controllers.Products
         {
             var result = await _mediator.Send(new GetProductsQuery());
             return Ok(result);
+        }
+
+        [HttpPost]
+        [ProducesResponseType(typeof(ProductDetailsDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequestDto request)
+        {
+            var result = await _mediator.Send(new CreateProductCommand
+            {
+                Name = request.Name,
+                ScientificName = request.ScientificName,
+                Barcode = request.Barcode,
+                CategoryId = request.CategoryId,
+                SellingPrice = request.SellingPrice,
+                DefaultSupplierId = request.DefaultSupplierId
+            });
+
+            return CreatedAtAction(nameof(GetProducts), new { id = result.ProductId }, result);
         }
     }
 }
