@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Purchases;
 using Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseReturn;
+using Pharmacy.Application.Features.Purchases.Queries.GetPurchaseReturnById;
 using Pharmacy.Application.Features.Purchases.Queries.GetPurchaseReturns;
 
 namespace PharmacyProjectApi.Controllers.Purchases
@@ -43,7 +44,21 @@ namespace PharmacyProjectApi.Controllers.Purchases
                 Items = request.Items
             });
 
-            return CreatedAtAction(nameof(GetPurchaseReturns), new { id = result.PurchaseReturnId }, result);
+            return CreatedAtAction(nameof(GetPurchaseReturnById), new { id = result.PurchaseReturnId }, result);
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(PurchaseReturnDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetPurchaseReturnById(Guid id)
+        {
+            var result = await _mediator.Send(new GetPurchaseReturnByIdQuery
+            {
+                PurchaseReturnId = id
+            });
+
+            return Ok(result);
         }
     }
 }
