@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Roles;
 using Pharmacy.Application.Features.Roles.Commands.CreateRole;
+using Pharmacy.Application.Features.Roles.Queries.GetRoleById;
 using Pharmacy.Application.Features.Roles.Queries.GetRoles;
 
 namespace PharmacyProjectApi.Controllers.Roles
@@ -44,7 +45,21 @@ namespace PharmacyProjectApi.Controllers.Roles
 
             var result = await _mediator.Send(command);
 
-            return CreatedAtAction(nameof(GetRoles), new { id = result.RoleId }, result);
+            return CreatedAtAction(nameof(GetRoleById), new { id = result.RoleId }, result);
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(RoleDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetRoleById(Guid id)
+        {
+            var result = await _mediator.Send(new GetRoleByIdQuery
+            {
+                RoleId = id
+            });
+
+            return Ok(result);
         }
     }
 }
