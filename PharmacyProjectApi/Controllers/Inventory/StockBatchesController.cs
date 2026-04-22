@@ -10,6 +10,7 @@ using Pharmacy.Application.Features.Inventory.Queries.GetExpiringSoonBatches;
 using Pharmacy.Application.Features.Inventory.Queries.GetLowStockBatches;
 using Pharmacy.Application.Features.Inventory.Queries.GetStockBatchById;
 using Pharmacy.Application.Features.Inventory.Queries.GetStockBatches;
+using Pharmacy.Application.Features.Inventory.Queries.GetStockBatchesByProduct;
 
 namespace PharmacyProjectApi.Controllers.Inventory
 {
@@ -123,6 +124,20 @@ namespace PharmacyProjectApi.Controllers.Inventory
         public async Task<IActionResult> GetExpiringSoonBatches()
         {
             var result = await _mediator.Send(new GetExpiringSoonBatchesQuery());
+            return Ok(result);
+        }
+
+        [HttpGet("by-product/{productId:guid}")]
+        [ProducesResponseType(typeof(List<StockBatchListItemDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetStockBatchesByProduct(Guid productId)
+        {
+            var result = await _mediator.Send(new GetStockBatchesByProductQuery
+            {
+                ProductId = productId
+            });
+
             return Ok(result);
         }
     }
