@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Inventory;
 using Pharmacy.Application.Features.Inventory.Commands.CreateStockBatch;
+using Pharmacy.Application.Features.Inventory.Queries.GetStockBatchById;
 using Pharmacy.Application.Features.Inventory.Queries.GetStockBatches;
 
 namespace PharmacyProjectApi.Controllers.Inventory
@@ -48,7 +49,21 @@ namespace PharmacyProjectApi.Controllers.Inventory
                 SupplierId = request.SupplierId
             });
 
-            return CreatedAtAction(nameof(GetStockBatches), new { id = result.StockBatchId }, result);
+            return CreatedAtAction(nameof(GetStockBatchById), new { id = result.StockBatchId }, result);
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(StockBatchDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetStockBatchById(Guid id)
+        {
+            var result = await _mediator.Send(new GetStockBatchByIdQuery
+            {
+                StockBatchId = id
+            });
+
+            return Ok(result);
         }
     }
 }

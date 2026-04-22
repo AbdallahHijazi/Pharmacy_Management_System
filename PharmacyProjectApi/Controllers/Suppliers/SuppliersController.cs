@@ -2,7 +2,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
+using Pharmacy.Application.DTOs.Inventory;
 using Pharmacy.Application.DTOs.Suppliers;
+using Pharmacy.Application.Features.Inventory.Queries.GetStockBatchById;
 using Pharmacy.Application.Features.Suppliers.Commands.CreateSupplier;
 using Pharmacy.Application.Features.Suppliers.Commands.DeleteSupplier;
 using Pharmacy.Application.Features.Suppliers.Commands.UpdateSupplier;
@@ -95,5 +97,7 @@ namespace PharmacyProjectApi.Controllers.Suppliers
 
             return Ok(new { message = "تم حذف المورد بنجاح" });
         }
+
+
     }
 }
