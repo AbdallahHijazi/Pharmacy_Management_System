@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Customers;
 using Pharmacy.Application.Features.Customers.Commands.CreateCustomer;
+using Pharmacy.Application.Features.Customers.Queries.GetCustomerById;
 using Pharmacy.Application.Features.Customers.Queries.GetCustomers;
 
 namespace PharmacyProjectApi.Controllers.Customers
@@ -42,7 +43,21 @@ namespace PharmacyProjectApi.Controllers.Customers
                 Address = request.Address
             });
 
-            return CreatedAtAction(nameof(GetCustomers), new { id = result.CustomerId }, result);
+            return CreatedAtAction(nameof(GetCustomerById), new { id = result.CustomerId }, result);
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(CustomerDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetCustomerById(Guid id)
+        {
+            var result = await _mediator.Send(new GetCustomerByIdQuery
+            {
+                CustomerId = id
+            });
+
+            return Ok(result);
         }
     }
 }
