@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Sales;
+using Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice;
 using Pharmacy.Application.Features.Sales.Queries.GetSalesInvoices;
 
 namespace PharmacyProjectApi.Controllers.Sales
@@ -26,6 +27,22 @@ namespace PharmacyProjectApi.Controllers.Sales
         {
             var result = await _mediator.Send(new GetSalesInvoicesQuery());
             return Ok(result);
+        }
+
+        [HttpPost]
+        [ProducesResponseType(typeof(SalesInvoiceDetailsDto), StatusCodes.Status201Created)]
+        public async Task<IActionResult> CreateSalesInvoice([FromBody] CreateSalesInvoiceRequestDto request)
+        {
+            var result = await _mediator.Send(new CreateSalesInvoiceCommand
+            {
+                CustomerId = request.CustomerId,
+                DiscountPercentage = request.DiscountPercentage,
+                PaidAmount = request.PaidAmount,
+                PaymentMethod = request.PaymentMethod,
+                Items = request.Items
+            });
+
+            return CreatedAtAction(nameof(GetSalesInvoices), new { id = result.SalesInvoiceId }, result);
         }
     }
 }
