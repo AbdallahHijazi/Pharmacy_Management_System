@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Sales;
+using Pharmacy.Application.Features.Sales.Commands.CreateSalesReturn;
 using Pharmacy.Application.Features.Sales.Queries.GetSalesReturns;
 
 namespace PharmacyProjectApi.Controllers.Sales
@@ -26,6 +27,23 @@ namespace PharmacyProjectApi.Controllers.Sales
         {
             var result = await _mediator.Send(new GetSalesReturnsQuery());
             return Ok(result);
+        }
+
+        [HttpPost]
+        [ProducesResponseType(typeof(SalesReturnDetailsDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> CreateSalesReturn([FromBody] CreateSalesReturnRequestDto request)
+        {
+            var result = await _mediator.Send(new CreateSalesReturnCommand
+            {
+                SalesInvoiceId = request.SalesInvoiceId,
+                Reason = request.Reason,
+                Items = request.Items
+            });
+
+            return CreatedAtAction(nameof(GetSalesReturns), new { id = result.SalesReturnId }, result);
         }
     }
 }
