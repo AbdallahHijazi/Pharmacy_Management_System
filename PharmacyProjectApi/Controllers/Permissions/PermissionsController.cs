@@ -6,6 +6,7 @@ using Pharmacy.Application.DTOs.Permissions;
 using Pharmacy.Application.DTOs.Roles;
 using Pharmacy.Application.Features.Permissions.Queries.GetPermissions;
 using Pharmacy.Application.Features.Roles.Commands.AssignPermissionsToRole;
+using Pharmacy.Application.Features.Roles.Queries.GetRolePermissions;
 
 namespace PharmacyProjectApi.Controllers.Permissions
 {
@@ -44,6 +45,20 @@ namespace PharmacyProjectApi.Controllers.Permissions
             });
 
             return Ok(new { message = "تم تحديث صلاحيات الدور بنجاح" });
+        }
+
+        [HttpGet("{id:guid}/permissions")]
+        [ProducesResponseType(typeof(List<RolePermissionItemDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetRolePermissions(Guid id)
+        {
+            var result = await _mediator.Send(new GetRolePermissionsQuery
+            {
+                RoleId = id
+            });
+
+            return Ok(result);
         }
     }
 }
