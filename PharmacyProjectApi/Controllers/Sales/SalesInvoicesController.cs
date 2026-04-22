@@ -5,6 +5,7 @@ using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Sales;
 using Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice;
 using Pharmacy.Application.Features.Sales.Queries.GetSalesInvoiceById;
+using Pharmacy.Application.Features.Sales.Queries.GetSalesInvoiceItems;
 using Pharmacy.Application.Features.Sales.Queries.GetSalesInvoices;
 
 namespace PharmacyProjectApi.Controllers.Sales
@@ -53,6 +54,19 @@ namespace PharmacyProjectApi.Controllers.Sales
         public async Task<IActionResult> GetSalesInvoiceById(Guid id)
         {
             var result = await _mediator.Send(new GetSalesInvoiceByIdQuery
+            {
+                SalesInvoiceId = id
+            });
+
+            return Ok(result);
+        }
+
+        [HttpGet("{id:guid}/items")]
+        [ProducesResponseType(typeof(List<SalesInvoiceItemDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetSalesInvoiceItems(Guid id)
+        {
+            var result = await _mediator.Send(new GetSalesInvoiceItemsQuery
             {
                 SalesInvoiceId = id
             });
