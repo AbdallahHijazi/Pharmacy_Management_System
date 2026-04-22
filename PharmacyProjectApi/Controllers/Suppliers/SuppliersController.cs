@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Suppliers;
 using Pharmacy.Application.Features.Suppliers.Commands.CreateSupplier;
+using Pharmacy.Application.Features.Suppliers.Commands.DeleteSupplier;
 using Pharmacy.Application.Features.Suppliers.Commands.UpdateSupplier;
 using Pharmacy.Application.Features.Suppliers.Queries.GetSupplierById;
 using Pharmacy.Application.Features.Suppliers.Queries.GetSuppliers;
@@ -79,6 +80,20 @@ namespace PharmacyProjectApi.Controllers.Suppliers
             });
 
             return Ok(result);
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteSupplier(Guid id)
+        {
+            await _mediator.Send(new DeleteSupplierCommand
+            {
+                SupplierId = id
+            });
+
+            return Ok(new { message = "تم حذف المورد بنجاح" });
         }
     }
 }
