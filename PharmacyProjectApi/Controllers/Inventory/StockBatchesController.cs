@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Inventory;
 using Pharmacy.Application.Features.Inventory.Commands.CreateStockBatch;
+using Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch;
 using Pharmacy.Application.Features.Inventory.Queries.GetStockBatchById;
 using Pharmacy.Application.Features.Inventory.Queries.GetStockBatches;
 
@@ -61,6 +62,30 @@ namespace PharmacyProjectApi.Controllers.Inventory
             var result = await _mediator.Send(new GetStockBatchByIdQuery
             {
                 StockBatchId = id
+            });
+
+            return Ok(result);
+        }
+
+
+        [HttpPut("{id:guid}")]
+        [ProducesResponseType(typeof(StockBatchDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> UpdateStockBatch(Guid id, [FromBody] UpdateStockBatchRequestDto request)
+        {
+            var result = await _mediator.Send(new UpdateStockBatchCommand
+            {
+                StockBatchId = id,
+                ProductId = request.ProductId,
+                BatchNumber = request.BatchNumber,
+                ExpiryDate = request.ExpiryDate,
+                PurchasePrice = request.PurchasePrice,
+                ReceivedQuantity = request.ReceivedQuantity,
+                AvailableQuantity = request.AvailableQuantity,
+                SupplierId = request.SupplierId
             });
 
             return Ok(result);
