@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Reports;
+using Pharmacy.Application.Features.Reports.Queries.GetInventoryReport;
 using Pharmacy.Application.Features.Reports.Queries.GetPurchasesReport;
 using Pharmacy.Application.Features.Reports.Queries.GetSalesReport;
 
@@ -53,6 +54,15 @@ namespace PharmacyProjectApi.Controllers.Reports
                 SupplierId = supplierId
             });
 
+            return Ok(result);
+        }
+
+        [HttpGet("inventory")]
+        [ProducesResponseType(typeof(InventoryReportDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetInventoryReport()
+        {
+            var result = await _mediator.Send(new GetInventoryReportQuery());
             return Ok(result);
         }
     }
