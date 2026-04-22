@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Categories;
 using Pharmacy.Application.Features.Categories.Commands.CreateCategory;
+using Pharmacy.Application.Features.Categories.Commands.UpdateCategory;
 using Pharmacy.Application.Features.Categories.Queries.GetCategories;
 using Pharmacy.Application.Features.Categories.Queries.GetCategoryById;
 
@@ -55,6 +56,23 @@ namespace PharmacyProjectApi.Controllers.Categories
             var result = await _mediator.Send(new GetCategoryByIdQuery
             {
                 CategoryId = id
+            });
+
+            return Ok(result);
+        }
+
+        [HttpPut("{id:guid}")]
+        [ProducesResponseType(typeof(CategoryDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] UpdateCategoryRequestDto request)
+        {
+            var result = await _mediator.Send(new UpdateCategoryCommand
+            {
+                CategoryId = id,
+                Name = request.Name
             });
 
             return Ok(result);
