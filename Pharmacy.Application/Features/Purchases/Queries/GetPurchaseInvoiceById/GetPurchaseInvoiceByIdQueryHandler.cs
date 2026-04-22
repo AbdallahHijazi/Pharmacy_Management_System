@@ -36,7 +36,7 @@ namespace Pharmacy.Application.Features.Purchases.Queries.GetPurchaseInvoiceById
             var invoice = await _purchaseInvoiceRepository
                 .GetAll()
                 .Include(pi => pi.Supplier)
-                .Include(pi => pi.PurchaseInvoiceItems)
+                //.Include(pi => pi.PurchaseInvoiceItems)
                 .FirstOrDefaultAsync(
                     pi => pi.Id == request.PurchaseInvoiceId &&
                           !pi.IsDeleted &&
