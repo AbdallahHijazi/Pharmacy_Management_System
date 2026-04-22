@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Products;
 using Pharmacy.Application.Features.Products.Commands.CreateProduct;
+using Pharmacy.Application.Features.Products.Commands.DeleteProduct;
 using Pharmacy.Application.Features.Products.Commands.UpdateProduct;
 using Pharmacy.Application.Features.Products.Queries.GetProductById;
 using Pharmacy.Application.Features.Products.Queries.GetProducts;
@@ -86,6 +87,20 @@ namespace PharmacyProjectApi.Controllers.Products
             });
 
             return Ok(result);
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteProduct(Guid id)
+        {
+            await _mediator.Send(new DeleteProductCommand
+            {
+                ProductId = id
+            });
+
+            return Ok(new { message = "تم حذف المنتج بنجاح" });
         }
     }
 }
