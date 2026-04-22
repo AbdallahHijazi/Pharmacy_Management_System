@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Permissions;
+using Pharmacy.Application.DTOs.Roles;
 using Pharmacy.Application.Features.Permissions.Queries.GetPermissions;
+using Pharmacy.Application.Features.Roles.Commands.AssignPermissionsToRole;
 
 namespace PharmacyProjectApi.Controllers.Permissions
 {
@@ -26,6 +28,22 @@ namespace PharmacyProjectApi.Controllers.Permissions
         {
             var result = await _mediator.Send(new GetPermissionsQuery());
             return Ok(result);
+        }
+
+        [HttpPost("{id:guid}/permissions")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> AssignPermissionsToRole(Guid id, [FromBody] AssignPermissionsToRoleRequestDto request)
+        {
+            await _mediator.Send(new AssignPermissionsToRoleCommand
+            {
+                RoleId = id,
+                PermissionIds = request.PermissionIds
+            });
+
+            return Ok(new { message = "تم تحديث صلاحيات الدور بنجاح" });
         }
     }
 }
