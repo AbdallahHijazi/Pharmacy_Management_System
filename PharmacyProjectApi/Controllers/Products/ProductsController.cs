@@ -8,6 +8,7 @@ using Pharmacy.Application.Features.Products.Commands.DeleteProduct;
 using Pharmacy.Application.Features.Products.Commands.UpdateProduct;
 using Pharmacy.Application.Features.Products.Queries.GetProductById;
 using Pharmacy.Application.Features.Products.Queries.GetProducts;
+using Pharmacy.Application.Features.Products.Queries.SearchProducts;
 
 namespace PharmacyProjectApi.Controllers.Products
 {
@@ -101,6 +102,19 @@ namespace PharmacyProjectApi.Controllers.Products
             });
 
             return Ok(new { message = "تم حذف المنتج بنجاح" });
+        }
+
+        [HttpGet("search")]
+        [ProducesResponseType(typeof(List<ProductListItemDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> SearchProducts([FromQuery] string query)
+        {
+            var result = await _mediator.Send(new SearchProductsQuery
+            {
+                Query = query
+            });
+
+            return Ok(result);
         }
     }
 }
