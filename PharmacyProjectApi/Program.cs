@@ -1,9 +1,10 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.Features.Auth.Commands.Login;
 using Pharmacy.Infrastructure;
 using Pharmacy.Infrastructure.Persistence;
 using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 
 
 
@@ -39,6 +40,8 @@ var builder = WebApplication.CreateBuilder(args);
     builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
