@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
+using Pharmacy.Application.Common.Models;
 using Pharmacy.Application.DTOs.Products;
 using Pharmacy.Application.Features.Products.Commands.CreateProduct;
 using Pharmacy.Application.Features.Products.Commands.DeleteProduct;
@@ -25,11 +26,23 @@ namespace PharmacyProjectApi.Controllers.Products
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(List<ProductListItemDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PagedResult<ProductListItemDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> GetProducts()
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetProducts(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? sortBy = "name",
+            [FromQuery] string? sortDirection = "asc")
         {
-            var result = await _mediator.Send(new GetProductsQuery());
+            var result = await _mediator.Send(new GetProductsQuery
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                SortBy = sortBy,
+                SortDirection = sortDirection
+            });
+
             return Ok(result);
         }
 
