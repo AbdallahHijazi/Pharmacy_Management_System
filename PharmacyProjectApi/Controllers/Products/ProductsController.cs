@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Products;
 using Pharmacy.Application.Features.Products.Commands.CreateProduct;
+using Pharmacy.Application.Features.Products.Commands.UpdateProduct;
 using Pharmacy.Application.Features.Products.Queries.GetProductById;
 using Pharmacy.Application.Features.Products.Queries.GetProducts;
 
@@ -60,6 +61,28 @@ namespace PharmacyProjectApi.Controllers.Products
             var result = await _mediator.Send(new GetProductByIdQuery
             {
                 ProductId = id
+            });
+
+            return Ok(result);
+        }
+
+        [HttpPut("{id:guid}")]
+        [ProducesResponseType(typeof(ProductDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] UpdateProductRequestDto request)
+        {
+            var result = await _mediator.Send(new UpdateProductCommand
+            {
+                ProductId = id,
+                Name = request.Name,
+                ScientificName = request.ScientificName,
+                Barcode = request.Barcode,
+                CategoryId = request.CategoryId,
+                SellingPrice = request.SellingPrice,
+                DefaultSupplierId = request.DefaultSupplierId
             });
 
             return Ok(result);
