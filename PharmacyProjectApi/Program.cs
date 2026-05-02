@@ -4,6 +4,7 @@ using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.Features.Auth.Commands.Login;
 using Pharmacy.Infrastructure;
 using Pharmacy.Infrastructure.Persistence;
+using Pharmacy.Infrastructure.Persistence.Seed;
 using System.Text;
 
 
@@ -53,6 +54,7 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await AppDbContextSeeder.SeedAsync(context);
+    await PermissionSeeder.SeedAsync(context);
 }
 
 app.UseHttpsRedirection();

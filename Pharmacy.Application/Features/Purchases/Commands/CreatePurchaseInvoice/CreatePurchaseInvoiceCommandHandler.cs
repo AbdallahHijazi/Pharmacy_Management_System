@@ -136,15 +136,36 @@ namespace Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseInvoice
             if (duplicatedBatch is not null)
                 throw new BadRequestException("لا يمكن تكرار نفس التشغيلة لنفس المنتج داخل نفس الفاتورة");
 
-            var existingBatchConflict = await _stockBatchRepository
+            var requestedBatches = request.Items
+                .Select(i => new
+                {
+                    ProductId = i.ProductId,
+                    BatchNumber = i.BatchNumber.Trim().ToLower()
+                })
+                .ToList();
+
+            var requestedProductIds = requestedBatches
+                .Select(x => x.ProductId)
+                .Distinct()
+                .ToList();
+
+            var existingBatches = await _stockBatchRepository
                 .GetAll()
-                .AnyAsync(
-                    sb => !sb.IsDeleted &&
-                          sb.BranchId == _currentUserService.BranchId.Value &&
-                          request.Items.Any(i =>
-                              i.ProductId == sb.ProductId &&
-                              i.BatchNumber.Trim().ToLower() == sb.BatchNumber.ToLower()),
-                    cancellationToken);
+                .Where(sb =>
+                    !sb.IsDeleted &&
+                    sb.BranchId == _currentUserService.BranchId.Value &&
+                    requestedProductIds.Contains(sb.ProductId))
+                .Select(sb => new
+                {
+                    sb.ProductId,
+                    sb.BatchNumber
+                })
+                .ToListAsync(cancellationToken);
+
+            var existingBatchConflict = existingBatches.Any(sb =>
+                requestedBatches.Any(rb =>
+                    rb.ProductId == sb.ProductId &&
+                    rb.BatchNumber == sb.BatchNumber.Trim().ToLower()));
 
             if (existingBatchConflict)
                 throw new BadRequestException("إحدى التشغيلات موجودة مسبقاً لهذا المنتج");

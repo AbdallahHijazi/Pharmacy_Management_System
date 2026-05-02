@@ -18,7 +18,6 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesReturn
     public class CreateSalesReturnCommandHandler : IRequestHandler<CreateSalesReturnCommand, SalesReturnDetailsDto>
     {
         private readonly IRepository<SalesReturn> _salesReturnRepository;
-        private readonly IRepository<SalesReturnItem> _salesReturnItemRepository;
         private readonly IRepository<SalesInvoice> _salesInvoiceRepository;
         private readonly IRepository<SalesInvoiceItem> _salesInvoiceItemRepository;
         private readonly IRepository<StockBatch> _stockBatchRepository;
@@ -28,7 +27,6 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesReturn
 
         public CreateSalesReturnCommandHandler(
             IRepository<SalesReturn> salesReturnRepository,
-            IRepository<SalesReturnItem> salesReturnItemRepository,
             IRepository<SalesInvoice> salesInvoiceRepository,
             IRepository<SalesInvoiceItem> salesInvoiceItemRepository,
             IRepository<StockBatch> stockBatchRepository,
@@ -37,7 +35,6 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesReturn
             ICurrentUserService currentUserService)
         {
             _salesReturnRepository = salesReturnRepository;
-            _salesReturnItemRepository = salesReturnItemRepository;
             _salesInvoiceRepository = salesInvoiceRepository;
             _salesInvoiceItemRepository = salesInvoiceItemRepository;
             _stockBatchRepository = stockBatchRepository;
@@ -48,6 +45,7 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesReturn
 
         public async Task<SalesReturnDetailsDto> Handle(CreateSalesReturnCommand request, CancellationToken cancellationToken)
         {
+            // تحقق من صلاحية المستخدم والفرع
             if (_currentUserService.UserId is null)
                 throw new UnauthorizedException("المستخدم غير مسجل الدخول");
 
@@ -63,6 +61,7 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesReturn
             if (request.Items is null || request.Items.Count == 0)
                 throw new BadRequestException("يجب إضافة عنصر واحد على الأقل");
 
+            // جلب الفاتورة من قاعدة البيانات
             var invoice = await _salesInvoiceRepository
                 .GetAll()
                 .FirstOrDefaultAsync(
@@ -74,6 +73,7 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesReturn
             if (invoice is null)
                 throw new NotFoundException("SalesInvoice", request.SalesInvoiceId);
 
+            // التحقق من صحة العناصر المرتجعة
             foreach (var item in request.Items)
             {
                 if (item.SalesInvoiceItemId == Guid.Empty)
@@ -119,6 +119,7 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesReturn
 
             decimal refundAmount = 0m;
 
+            // إنشاء SalesReturn مع تهيئة المجموعة
             var salesReturn = new SalesReturn
             {
                 Id = Guid.NewGuid(),
@@ -128,10 +129,9 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesReturn
                 Reason = request.Reason.Trim(),
                 CreatedAt = DateTime.UtcNow,
                 CreatedByUserId = _currentUserService.UserId.Value,
-                IsDeleted = false
+                IsDeleted = false,
+                Items = new List<SalesReturnItem>()
             };
-
-            _salesReturnRepository.Add(salesReturn);
 
             foreach (var item in request.Items)
             {
@@ -148,21 +148,24 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesReturn
                 {
                     Id = Guid.NewGuid(),
                     SalesReturnId = salesReturn.Id,
-                    //ProductId = stockBatch.ProductId,
                     Quantity = item.Quantity,
                     UnitPrice = invoiceItem.UnitPrice,
+                    StockBatchId = invoiceItem.StockBatchId,
                     CreatedAt = DateTime.UtcNow,
                     CreatedByUserId = _currentUserService.UserId.Value,
                     IsDeleted = false
                 };
 
-                _salesReturnItemRepository.Add(salesReturnItem);
+                // ✅ الإضافة عبر Navigation Property بدلاً من Repository مباشرةً
+                salesReturn.Items.Add(salesReturnItem);
 
+                // زيادة الكمية في المخزون
                 stockBatch.AvailableQuantity += item.Quantity;
                 stockBatch.UpdatedAt = DateTime.UtcNow;
                 stockBatch.UpdatedByUserId = _currentUserService.UserId.Value;
                 _stockBatchRepository.Update(stockBatch);
 
+                // إضافة المعاملة للمخزون
                 var transaction = new InventoryTransaction
                 {
                     Id = Guid.NewGuid(),
@@ -183,7 +186,9 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesReturn
             }
 
             salesReturn.RefundAmount = refundAmount;
-            _salesReturnRepository.Update(salesReturn);
+
+            // ✅ إضافة SalesReturn بعد تجهيز كل العناصر
+            _salesReturnRepository.Add(salesReturn);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 

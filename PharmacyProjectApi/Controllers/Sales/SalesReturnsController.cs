@@ -11,7 +11,7 @@ using Pharmacy.Application.Features.Sales.Queries.GetSalesReturns;
 namespace PharmacyProjectApi.Controllers.Sales
 {
     [ApiController]
-    [Authorize]
+    //[Authorize]
     [Route("api/v1/sales-returns")]
     public class SalesReturnsController : ControllerBase
     {
@@ -24,7 +24,7 @@ namespace PharmacyProjectApi.Controllers.Sales
 
         [HttpGet]
         [ProducesResponseType(typeof(List<SalesReturnListItemDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        //[ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetSalesReturns()
         {
             var result = await _mediator.Send(new GetSalesReturnsQuery());
@@ -34,7 +34,7 @@ namespace PharmacyProjectApi.Controllers.Sales
         [HttpPost]
         [ProducesResponseType(typeof(SalesReturnDetailsDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        //[ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> CreateSalesReturn([FromBody] CreateSalesReturnRequestDto request)
         {
@@ -50,7 +50,7 @@ namespace PharmacyProjectApi.Controllers.Sales
 
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(SalesReturnDetailsDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        //[ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetSalesReturnById(Guid id)
         {
@@ -64,7 +64,7 @@ namespace PharmacyProjectApi.Controllers.Sales
 
         [HttpGet("{id:guid}/items")]
         [ProducesResponseType(typeof(List<SalesReturnItemDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        //[ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetSalesReturnItems(Guid id)
         {
             var result = await _mediator.Send(new GetSalesReturnItemsQuery

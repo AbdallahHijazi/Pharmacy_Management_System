@@ -8,7 +8,7 @@ namespace Pharmacy.Domain.Enums
 {
     public enum PaymentMethod { 
         Cash, 
-        Card, 
+        ShamCash, 
         Credit, 
         BankTransfer, 
         Mixed 

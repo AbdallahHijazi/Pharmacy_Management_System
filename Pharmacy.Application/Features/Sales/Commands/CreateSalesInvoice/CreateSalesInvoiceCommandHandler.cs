@@ -4,14 +4,10 @@ using Pharmacy.Application.Common.Interfaces;
 using Pharmacy.Application.DTOs.Sales;
 using Pharmacy.Domain.Entities.Catalog;
 using Pharmacy.Domain.Entities.Inventory;
+using Pharmacy.Domain.Entities.Partners;
 using Pharmacy.Domain.Entities.Sales;
 using Pharmacy.Domain.Enums;
 using Pharmacy.Domain.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
 {
@@ -21,6 +17,8 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
         private readonly IRepository<SalesInvoiceItem> _salesInvoiceItemRepository;
         private readonly IRepository<StockBatch> _stockBatchRepository;
         private readonly IRepository<InventoryTransaction> _inventoryTransactionRepository;
+        private readonly IRepository<Product> _productRepository;
+        private readonly IRepository<Customer> _customerRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUserService _currentUserService;
 
@@ -29,6 +27,8 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
             IRepository<SalesInvoiceItem> salesInvoiceItemRepository,
             IRepository<StockBatch> stockBatchRepository,
             IRepository<InventoryTransaction> inventoryTransactionRepository,
+            IRepository<Product> productRepository,
+            IRepository<Customer> customerRepository,
             IUnitOfWork unitOfWork,
             ICurrentUserService currentUserService)
         {
@@ -36,6 +36,8 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
             _salesInvoiceItemRepository = salesInvoiceItemRepository;
             _stockBatchRepository = stockBatchRepository;
             _inventoryTransactionRepository = inventoryTransactionRepository;
+            _productRepository = productRepository;
+            _customerRepository = customerRepository;
             _unitOfWork = unitOfWork;
             _currentUserService = currentUserService;
         }
@@ -45,48 +47,103 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
             if (_currentUserService.UserId is null || _currentUserService.BranchId is null)
                 throw new UnauthorizedException("المستخدم غير مصرح");
 
+            var userId = _currentUserService.UserId.Value;
+            var branchId = _currentUserService.BranchId.Value;
+
             if (request.Items == null || request.Items.Count == 0)
                 throw new BadRequestException("يجب إضافة عناصر");
+
+            if (string.IsNullOrWhiteSpace(request.PaymentMethod))
+                throw new BadRequestException("طريقة الدفع مطلوبة");
 
             if (!Enum.TryParse<PaymentMethod>(request.PaymentMethod, true, out var paymentMethod))
                 throw new BadRequestException("طريقة الدفع غير صحيحة");
 
-            decimal subtotal = 0;
+            if (request.DiscountPercentage < 0 || request.DiscountPercentage > 100)
+                throw new BadRequestException("نسبة الخصم غير صحيحة");
 
-            var salesInvoice = new SalesInvoice
-            {
-                Id = Guid.NewGuid(),
-                InvoiceNumber = $"S-{DateTime.UtcNow.Ticks}",
-                CustomerId = request.CustomerId,
-                UserId = _currentUserService.UserId.Value,
-                BranchId = _currentUserService.BranchId.Value,
-                DiscountPercentage = request.DiscountPercentage,
-                PaymentMethod = paymentMethod,
-                CreatedAt = DateTime.UtcNow,
-                CreatedByUserId = _currentUserService.UserId.Value,
-                IsDeleted = false
-            };
-
-            _salesInvoiceRepository.Add(salesInvoice);
+            if (request.PaidAmount < 0)
+                throw new BadRequestException("المبلغ المدفوع غير صحيح");
 
             foreach (var item in request.Items)
             {
+                if (item.ProductId == Guid.Empty)
+                    throw new BadRequestException("معرف المنتج مطلوب");
+
+                if (item.Quantity <= 0)
+                    throw new BadRequestException("الكمية يجب أن تكون أكبر من صفر");
+            }
+
+            if (request.CustomerId.HasValue)
+            {
+                var customerExists = await _customerRepository
+                    .GetAll()
+                    .AnyAsync(c =>
+                        c.Id == request.CustomerId.Value &&
+                        c.BranchId == branchId &&
+                        !c.IsDeleted,
+                        cancellationToken);
+
+                if (!customerExists)
+                    throw new NotFoundException("Customer", request.CustomerId.Value);
+            }
+
+            var productIds = request.Items
+                .Select(i => i.ProductId)
+                .Distinct()
+                .ToList();
+
+            var products = await _productRepository
+                .GetAll()
+                .Where(p =>
+                    productIds.Contains(p.Id) &&
+                    p.BranchId == branchId &&
+                    !p.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            if (products.Count != productIds.Count)
+            {
+                var existingProductIds = products.Select(p => p.Id).ToHashSet();
+                var missingProductId = productIds.First(id => !existingProductIds.Contains(id));
+
+                throw new NotFoundException("Product", missingProductId);
+            }
+
+            decimal subtotal = 0;
+
+            var salesInvoiceId = Guid.NewGuid();
+            var invoiceNumber = $"S-{DateTime.UtcNow.Ticks}";
+
+            var invoiceItems = new List<SalesInvoiceItem>();
+            var inventoryTransactions = new List<InventoryTransaction>();
+
+            foreach (var item in request.Items)
+            {
+                var product = products.First(p => p.Id == item.ProductId);
+
                 var batches = await _stockBatchRepository
                     .GetAll()
-                    .Where(sb => sb.ProductId == item.ProductId &&
-                                 sb.BranchId == _currentUserService.BranchId.Value &&
-                                 sb.AvailableQuantity > 0 &&
-                                 !sb.IsDeleted)
-                    .OrderBy(sb => sb.ExpiryDate) // FEFO
+                    .Where(sb =>
+                        sb.ProductId == item.ProductId &&
+                        sb.BranchId == branchId &&
+                        sb.AvailableQuantity > 0 &&
+                        !sb.IsDeleted)
+                    .OrderBy(sb => sb.ExpiryDate)
                     .ToListAsync(cancellationToken);
 
-                int remainingQty = item.Quantity;
+                var totalAvailable = batches.Sum(b => b.AvailableQuantity);
+
+                if (totalAvailable < item.Quantity)
+                    throw new BadRequestException("المخزون غير كافي");
+
+                var remainingQty = item.Quantity;
 
                 foreach (var batch in batches)
                 {
-                    if (remainingQty <= 0) break;
+                    if (remainingQty <= 0)
+                        break;
 
-                    int taken = Math.Min(batch.AvailableQuantity, remainingQty);
+                    var taken = Math.Min(batch.AvailableQuantity, remainingQty);
 
                     batch.AvailableQuantity -= taken;
                     _stockBatchRepository.Update(batch);
@@ -94,18 +151,17 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
                     var invoiceItem = new SalesInvoiceItem
                     {
                         Id = Guid.NewGuid(),
-                        SalesInvoiceId = salesInvoice.Id,
+                        SalesInvoiceId = salesInvoiceId,
                         StockBatchId = batch.Id,
                         Quantity = taken,
-                        UnitPrice = batch.PurchasePrice, // أو سعر البيع إذا عندك
-                        Subtotal = taken * batch.PurchasePrice,
+                        UnitPrice = product.SellingPrice,
+                        Subtotal = taken * product.SellingPrice,
                         CreatedAt = DateTime.UtcNow,
-                        CreatedByUserId = _currentUserService.UserId.Value,
+                        CreatedByUserId = userId,
                         IsDeleted = false
                     };
 
-                    _salesInvoiceItemRepository.Add(invoiceItem);
-
+                    invoiceItems.Add(invoiceItem);
                     subtotal += invoiceItem.Subtotal;
 
                     var transaction = new InventoryTransaction
@@ -114,41 +170,63 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
                         StockBatchId = batch.Id,
                         Type = TransactionType.SaleOut,
                         Quantity = taken,
-                        ReferenceId = salesInvoice.Id,
+                        Reason = $"Sales invoice {invoiceNumber}",
+                        ReferenceId = salesInvoiceId,
                         ReferenceType = ReferenceType.SalesInvoice,
-                        UserId = _currentUserService.UserId.Value,
-                        BranchId = _currentUserService.BranchId.Value,
+                        UserId = userId,
+                        BranchId = branchId,
                         CreatedAt = DateTime.UtcNow,
-                        CreatedByUserId = _currentUserService.UserId.Value,
-                        IsDeleted = false,
-                        Reason = "POS Sale"
+                        CreatedByUserId = userId,
+                        IsDeleted = false
                     };
 
-                    _inventoryTransactionRepository.Add(transaction);
+                    inventoryTransactions.Add(transaction);
 
                     remainingQty -= taken;
                 }
-
-                if (remainingQty > 0)
-                    throw new BadRequestException("المخزون غير كافي");
             }
 
-            var discountAmount = subtotal * (request.DiscountPercentage / 100);
+            var discountAmount = subtotal * (request.DiscountPercentage / 100m);
             var grandTotal = subtotal - discountAmount;
+
+            if (request.PaidAmount > grandTotal)
+                throw new BadRequestException("المبلغ المدفوع لا يمكن أن يكون أكبر من إجمالي الفاتورة");
 
             var remainingAmount = grandTotal - request.PaidAmount;
 
-            salesInvoice.Subtotal = subtotal;
-            salesInvoice.DiscountAmount = discountAmount;
-            salesInvoice.GrandTotal = grandTotal;
-            salesInvoice.PaidAmount = request.PaidAmount;
-            salesInvoice.RemainingAmount = remainingAmount;
-
-            salesInvoice.Status = remainingAmount <= 0
+            var status = remainingAmount <= 0
                 ? SalesInvoiceStatus.Completed
                 : SalesInvoiceStatus.PartiallyPaid;
 
-            _salesInvoiceRepository.Update(salesInvoice);
+            var salesInvoice = new SalesInvoice
+            {
+                Id = salesInvoiceId,
+                InvoiceNumber = invoiceNumber,
+                CustomerId = request.CustomerId,
+                UserId = userId,
+                BranchId = branchId,
+                Subtotal = subtotal,
+                DiscountPercentage = request.DiscountPercentage,
+                DiscountAmount = discountAmount,
+                TaxRate = 0,
+                TaxAmount = 0,
+                GrandTotal = grandTotal,
+                PaidAmount = request.PaidAmount,
+                RemainingAmount = remainingAmount,
+                PaymentMethod = paymentMethod,
+                Status = status,
+                CreatedAt = DateTime.UtcNow,
+                CreatedByUserId = userId,
+                IsDeleted = false
+            };
+
+            _salesInvoiceRepository.Add(salesInvoice);
+
+            foreach (var invoiceItem in invoiceItems)
+                _salesInvoiceItemRepository.Add(invoiceItem);
+
+            foreach (var transaction in inventoryTransactions)
+                _inventoryTransactionRepository.Add(transaction);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
