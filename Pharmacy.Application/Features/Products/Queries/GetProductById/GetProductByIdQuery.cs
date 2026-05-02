@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Pharmacy.Application.Features.Products.Queries.GetProductById
 {
-    public class GetProductByIdQuery : IRequest<ProductDetailsDto>
+    public class GetProductByIdQuery : IRequest<ProductDto>
     {
         public Guid ProductId { get; set; }
     }

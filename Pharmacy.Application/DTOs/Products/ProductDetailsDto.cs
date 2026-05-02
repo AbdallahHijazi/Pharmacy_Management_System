@@ -15,6 +15,7 @@ namespace Pharmacy.Application.DTOs.Products
         public Guid CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
         public decimal SellingPrice { get; set; }
+        //public int TotalAvailableQuantity { get; set; }
         public Guid? DefaultSupplierId { get; set; }
         public Guid BranchId { get; set; }
     }

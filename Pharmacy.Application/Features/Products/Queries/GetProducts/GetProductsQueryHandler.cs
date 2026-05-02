@@ -76,7 +76,24 @@ namespace Pharmacy.Application.Features.Products.Queries.GetProducts
                     CategoryName = p.Category.Name,
                     SellingPrice = p.SellingPrice,
                     DefaultSupplierId = p.DefaultSupplierId,
-                    BranchId = p.BranchId
+                    BranchId = p.BranchId,
+                    TotalQuantity = p.StockBatches
+                        .Where(b => b.BranchId == branchId)
+                        .Sum(b => b.AvailableQuantity),
+
+                    SellableQuantity = p.StockBatches
+                        .Where(b =>
+                            b.BranchId == branchId &&
+                            b.AvailableQuantity > 0 &&
+                            b.ExpiryDate > DateTime.UtcNow)
+                        .Sum(b => b.AvailableQuantity),
+
+                    ExpiredQuantity = p.StockBatches
+                        .Where(b =>
+                            b.BranchId == branchId &&
+                            b.AvailableQuantity > 0 &&
+                            b.ExpiryDate <= DateTime.UtcNow)
+                        .Sum(b => b.AvailableQuantity)
                 })
                 .ToListAsync(cancellationToken);
 

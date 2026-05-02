@@ -17,5 +17,8 @@ namespace Pharmacy.Application.DTOs.Products
         public decimal SellingPrice { get; set; }
         public Guid? DefaultSupplierId { get; set; }
         public Guid BranchId { get; set; }
+        public int TotalQuantity { get; set; }
+        public int SellableQuantity { get; set; }
+        public int ExpiredQuantity { get; set; }
     }
 }
