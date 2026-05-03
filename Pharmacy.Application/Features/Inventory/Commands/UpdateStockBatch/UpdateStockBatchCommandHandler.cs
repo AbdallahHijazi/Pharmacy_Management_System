@@ -49,7 +49,7 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
             if (request.SupplierId == Guid.Empty)
                 throw new BadRequestException("المورد مطلوب");
 
-            if (string.IsNullOrWhiteSpace(request.BatchNumber))
+            if (string.IsNullOrWhiteSpace(request.LotNumber))
                 throw new BadRequestException("رقم التشغيلة مطلوب");
 
             if (request.PurchasePrice < 0)
@@ -57,12 +57,6 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
 
             if (request.ReceivedQuantity < 0)
                 throw new BadRequestException("الكمية المستلمة يجب أن تكون أكبر من أو تساوي صفر");
-
-            if (request.AvailableQuantity < 0)
-                throw new BadRequestException("الكمية المتاحة يجب أن تكون أكبر من أو تساوي صفر");
-
-            if (request.AvailableQuantity > request.ReceivedQuantity)
-                throw new BadRequestException("الكمية المتاحة لا يمكن أن تكون أكبر من الكمية المستلمة");
 
             var stockBatch = await _stockBatchRepository
                 .GetAll()
@@ -97,7 +91,7 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
             if (supplier is null)
                 throw new NotFoundException("Supplier", request.SupplierId);
 
-            var normalizedBatchNumber = request.BatchNumber.Trim();
+            var normalizedBatchNumber = request.LotNumber.Trim();
 
             var exists = await _stockBatchRepository
                 .GetAll()
@@ -109,14 +103,13 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
                     cancellationToken);
 
             if (exists)
-                throw new StatusAlreadyExistsException(request.BatchNumber);
+                throw new StatusAlreadyExistsException(request.LotNumber);
 
             stockBatch.ProductId = request.ProductId;
             stockBatch.BatchNumber = normalizedBatchNumber;
             stockBatch.ExpiryDate = request.ExpiryDate;
             stockBatch.PurchasePrice = request.PurchasePrice;
             stockBatch.ReceivedQuantity = request.ReceivedQuantity;
-            stockBatch.AvailableQuantity = request.AvailableQuantity;
             stockBatch.SupplierId = request.SupplierId;
             stockBatch.UpdatedAt = DateTime.UtcNow;
             stockBatch.UpdatedByUserId = _currentUserService.UserId.Value;
@@ -129,7 +122,7 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
                 StockBatchId = stockBatch.Id,
                 ProductId = stockBatch.ProductId,
                 ProductName = product.Name,
-                BatchNumber = stockBatch.BatchNumber,
+                LotNumber = stockBatch.BatchNumber,
                 ExpiryDate = stockBatch.ExpiryDate,
                 PurchasePrice = stockBatch.PurchasePrice,
                 ReceivedQuantity = stockBatch.ReceivedQuantity,

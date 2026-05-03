@@ -9,11 +9,10 @@ namespace Pharmacy.Application.DTOs.Inventory
     public class UpdateStockBatchRequestDto
     {
         public Guid ProductId { get; set; }
-        public string BatchNumber { get; set; } = string.Empty;
+        public string LotNumber { get; set; } = string.Empty;
         public DateTime ExpiryDate { get; set; }
         public decimal PurchasePrice { get; set; }
         public int ReceivedQuantity { get; set; }
-        public int AvailableQuantity { get; set; }
         public Guid SupplierId { get; set; }
     }
 }

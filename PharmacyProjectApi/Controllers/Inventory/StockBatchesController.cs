@@ -59,11 +59,10 @@ namespace PharmacyProjectApi.Controllers.Inventory
             var result = await _mediator.Send(new CreateStockBatchCommand
             {
                 ProductId = request.ProductId,
-                BatchNumber = request.BatchNumber,
+                BatchNumber = request.LotNumber,
                 ExpiryDate = request.ExpiryDate,
                 PurchasePrice = request.PurchasePrice,
                 ReceivedQuantity = request.ReceivedQuantity,
-                AvailableQuantity = request.AvailableQuantity,
                 SupplierId = request.SupplierId
             });
 
@@ -97,11 +96,10 @@ namespace PharmacyProjectApi.Controllers.Inventory
             {
                 StockBatchId = id,
                 ProductId = request.ProductId,
-                BatchNumber = request.BatchNumber,
+                LotNumber = request.LotNumber,
                 ExpiryDate = request.ExpiryDate,
                 PurchasePrice = request.PurchasePrice,
                 ReceivedQuantity = request.ReceivedQuantity,
-                AvailableQuantity = request.AvailableQuantity,
                 SupplierId = request.SupplierId
             });
 

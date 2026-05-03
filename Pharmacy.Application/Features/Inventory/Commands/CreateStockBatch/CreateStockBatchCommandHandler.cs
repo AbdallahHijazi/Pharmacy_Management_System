@@ -123,7 +123,7 @@ namespace Pharmacy.Application.Features.Inventory.Commands.CreateStockBatch
                 StockBatchId = stockBatch.Id,
                 ProductId = stockBatch.ProductId,
                 ProductName = product.Name,
-                BatchNumber = stockBatch.BatchNumber,
+                LotNumber = stockBatch.BatchNumber,
                 ExpiryDate = stockBatch.ExpiryDate,
                 PurchasePrice = stockBatch.PurchasePrice,
                 ReceivedQuantity = stockBatch.ReceivedQuantity,

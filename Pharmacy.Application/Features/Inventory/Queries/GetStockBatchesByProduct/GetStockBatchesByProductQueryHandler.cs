@@ -52,7 +52,7 @@ namespace Pharmacy.Application.Features.Inventory.Queries.GetStockBatchesByProdu
                     StockBatchId = sb.Id,
                     ProductId = sb.ProductId,
                     ProductName = sb.Product.Name,
-                    BatchNumber = sb.BatchNumber,
+                    LotNumber = sb.BatchNumber,
                     ExpiryDate = sb.ExpiryDate,
                     PurchasePrice = sb.PurchasePrice,
                     ReceivedQuantity = sb.ReceivedQuantity,

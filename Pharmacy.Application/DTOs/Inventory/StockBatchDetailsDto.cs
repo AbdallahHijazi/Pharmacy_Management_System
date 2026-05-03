@@ -11,7 +11,7 @@ namespace Pharmacy.Application.DTOs.Inventory
         public Guid StockBatchId { get; set; }
         public Guid ProductId { get; set; }
         public string ProductName { get; set; } = string.Empty;
-        public string BatchNumber { get; set; } = string.Empty;
+        public string LotNumber { get; set; } = string.Empty;
         public DateTime ExpiryDate { get; set; }
         public decimal PurchasePrice { get; set; }
         public int ReceivedQuantity { get; set; }
