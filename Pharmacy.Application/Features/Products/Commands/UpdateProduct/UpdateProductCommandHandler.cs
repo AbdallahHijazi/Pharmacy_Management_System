@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Pharmacy.Application.Common.Catalog;
 using Pharmacy.Application.Common.Inventory;
 using Pharmacy.Application.Common.Interfaces;
 using Pharmacy.Application.DTOs.Products;
@@ -56,6 +57,8 @@ namespace Pharmacy.Application.Features.Products.Commands.UpdateProduct
             if (request.SellingPrice < 0)
                 throw new BadRequestException("سعر البيع يجب أن يكون أكبر من أو يساوي صفر");
 
+            ProductPricing.ValidateCatalogPurchase(request.PricingType, request.PurchasePrice);
+
             var product = await _productRepository
                 .GetAll()
                 .FirstOrDefaultAsync(
@@ -110,6 +113,8 @@ namespace Pharmacy.Application.Features.Products.Commands.UpdateProduct
             product.Barcode = normalizedBarcode;
             product.CategoryId = request.CategoryId;
             product.SellingPrice = request.SellingPrice;
+            product.PricingType = request.PricingType;
+            product.ReferencePurchasePrice = request.PurchasePrice;
             product.DefaultSupplierId = request.DefaultSupplierId;
             product.UpdatedAt = DateTime.UtcNow;
             product.UpdatedByUserId = _currentUserService.UserId.Value;
@@ -135,6 +140,9 @@ namespace Pharmacy.Application.Features.Products.Commands.UpdateProduct
                 CategoryId = product.CategoryId,
                 CategoryName = category.Name,
                 SellingPrice = product.SellingPrice,
+                PricingType = product.PricingType,
+                PurchasePrice = product.ReferencePurchasePrice,
+                CalculatedUnitProfit = ProductPricing.UnitProfit(product.SellingPrice, product.ReferencePurchasePrice),
                 DefaultSupplierId = product.DefaultSupplierId,
                 BranchId = product.BranchId,
                 TotalAvailableQuantity = aggregate?.TotalAvailableQuantity ?? 0,

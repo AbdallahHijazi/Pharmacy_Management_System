@@ -1,6 +1,7 @@
 ﻿using Pharmacy.Domain.Entities.Base;
 using Pharmacy.Domain.Entities.Organization;
 using Pharmacy.Domain.Entities.Partners;
+using Pharmacy.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,6 +17,10 @@ namespace Pharmacy.Domain.Entities.Catalog
         public string Barcode { get; set; } = string.Empty;
         public Guid CategoryId { get; set; }
         public decimal SellingPrice { get; set; }
+        /// <summary>نوع التسعير على مستوى البطاقة؛ لا يعدّل سعر البيع تلقائيًا.</summary>
+        public ProductPricingType PricingType { get; set; } = ProductPricingType.FreePricingMedicine;
+        /// <summary>سعر شراء مرجعي للبطاقة (وطني: مطلوب لحساب ربح الوحدة؛ حر: اختياري).</summary>
+        public decimal? ReferencePurchasePrice { get; set; }
         public Guid? DefaultSupplierId { get; set; }
         public Guid BranchId { get; set; }
 
