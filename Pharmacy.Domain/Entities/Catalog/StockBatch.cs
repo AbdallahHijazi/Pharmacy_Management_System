@@ -17,8 +17,11 @@ namespace Pharmacy.Domain.Entities.Catalog
         public string BatchNumber { get; set; } = string.Empty;
         public DateTime ExpiryDate { get; set; }
         public decimal PurchasePrice { get; set; }
+        /// <summary>Total physical units received (paid + bonus).</summary>
         public int ReceivedQuantity { get; set; }
         public int AvailableQuantity { get; set; }
+        /// <summary>Bonus units included in <see cref="ReceivedQuantity"/> / <see cref="AvailableQuantity"/>.</summary>
+        public int BonusQuantity { get; set; }
         public Guid SupplierId { get; set; }
         public Guid BranchId { get; set; }
 

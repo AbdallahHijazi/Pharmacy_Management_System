@@ -114,6 +114,17 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
             if (exists)
                 throw new StatusAlreadyExistsException(request.LotNumber);
 
+            var targetReceived = request.ReceivedQuantity;
+            var targetBonus = request.BonusQuantity ?? stockBatch.BonusQuantity;
+
+            if (request.BonusQuantity.HasValue && request.BonusQuantity.Value > targetReceived)
+                throw new BadRequestException("كمية البونص لا يمكن أن تتجاوز الكمية المستلمة.");
+
+            if (targetBonus < 0)
+                throw new BadRequestException("كمية البونص لا يمكن أن تكون سالبة");
+
+            targetBonus = Math.Min(targetBonus, targetReceived);
+
             if (stockBatch.AvailableQuantity < 0 || stockBatch.AvailableQuantity > stockBatch.ReceivedQuantity)
             {
                 throw new BadRequestException(
@@ -132,7 +143,7 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
                     sii => sii.StockBatchId == stockBatch.Id && !sii.IsDeleted,
                     cancellationToken);
 
-            if (request.ReceivedQuantity != stockBatch.ReceivedQuantity)
+            if (targetReceived != stockBatch.ReceivedQuantity)
             {
                 if (hasInventoryMovements || hasSalesLines)
                 {
@@ -148,21 +159,21 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
                 var netDispatched = Math.Max(0, stockBatch.ReceivedQuantity - stockBatch.AvailableQuantity);
                 var minReceivedAllowed = Math.Max(soldQty, netDispatched);
 
-                if (request.ReceivedQuantity < minReceivedAllowed)
+                if (targetReceived < minReceivedAllowed)
                 {
                     throw new BadRequestException(
                         $"لا يمكن أن تكون الكمية المستلمة أقل من الكمية المصروفة/المحجوزة من الدفعة (الحد الأدنى المسموح: {minReceivedAllowed}).");
                 }
             }
 
-            var deltaReceived = request.ReceivedQuantity - stockBatch.ReceivedQuantity;
+            var deltaReceived = targetReceived - stockBatch.ReceivedQuantity;
             var newAvailable = stockBatch.AvailableQuantity + deltaReceived;
 
             if (newAvailable < 0)
                 throw new BadRequestException(
                     "لا يمكن تعديل الكمية المستلمة بهذا الشكل لأن الكمية المتاحة ستصبح سالبة.");
 
-            if (newAvailable > request.ReceivedQuantity)
+            if (newAvailable > targetReceived)
             {
                 throw new BadRequestException(
                     "لا يمكن أن تصبح الكمية المتاحة أكبر من الكمية المستلمة بعد التعديل.");
@@ -172,7 +183,8 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
             stockBatch.BatchNumber = normalizedBatchNumber;
             stockBatch.ExpiryDate = request.ExpiryDate;
             stockBatch.PurchasePrice = request.PurchasePrice;
-            stockBatch.ReceivedQuantity = request.ReceivedQuantity;
+            stockBatch.ReceivedQuantity = targetReceived;
+            stockBatch.BonusQuantity = targetBonus;
             stockBatch.AvailableQuantity = newAvailable;
             stockBatch.SupplierId = request.SupplierId;
             stockBatch.UpdatedAt = DateTime.UtcNow;
@@ -216,6 +228,7 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
                 ExpiryDate = stockBatch.ExpiryDate,
                 PurchasePrice = stockBatch.PurchasePrice,
                 ReceivedQuantity = stockBatch.ReceivedQuantity,
+                BonusQuantity = stockBatch.BonusQuantity,
                 AvailableQuantity = stockBatch.AvailableQuantity,
                 SupplierId = stockBatch.SupplierId,
                 SupplierName = supplier.Name,

@@ -48,6 +48,7 @@ namespace Pharmacy.Application.Features.Purchases.Queries.GetPurchaseInvoiceItem
                     BatchNumber = i.BatchNumber,
                     ExpiryDate = i.ExpiryDate,
                     Quantity = i.Quantity,
+                    BonusQuantity = i.BonusQuantity,
                     UnitPrice = i.UnitPrice
                 })
                 .ToListAsync(cancellationToken);
