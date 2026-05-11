@@ -3,7 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Pharmacy.Application.Common.Interfaces;
 using Pharmacy.Application.DTOs.Inventory;
 using Pharmacy.Domain.Entities.Catalog;
+using Pharmacy.Domain.Entities.Inventory;
 using Pharmacy.Domain.Entities.Partners;
+using Pharmacy.Domain.Enums;
 using Pharmacy.Domain.Exceptions;
 using System;
 using System.Collections.Generic;
@@ -18,6 +20,7 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
         private readonly IRepository<StockBatch> _stockBatchRepository;
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<Supplier> _supplierRepository;
+        private readonly IRepository<InventoryTransaction> _inventoryTransactionRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUserService _currentUserService;
 
@@ -25,12 +28,14 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
             IRepository<StockBatch> stockBatchRepository,
             IRepository<Product> productRepository,
             IRepository<Supplier> supplierRepository,
+            IRepository<InventoryTransaction> inventoryTransactionRepository,
             IUnitOfWork unitOfWork,
             ICurrentUserService currentUserService)
         {
             _stockBatchRepository = stockBatchRepository;
             _productRepository = productRepository;
             _supplierRepository = supplierRepository;
+            _inventoryTransactionRepository = inventoryTransactionRepository;
             _unitOfWork = unitOfWork;
             _currentUserService = currentUserService;
         }
@@ -105,16 +110,50 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
             if (exists)
                 throw new StatusAlreadyExistsException(request.LotNumber);
 
+            var deltaReceived = request.ReceivedQuantity - stockBatch.ReceivedQuantity;
+            var newAvailable = stockBatch.AvailableQuantity + deltaReceived;
+
+            if (newAvailable < 0)
+                throw new BadRequestException(
+                    "لا يمكن تعديل الكمية المستلمة بهذا الشكل لأن الكمية المتاحة ستصبح سالبة.");
+
             stockBatch.ProductId = request.ProductId;
             stockBatch.BatchNumber = normalizedBatchNumber;
             stockBatch.ExpiryDate = request.ExpiryDate;
             stockBatch.PurchasePrice = request.PurchasePrice;
             stockBatch.ReceivedQuantity = request.ReceivedQuantity;
+            stockBatch.AvailableQuantity = newAvailable;
             stockBatch.SupplierId = request.SupplierId;
             stockBatch.UpdatedAt = DateTime.UtcNow;
             stockBatch.UpdatedByUserId = _currentUserService.UserId.Value;
 
             _stockBatchRepository.Update(stockBatch);
+
+            if (deltaReceived != 0)
+            {
+                var abs = Math.Abs(deltaReceived);
+                var type = deltaReceived > 0 ? TransactionType.AdjustmentIn : TransactionType.AdjustmentOut;
+                var reason = deltaReceived > 0
+                    ? $"تصحيح زيادة الكمية المستلمة للدفعة (+{abs}) — التشغيلة {normalizedBatchNumber}"
+                    : $"تصحيح نقصان الكمية المستلمة للدفعة (-{abs}) — التشغيلة {normalizedBatchNumber}";
+
+                _inventoryTransactionRepository.Add(new InventoryTransaction
+                {
+                    Id = Guid.NewGuid(),
+                    StockBatchId = stockBatch.Id,
+                    Type = type,
+                    Quantity = abs,
+                    Reason = reason,
+                    ReferenceId = stockBatch.Id,
+                    ReferenceType = ReferenceType.StockBatchAdjustment,
+                    UserId = _currentUserService.UserId.Value,
+                    BranchId = _currentUserService.BranchId.Value,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedByUserId = _currentUserService.UserId.Value,
+                    IsDeleted = false
+                });
+            }
+
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new StockBatchDetailsDto

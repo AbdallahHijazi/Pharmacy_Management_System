@@ -12,6 +12,8 @@ namespace Pharmacy.Domain.Enums
         ReturnIn, 
         AdjustmentIn, 
         AdjustmentOut, 
-        ExpiredWriteOff 
+        ExpiredWriteOff,
+        /// <summary>Stock leaving the store on supplier purchase return.</summary>
+        PurchaseReturnOut
     }
 }

@@ -21,6 +21,7 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
         private readonly IRepository<Customer> _customerRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IStockBatchConcurrencyRetryPolicy _stockBatchConcurrencyRetry;
 
         public CreateSalesInvoiceCommandHandler(
             IRepository<SalesInvoice> salesInvoiceRepository,
@@ -30,7 +31,8 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
             IRepository<Product> productRepository,
             IRepository<Customer> customerRepository,
             IUnitOfWork unitOfWork,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            IStockBatchConcurrencyRetryPolicy stockBatchConcurrencyRetry)
         {
             _salesInvoiceRepository = salesInvoiceRepository;
             _salesInvoiceItemRepository = salesInvoiceItemRepository;
@@ -40,9 +42,10 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
             _customerRepository = customerRepository;
             _unitOfWork = unitOfWork;
             _currentUserService = currentUserService;
+            _stockBatchConcurrencyRetry = stockBatchConcurrencyRetry;
         }
 
-        public async Task<SalesInvoiceDetailsDto> Handle(CreateSalesInvoiceCommand request, CancellationToken cancellationToken)
+        public Task<SalesInvoiceDetailsDto> Handle(CreateSalesInvoiceCommand request, CancellationToken cancellationToken)
         {
             if (_currentUserService.UserId is null || _currentUserService.BranchId is null)
                 throw new UnauthorizedException("المستخدم غير مصرح");
@@ -50,6 +53,17 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
             var userId = _currentUserService.UserId.Value;
             var branchId = _currentUserService.BranchId.Value;
 
+            return _stockBatchConcurrencyRetry.ExecuteAsync(
+                () => ExecuteCreateSalesInvoiceAsync(request, userId, branchId, cancellationToken),
+                cancellationToken);
+        }
+
+        private async Task<SalesInvoiceDetailsDto> ExecuteCreateSalesInvoiceAsync(
+            CreateSalesInvoiceCommand request,
+            Guid userId,
+            Guid branchId,
+            CancellationToken cancellationToken)
+        {
             if (request.Items == null || request.Items.Count == 0)
                 throw new BadRequestException("يجب إضافة عناصر");
 

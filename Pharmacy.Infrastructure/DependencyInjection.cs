@@ -28,6 +28,7 @@ namespace Pharmacy.Infrastructure
             services.AddScoped<IAuthSettingsProvider, AuthSettingsProvider>();
             services.AddHttpContextAccessor();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.AddScoped<IStockBatchConcurrencyRetryPolicy, StockBatchConcurrencyRetryPolicy>();
             return services;
         }
     }

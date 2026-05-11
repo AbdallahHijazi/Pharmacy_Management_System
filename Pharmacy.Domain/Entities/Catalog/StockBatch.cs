@@ -22,6 +22,9 @@ namespace Pharmacy.Domain.Entities.Catalog
         public Guid SupplierId { get; set; }
         public Guid BranchId { get; set; }
 
+        /// <summary>Optimistic concurrency token for inventory updates (e.g. concurrent sales).</summary>
+        public byte[]? RowVersion { get; set; }
+
         public Product Product { get; set; } = null!;
         public Supplier Supplier { get; set; } = null!;
         public Branch Branch { get; set; } = null!;

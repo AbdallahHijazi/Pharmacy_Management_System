@@ -10,6 +10,10 @@ namespace Pharmacy.Domain.Enums
         SalesInvoice, 
         PurchaseInvoice, 
         SalesReturn, 
-        PurchaseReturn 
+        PurchaseReturn,
+        /// <summary>Manual batch creation (no purchase invoice line).</summary>
+        StockBatchManualEntry,
+        /// <summary>Direct stock adjustment or batch master-data correction tied to a batch.</summary>
+        StockBatchAdjustment
     }
 }

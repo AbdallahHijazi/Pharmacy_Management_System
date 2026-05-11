@@ -175,7 +175,7 @@ namespace Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseReturn
                 {
                     Id = Guid.NewGuid(),
                     StockBatchId = stockBatch.Id,
-                    Type = TransactionType.AdjustmentOut,
+                    Type = TransactionType.PurchaseReturnOut,
                     Quantity = item.Quantity,
                     Reason = $"Purchase return for invoice {invoice.InvoiceNumber}",
                     ReferenceId = purchaseReturn.Id,

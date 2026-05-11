@@ -100,7 +100,7 @@ namespace Pharmacy.Application.Features.Inventory.Commands.AdjustStock
                 Quantity = request.Quantity,
                 Reason = request.Reason.Trim(),
                 ReferenceId = null,
-                ReferenceType = ReferenceType.PurchaseInvoice,
+                ReferenceType = ReferenceType.StockBatchAdjustment,
                 UserId = _currentUserService.UserId.Value,
                 BranchId = _currentUserService.BranchId.Value,
                 CreatedAt = DateTime.UtcNow,

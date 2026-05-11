@@ -34,6 +34,10 @@ namespace Pharmacy.Infrastructure.Persistence.Configurations.Catalog
                    .WithMany()
                    .HasForeignKey(sb => sb.SupplierId)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Property(sb => sb.RowVersion)
+                .IsRowVersion()
+                .IsConcurrencyToken();
         }
     }
 }
