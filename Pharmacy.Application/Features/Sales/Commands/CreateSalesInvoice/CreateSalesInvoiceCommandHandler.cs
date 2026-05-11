@@ -53,8 +53,17 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
             var userId = _currentUserService.UserId.Value;
             var branchId = _currentUserService.BranchId.Value;
 
+            var salesInvoiceId = Guid.NewGuid();
+            var invoiceNumber = $"S-{DateTime.UtcNow.Ticks}";
+
             return _stockBatchConcurrencyRetry.ExecuteAsync(
-                () => ExecuteCreateSalesInvoiceAsync(request, userId, branchId, cancellationToken),
+                () => ExecuteCreateSalesInvoiceAsync(
+                    request,
+                    userId,
+                    branchId,
+                    salesInvoiceId,
+                    invoiceNumber,
+                    cancellationToken),
                 cancellationToken);
         }
 
@@ -62,6 +71,8 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
             CreateSalesInvoiceCommand request,
             Guid userId,
             Guid branchId,
+            Guid salesInvoiceId,
+            string invoiceNumber,
             CancellationToken cancellationToken)
         {
             if (request.Items == null || request.Items.Count == 0)
@@ -124,9 +135,6 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
             }
 
             decimal subtotal = 0;
-
-            var salesInvoiceId = Guid.NewGuid();
-            var invoiceNumber = $"S-{DateTime.UtcNow.Ticks}";
 
             var invoiceItems = new List<SalesInvoiceItem>();
             var inventoryTransactions = new List<InventoryTransaction>();
