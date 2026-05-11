@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Pharmacy.Domain.Entities.Catalog;
+using Pharmacy.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +19,10 @@ namespace Pharmacy.Infrastructure.Persistence.Configurations.Catalog
             builder.Property(p => p.Barcode).IsRequired().HasMaxLength(50);
             builder.HasIndex(p => new { p.Barcode, p.IsDeleted }).IsUnique();
             builder.Property(p => p.SellingPrice).HasPrecision(18, 2);
+            builder.Property(p => p.ReferencePurchasePrice).HasPrecision(18, 2);
+            builder.Property(p => p.PricingType)
+                .HasConversion<int>()
+                .HasDefaultValue(ProductPricingType.FreePricingMedicine);
 
             builder.HasOne(p => p.Category).WithMany().HasForeignKey(p => p.CategoryId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(p => p.Branch).WithMany(b => b.Products).HasForeignKey(p => p.BranchId).OnDelete(DeleteBehavior.Restrict);

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Pharmacy.Domain.Enums;
 
 namespace Pharmacy.Application.DTOs.Products
 {
@@ -15,6 +11,9 @@ namespace Pharmacy.Application.DTOs.Products
         public Guid CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
         public decimal SellingPrice { get; set; }
+        public ProductPricingType PricingType { get; set; }
+        public decimal? PurchasePrice { get; set; }
+        public decimal? CalculatedUnitProfit { get; set; }
         public Guid? DefaultSupplierId { get; set; }
         /// <summary>مجموع المتاح من الدفعات النشطة في الفرع.</summary>
         public int TotalAvailableQuantity { get; set; }

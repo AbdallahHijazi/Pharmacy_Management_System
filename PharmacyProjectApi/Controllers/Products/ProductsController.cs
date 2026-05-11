@@ -61,6 +61,8 @@ namespace PharmacyProjectApi.Controllers.Products
                 Barcode = request.Barcode,
                 CategoryId = request.CategoryId,
                 SellingPrice = request.SellingPrice,
+                PricingType = request.PricingType,
+                PurchasePrice = request.PurchasePrice,
                 DefaultSupplierId = request.DefaultSupplierId
             });
 
@@ -97,6 +99,8 @@ namespace PharmacyProjectApi.Controllers.Products
                 Barcode = request.Barcode,
                 CategoryId = request.CategoryId,
                 SellingPrice = request.SellingPrice,
+                PricingType = request.PricingType,
+                PurchasePrice = request.PurchasePrice,
                 DefaultSupplierId = request.DefaultSupplierId
             });
 

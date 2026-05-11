@@ -75,6 +75,11 @@ namespace Pharmacy.Application.Features.Products.Queries.GetProducts
                     CategoryId = p.CategoryId,
                     CategoryName = p.Category.Name,
                     SellingPrice = p.SellingPrice,
+                    PricingType = p.PricingType,
+                    PurchasePrice = p.ReferencePurchasePrice,
+                    CalculatedUnitProfit = p.ReferencePurchasePrice == null
+                        ? null
+                        : (decimal?)(p.SellingPrice - p.ReferencePurchasePrice.Value),
                     DefaultSupplierId = p.DefaultSupplierId,
                     BranchId = p.BranchId,
                     TotalAvailableQuantity = 0,
