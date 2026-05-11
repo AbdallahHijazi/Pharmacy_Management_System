@@ -6,6 +6,7 @@ using Pharmacy.Application.DTOs.Reports;
 using Pharmacy.Application.Features.Reports.Queries.GetInventoryReport;
 using Pharmacy.Application.Features.Reports.Queries.GetPurchasesReport;
 using Pharmacy.Application.Features.Reports.Queries.GetSalesReport;
+using Pharmacy.Application.Features.Reports.Queries.GetStockConsistencyDiagnostics;
 
 namespace PharmacyProjectApi.Controllers.Reports
 {
@@ -63,6 +64,15 @@ namespace PharmacyProjectApi.Controllers.Reports
         public async Task<IActionResult> GetInventoryReport()
         {
             var result = await _mediator.Send(new GetInventoryReportQuery());
+            return Ok(result);
+        }
+
+        [HttpGet("inventory/stock-consistency-diagnostics")]
+        [ProducesResponseType(typeof(StockConsistencyDiagnosticsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetStockConsistencyDiagnostics()
+        {
+            var result = await _mediator.Send(new GetStockConsistencyDiagnosticsQuery());
             return Ok(result);
         }
     }
