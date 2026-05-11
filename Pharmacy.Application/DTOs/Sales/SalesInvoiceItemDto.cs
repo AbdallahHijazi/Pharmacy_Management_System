@@ -15,5 +15,9 @@ namespace Pharmacy.Application.DTOs.Sales
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal Subtotal { get; set; }
+        public decimal? UnitEffectiveCostAtSale { get; set; }
+        public decimal? BatchNominalPurchasePriceAtSale { get; set; }
+        public int? BatchReceivedQuantityAtSale { get; set; }
+        public int? BatchBonusQuantityAtSale { get; set; }
     }
 }

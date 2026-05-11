@@ -16,6 +16,8 @@ namespace Pharmacy.Infrastructure.Persistence.Configurations.Sales
             builder.HasKey(i => i.Id);
             builder.Property(i => i.UnitPrice).HasPrecision(18, 2);
             builder.Property(i => i.Subtotal).HasPrecision(18, 2);
+            builder.Property(i => i.UnitEffectiveCostAtSale).HasPrecision(18, 4);
+            builder.Property(i => i.BatchNominalPurchasePriceAtSale).HasPrecision(18, 4);
 
             builder.HasOne(i => i.StockBatch)
                    .WithMany(sb => sb.SalesItems)

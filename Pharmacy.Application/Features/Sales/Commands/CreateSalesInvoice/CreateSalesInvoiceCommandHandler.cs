@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Pharmacy.Application.Common.Accounting;
 using Pharmacy.Application.Common.Interfaces;
 using Pharmacy.Application.DTOs.Sales;
 using Pharmacy.Domain.Entities.Catalog;
@@ -238,6 +239,8 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
                     batch.AvailableQuantity -= taken;
                     _stockBatchRepository.Update(batch);
 
+                    var effectiveUnitCost = StockBatchEffectiveUnitCost.Calculate(batch);
+
                     var invoiceItem = new SalesInvoiceItem
                     {
                         Id = Guid.NewGuid(),
@@ -246,6 +249,10 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
                         Quantity = taken,
                         UnitPrice = product.SellingPrice,
                         Subtotal = taken * product.SellingPrice,
+                        UnitEffectiveCostAtSale = effectiveUnitCost,
+                        BatchNominalPurchasePriceAtSale = batch.PurchasePrice,
+                        BatchReceivedQuantityAtSale = batch.ReceivedQuantity,
+                        BatchBonusQuantityAtSale = batch.BonusQuantity,
                         CreatedAt = DateTime.UtcNow,
                         CreatedByUserId = userId,
                         IsDeleted = false
