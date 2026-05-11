@@ -45,7 +45,7 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
             _stockBatchConcurrencyRetry = stockBatchConcurrencyRetry;
         }
 
-        public Task<SalesInvoiceDetailsDto> Handle(CreateSalesInvoiceCommand request, CancellationToken cancellationToken)
+        public async Task<SalesInvoiceDetailsDto> Handle(CreateSalesInvoiceCommand request, CancellationToken cancellationToken)
         {
             if (_currentUserService.UserId is null || _currentUserService.BranchId is null)
                 throw new UnauthorizedException("المستخدم غير مصرح");
@@ -56,18 +56,28 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
             var salesInvoiceId = Guid.NewGuid();
             var invoiceNumber = $"S-{DateTime.UtcNow.Ticks}";
 
-            return _stockBatchConcurrencyRetry.ExecuteAsync(
-                () => ExecuteCreateSalesInvoiceAsync(
-                    request,
-                    userId,
-                    branchId,
-                    salesInvoiceId,
-                    invoiceNumber,
-                    cancellationToken),
+            var prepared = await PrepareCreateSalesInvoiceAsync(
+                request,
+                userId,
+                branchId,
+                salesInvoiceId,
+                invoiceNumber,
                 cancellationToken);
+
+            var result = await _stockBatchConcurrencyRetry.ExecuteAsync(
+                () => CommitSalesInvoiceWithStockDeductionAsync(prepared, cancellationToken),
+                cancellationToken);
+
+            // Concurrency retry wraps only CommitSalesInvoiceWithStockDeductionAsync.
+            // Add printing, notifications, messaging, loyalty, or any external side effects here after a successful commit — never inside the retry delegate.
+
+            return result;
         }
 
-        private async Task<SalesInvoiceDetailsDto> ExecuteCreateSalesInvoiceAsync(
+        /// <summary>
+        /// Read-only validation and pricing inputs. Must stay outside optimistic-concurrency retry.
+        /// </summary>
+        private async Task<PreparedSalesInvoice> PrepareCreateSalesInvoiceAsync(
             CreateSalesInvoiceCommand request,
             Guid userId,
             Guid branchId,
@@ -134,14 +144,58 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
                 throw new NotFoundException("Product", missingProductId);
             }
 
+            var productsById = products.ToDictionary(p => p.Id);
+
             decimal subtotal = 0;
+            foreach (var item in request.Items)
+                subtotal += item.Quantity * productsById[item.ProductId].SellingPrice;
+
+            var discountAmount = subtotal * (request.DiscountPercentage / 100m);
+            var grandTotal = subtotal - discountAmount;
+
+            if (request.PaidAmount > grandTotal)
+                throw new BadRequestException("المبلغ المدفوع لا يمكن أن يكون أكبر من إجمالي الفاتورة");
+
+            var remainingAmount = grandTotal - request.PaidAmount;
+
+            var status = remainingAmount <= 0
+                ? SalesInvoiceStatus.Completed
+                : SalesInvoiceStatus.PartiallyPaid;
+
+            return new PreparedSalesInvoice(
+                request,
+                userId,
+                branchId,
+                salesInvoiceId,
+                invoiceNumber,
+                productsById,
+                paymentMethod,
+                subtotal,
+                discountAmount,
+                grandTotal,
+                remainingAmount,
+                status);
+        }
+
+        /// <summary>
+        /// Stock batch reads/updates, invoice persistence. This is the only code retried on <see cref="Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException"/>.
+        /// </summary>
+        private async Task<SalesInvoiceDetailsDto> CommitSalesInvoiceWithStockDeductionAsync(
+            PreparedSalesInvoice prepared,
+            CancellationToken cancellationToken)
+        {
+            var request = prepared.Request;
+            var userId = prepared.UserId;
+            var branchId = prepared.BranchId;
+            var salesInvoiceId = prepared.SalesInvoiceId;
+            var invoiceNumber = prepared.InvoiceNumber;
 
             var invoiceItems = new List<SalesInvoiceItem>();
             var inventoryTransactions = new List<InventoryTransaction>();
 
             foreach (var item in request.Items)
             {
-                var product = products.First(p => p.Id == item.ProductId);
+                var product = prepared.ProductsById[item.ProductId];
 
                 var batches = await _stockBatchRepository
                     .GetAll()
@@ -184,7 +238,6 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
                     };
 
                     invoiceItems.Add(invoiceItem);
-                    subtotal += invoiceItem.Subtotal;
 
                     var transaction = new InventoryTransaction
                     {
@@ -208,18 +261,6 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
                 }
             }
 
-            var discountAmount = subtotal * (request.DiscountPercentage / 100m);
-            var grandTotal = subtotal - discountAmount;
-
-            if (request.PaidAmount > grandTotal)
-                throw new BadRequestException("المبلغ المدفوع لا يمكن أن يكون أكبر من إجمالي الفاتورة");
-
-            var remainingAmount = grandTotal - request.PaidAmount;
-
-            var status = remainingAmount <= 0
-                ? SalesInvoiceStatus.Completed
-                : SalesInvoiceStatus.PartiallyPaid;
-
             var salesInvoice = new SalesInvoice
             {
                 Id = salesInvoiceId,
@@ -227,16 +268,16 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
                 CustomerId = request.CustomerId,
                 UserId = userId,
                 BranchId = branchId,
-                Subtotal = subtotal,
+                Subtotal = prepared.Subtotal,
                 DiscountPercentage = request.DiscountPercentage,
-                DiscountAmount = discountAmount,
+                DiscountAmount = prepared.DiscountAmount,
                 TaxRate = 0,
                 TaxAmount = 0,
-                GrandTotal = grandTotal,
+                GrandTotal = prepared.GrandTotal,
                 PaidAmount = request.PaidAmount,
-                RemainingAmount = remainingAmount,
-                PaymentMethod = paymentMethod,
-                Status = status,
+                RemainingAmount = prepared.RemainingAmount,
+                PaymentMethod = prepared.PaymentMethod,
+                Status = prepared.Status,
                 CreatedAt = DateTime.UtcNow,
                 CreatedByUserId = userId,
                 IsDeleted = false
@@ -262,5 +303,19 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
                 Status = salesInvoice.Status.ToString()
             };
         }
+
+        private sealed record PreparedSalesInvoice(
+            CreateSalesInvoiceCommand Request,
+            Guid UserId,
+            Guid BranchId,
+            Guid SalesInvoiceId,
+            string InvoiceNumber,
+            Dictionary<Guid, Product> ProductsById,
+            PaymentMethod PaymentMethod,
+            decimal Subtotal,
+            decimal DiscountAmount,
+            decimal GrandTotal,
+            decimal RemainingAmount,
+            SalesInvoiceStatus Status);
     }
 }
