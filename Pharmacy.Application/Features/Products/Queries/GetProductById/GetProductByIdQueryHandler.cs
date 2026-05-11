@@ -51,9 +51,9 @@ namespace Pharmacy.Application.Features.Products.Queries.GetProductById
                     SellingPrice = p.SellingPrice,
                     DefaultSupplierId = p.DefaultSupplierId,
                     BranchId = p.BranchId,
-                    TotalQuantity = 0,
-                    ExpiredQuantity = 0,
-                    SellableQuantity = 0
+                    TotalAvailableQuantity = 0,
+                    SellableQuantity = 0,
+                    ExpiredQuantity = 0
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -69,7 +69,7 @@ namespace Pharmacy.Application.Features.Products.Queries.GetProductById
 
             if (aggregate is not null)
             {
-                product.TotalQuantity = aggregate.TotalAvailableQuantity;
+                product.TotalAvailableQuantity = aggregate.TotalAvailableQuantity;
                 product.SellableQuantity = aggregate.SellableQuantity;
                 product.ExpiredQuantity = aggregate.ExpiredQuantity;
             }

@@ -116,7 +116,10 @@ namespace Pharmacy.Application.Features.Products.Commands.CreateProduct
                 CategoryName = category.Name,
                 SellingPrice = product.SellingPrice,
                 DefaultSupplierId = product.DefaultSupplierId,
-                BranchId = product.BranchId
+                BranchId = product.BranchId,
+                TotalAvailableQuantity = 0,
+                SellableQuantity = 0,
+                ExpiredQuantity = 0
             };
         }
     }

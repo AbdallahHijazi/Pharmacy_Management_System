@@ -17,8 +17,11 @@ namespace Pharmacy.Application.DTOs.Products
         public decimal SellingPrice { get; set; }
         public Guid? DefaultSupplierId { get; set; }
         public Guid BranchId { get; set; }
-        public int TotalQuantity { get; set; }
+        /// <summary>مجموع الكمية المتاحة من كل الدفعات النشطة في الفرع.</summary>
+        public int TotalAvailableQuantity { get; set; }
+        /// <summary>وحدات المتاح غير المنتهية صلاحيتها (حسب تاريخ الصلاحية مقابل الوقت الحالي UTC).</summary>
         public int SellableQuantity { get; set; }
+        /// <summary>وحدات المتاح في دفعات منتهية الصلاحية (لا تُحسب ضمن البيع).</summary>
         public int ExpiredQuantity { get; set; }
     }
 }
