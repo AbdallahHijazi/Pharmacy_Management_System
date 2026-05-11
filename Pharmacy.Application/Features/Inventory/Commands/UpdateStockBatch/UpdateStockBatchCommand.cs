@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
 {
+    /// <summary>تحديث دفعة مخزون؛ قيود الكمية المستلمة مذكورة في <c>UpdateStockBatchRequestDto</c>.</summary>
     public class UpdateStockBatchCommand : IRequest<StockBatchDetailsDto>
     {
         public Guid StockBatchId { get; set; }
