@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Pharmacy.Application.Common.Inventory;
 using Pharmacy.Application.Common.Interfaces;
 using Pharmacy.Application.DTOs.Dashboard;
 using Pharmacy.Domain.Entities.Catalog;
@@ -82,9 +83,11 @@ namespace Pharmacy.Application.Features.Dashboard.Queries.GetDashboardStats
                 .Select(si => (decimal?)si.GrandTotal)
                 .SumAsync(cancellationToken) ?? 0m;
 
+            var activeInBranch = ProductAvailableQuantity.ActiveBatchesInBranch(branchId);
+
             var lowStockProductsCount = await _stockBatchRepository
                 .GetAllAsNoTracking()
-                .Where(sb => !sb.IsDeleted && sb.BranchId == branchId)
+                .Where(activeInBranch)
                 .GroupBy(sb => sb.ProductId)
                 .Select(g => new
                 {
@@ -95,10 +98,9 @@ namespace Pharmacy.Application.Features.Dashboard.Queries.GetDashboardStats
 
             var expiringSoonBatchesCount = await _stockBatchRepository
                 .GetAllAsNoTracking()
+                .Where(activeInBranch)
                 .CountAsync(
-                    sb => !sb.IsDeleted &&
-                          sb.BranchId == branchId &&
-                          sb.AvailableQuantity > 0 &&
+                    sb => sb.AvailableQuantity > 0 &&
                           sb.ExpiryDate.Date <= expiringDate,
                     cancellationToken);
 

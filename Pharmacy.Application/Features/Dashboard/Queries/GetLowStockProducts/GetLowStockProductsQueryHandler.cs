@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Pharmacy.Application.Common.Inventory;
 using Pharmacy.Application.Common.Interfaces;
 using Pharmacy.Application.DTOs.Dashboard;
 using Pharmacy.Domain.Entities.Catalog;
@@ -35,12 +36,13 @@ namespace Pharmacy.Application.Features.Dashboard.Queries.GetLowStockProducts
 
             var branchId = _currentUserService.BranchId.Value;
 
+            var activeInBranch = ProductAvailableQuantity.ActiveBatchesInBranch(branchId);
+
             var products = await _stockBatchRepository
                 .GetAllAsNoTracking()
                 .Include(sb => sb.Product)
-                .Where(sb => !sb.IsDeleted &&
-                             sb.BranchId == branchId &&
-                             sb.AvailableQuantity > 0)
+                .Where(activeInBranch)
+                .Where(sb => sb.AvailableQuantity > 0)
                 .GroupBy(sb => new { sb.ProductId, sb.Product.Name })
                 .Select(g => new LowStockProductDto
                 {

@@ -1,27 +1,26 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Pharmacy.Application.Common.Inventory;
 using Pharmacy.Application.Common.Interfaces;
 using Pharmacy.Application.DTOs.Products;
 using Pharmacy.Domain.Entities.Catalog;
 using Pharmacy.Domain.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Pharmacy.Application.Features.Products.Queries.GetProductById
 {
     public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, ProductDto>
     {
         private readonly IRepository<Product> _productRepository;
+        private readonly IRepository<StockBatch> _stockBatchRepository;
         private readonly ICurrentUserService _currentUserService;
 
         public GetProductByIdQueryHandler(
             IRepository<Product> productRepository,
+            IRepository<StockBatch> stockBatchRepository,
             ICurrentUserService currentUserService)
         {
             _productRepository = productRepository;
+            _stockBatchRepository = stockBatchRepository;
             _currentUserService = currentUserService;
         }
 
@@ -32,47 +31,48 @@ namespace Pharmacy.Application.Features.Products.Queries.GetProductById
 
             if (_currentUserService.BranchId is null)
                 throw new UnauthorizedException("لا يوجد فرع مرتبط بالمستخدم الحالي");
+
             var branchId = _currentUserService.BranchId.Value;
+            var asOfUtc = DateTime.UtcNow;
 
             var product = await _productRepository
-                    .GetAllAsNoTracking()
-                    .Where(p => p.Id == request.ProductId &&
-                                !p.IsDeleted &&
-                                p.BranchId == branchId
-                    )
-                    .Select(p => new ProductDto
-                    {
-                         ProductId = p.Id,
-                         Name = p.Name,
-                         ScientificName = p.ScientificName,
-                         Barcode = p.Barcode,
-                         CategoryId = p.CategoryId,
-                         CategoryName = p.Category.Name,
-                         SellingPrice = p.SellingPrice,
-                         DefaultSupplierId = p.DefaultSupplierId,
-                         BranchId = p.BranchId,
-                         TotalQuantity = p.StockBatches
-                            .Where(b => b.BranchId == branchId)
-                            .Sum(b => b.AvailableQuantity),
-
-                        ExpiredQuantity = p.StockBatches
-                            .Where(b =>
-                                b.BranchId == branchId &&
-                                b.AvailableQuantity > 0 &&
-                                b.ExpiryDate <= DateTime.UtcNow)
-                            .Sum(b => b.AvailableQuantity),
-
-                        SellableQuantity = p.StockBatches
-                            .Where(b =>
-                                b.BranchId == branchId &&
-                                b.AvailableQuantity > 0 &&
-                                b.ExpiryDate > DateTime.UtcNow)
-                            .Sum(b => b.AvailableQuantity)
-                                            })
-                    .FirstOrDefaultAsync(cancellationToken);
+                .GetAllAsNoTracking()
+                .Where(p => p.Id == request.ProductId &&
+                            !p.IsDeleted &&
+                            p.BranchId == branchId)
+                .Select(p => new ProductDto
+                {
+                    ProductId = p.Id,
+                    Name = p.Name,
+                    ScientificName = p.ScientificName,
+                    Barcode = p.Barcode,
+                    CategoryId = p.CategoryId,
+                    CategoryName = p.Category.Name,
+                    SellingPrice = p.SellingPrice,
+                    DefaultSupplierId = p.DefaultSupplierId,
+                    BranchId = p.BranchId,
+                    TotalQuantity = 0,
+                    ExpiredQuantity = 0,
+                    SellableQuantity = 0
+                })
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (product is null)
                 throw new NotFoundException("Product", request.ProductId);
+
+            var aggregate = await ProductAvailableQuantity.GetStockAggregatesByProductIds(
+                    _stockBatchRepository.GetAllAsNoTracking(),
+                    branchId,
+                    asOfUtc,
+                    new[] { request.ProductId })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (aggregate is not null)
+            {
+                product.TotalQuantity = aggregate.TotalAvailableQuantity;
+                product.SellableQuantity = aggregate.SellableQuantity;
+                product.ExpiredQuantity = aggregate.ExpiredQuantity;
+            }
 
             return product;
         }

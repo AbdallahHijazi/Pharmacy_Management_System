@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Pharmacy.Application.Common.Inventory;
 using Pharmacy.Application.Common.Interfaces;
 using Pharmacy.Application.DTOs.Reports;
 using Pharmacy.Domain.Entities.Catalog;
@@ -39,7 +40,7 @@ namespace Pharmacy.Application.Features.Reports.Queries.GetInventoryReport
 
             var baseQuery = _stockBatchRepository
                 .GetAllAsNoTracking()
-                .Where(sb => !sb.IsDeleted && sb.BranchId == branchId);
+                .Where(ProductAvailableQuantity.ActiveBatchesInBranch(branchId));
 
             var totalProductsInStock = await baseQuery
                 .Where(sb => sb.AvailableQuantity > 0)
