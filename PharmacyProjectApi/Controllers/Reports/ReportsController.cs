@@ -4,7 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Reports;
 using Pharmacy.Application.Features.Reports.Queries.GetBranchProfitReport;
+using Pharmacy.Application.Features.Reports.Queries.GetDailyFinancialReport;
 using Pharmacy.Application.Features.Reports.Queries.GetInventoryReport;
+using Pharmacy.Application.Features.Reports.Queries.GetMonthlyFinancialReport;
+using Pharmacy.Application.Features.Reports.Queries.GetProductProfitRanking;
 using Pharmacy.Application.Features.Reports.Queries.GetPurchasesReport;
 using Pharmacy.Application.Features.Reports.Queries.GetSalesReport;
 using Pharmacy.Application.Features.Reports.Queries.GetStockConsistencyDiagnostics;
@@ -89,6 +92,46 @@ namespace PharmacyProjectApi.Controllers.Reports
             {
                 FromDate = fromDate,
                 ToDate = toDate
+            });
+
+            return Ok(result);
+        }
+
+        [HttpGet("financial/daily")]
+        [ProducesResponseType(typeof(DailyFinancialReportDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetDailyFinancialReport([FromQuery] DateTime date)
+        {
+            var result = await _mediator.Send(new GetDailyFinancialReportQuery { Date = date });
+            return Ok(result);
+        }
+
+        [HttpGet("financial/monthly")]
+        [ProducesResponseType(typeof(MonthlyFinancialReportDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetMonthlyFinancialReport([FromQuery] int year, [FromQuery] int month)
+        {
+            var result = await _mediator.Send(new GetMonthlyFinancialReportQuery { Year = year, Month = month });
+            return Ok(result);
+        }
+
+        [HttpGet("financial/products/profit-ranking")]
+        [ProducesResponseType(typeof(ProductProfitRankingReportDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetProductProfitRanking(
+            [FromQuery] DateTime fromDate,
+            [FromQuery] DateTime toDate,
+            [FromQuery] string rank = "BestProfit",
+            [FromQuery] int take = 10)
+        {
+            var result = await _mediator.Send(new GetProductProfitRankingQuery
+            {
+                FromDate = fromDate,
+                ToDate = toDate,
+                Rank = rank,
+                Take = take
             });
 
             return Ok(result);
