@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.DTOs.Reports;
+using Pharmacy.Application.Features.Reports.Queries.GetBranchProfitReport;
 using Pharmacy.Application.Features.Reports.Queries.GetInventoryReport;
 using Pharmacy.Application.Features.Reports.Queries.GetPurchasesReport;
 using Pharmacy.Application.Features.Reports.Queries.GetSalesReport;
@@ -73,6 +74,23 @@ namespace PharmacyProjectApi.Controllers.Reports
         public async Task<IActionResult> GetStockConsistencyDiagnostics()
         {
             var result = await _mediator.Send(new GetStockConsistencyDiagnosticsQuery());
+            return Ok(result);
+        }
+
+        [HttpGet("profit/branch")]
+        [ProducesResponseType(typeof(BranchProfitReportDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetBranchProfitReport(
+            [FromQuery] DateTime fromDate,
+            [FromQuery] DateTime toDate)
+        {
+            var result = await _mediator.Send(new GetBranchProfitReportQuery
+            {
+                FromDate = fromDate,
+                ToDate = toDate
+            });
+
             return Ok(result);
         }
     }
