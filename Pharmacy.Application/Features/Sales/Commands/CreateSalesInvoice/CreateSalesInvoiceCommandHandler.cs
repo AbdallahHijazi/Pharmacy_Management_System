@@ -193,19 +193,33 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesInvoice
             var invoiceItems = new List<SalesInvoiceItem>();
             var inventoryTransactions = new List<InventoryTransaction>();
 
+            var productIdsForStock = request.Items
+                .Select(i => i.ProductId)
+                .Distinct()
+                .ToList();
+
+            var allEligibleBatches = await _stockBatchRepository
+                .GetAll()
+                .Where(sb =>
+                    productIdsForStock.Contains(sb.ProductId) &&
+                    sb.BranchId == branchId &&
+                    sb.AvailableQuantity > 0 &&
+                    !sb.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            var batchesByProductId = allEligibleBatches
+                .GroupBy(sb => sb.ProductId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderBy(sb => sb.ExpiryDate).ToList());
+
             foreach (var item in request.Items)
             {
                 var product = prepared.ProductsById[item.ProductId];
 
-                var batches = await _stockBatchRepository
-                    .GetAll()
-                    .Where(sb =>
-                        sb.ProductId == item.ProductId &&
-                        sb.BranchId == branchId &&
-                        sb.AvailableQuantity > 0 &&
-                        !sb.IsDeleted)
-                    .OrderBy(sb => sb.ExpiryDate)
-                    .ToListAsync(cancellationToken);
+                var batches = batchesByProductId.TryGetValue(item.ProductId, out var batchList)
+                    ? batchList
+                    : [];
 
                 var totalAvailable = batches.Sum(b => b.AvailableQuantity);
 
