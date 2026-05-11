@@ -44,7 +44,7 @@ namespace Pharmacy.Application.Features.Inventory.Queries.GetInventoryTransactio
                 {
                     InventoryTransactionId = t.Id,
                     StockBatchId = t.StockBatchId,
-                    ProductId = t.StockBatch.ProductId,
+                    ProductId = t.ProductId ?? t.StockBatch.ProductId,
                     ProductName = t.StockBatch.Product.Name,
                     BatchNumber = t.StockBatch.BatchNumber,
                     Type = t.Type.ToString(),

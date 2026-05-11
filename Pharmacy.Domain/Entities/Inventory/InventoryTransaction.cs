@@ -13,6 +13,9 @@ namespace Pharmacy.Domain.Entities.Inventory
 {
     public class InventoryTransaction : BaseEntity
     {
+        /// <summary>Optional denormalized product for audit (e.g. manual batch creation). Falls back to <see cref="StockBatch"/> when null.</summary>
+        public Guid? ProductId { get; set; }
+
         public Guid StockBatchId { get; set; }
         public TransactionType Type { get; set; }
         public int Quantity { get; set; }
