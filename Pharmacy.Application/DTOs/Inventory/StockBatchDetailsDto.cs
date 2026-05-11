@@ -15,6 +15,7 @@ namespace Pharmacy.Application.DTOs.Inventory
         public DateTime ExpiryDate { get; set; }
         public decimal PurchasePrice { get; set; }
         public int ReceivedQuantity { get; set; }
+        public int BonusQuantity { get; set; }
         public int AvailableQuantity { get; set; }
         public Guid SupplierId { get; set; }
         public string SupplierName { get; set; } = string.Empty;

@@ -417,6 +417,66 @@ public sealed class StockFlowIntegrationTests
         Assert.Equal(3, remaining);
     }
 
+    [Fact]
+    public async Task Purchase_bonus_increases_stock_without_inflating_invoice_subtotal()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..10];
+        using var client = CreateClient();
+        await AuthorizeAsync(client);
+
+        var categoryId = await CreateCategoryAsync(client, $"cb-{uid}");
+        var supplierId = await CreateSupplierAsync(client, $"sb-{uid}");
+        var productId = await CreateProductAsync(client, $"pb-{uid}", $"bcb-{uid}", categoryId, supplierId);
+
+        var purchaseResp = await client.PostAsJsonAsync(
+            "/api/v1/purchase-invoices",
+            new
+            {
+                invoiceNumber = $"PI-BONUS-{uid}",
+                supplierId,
+                taxRate = 0m,
+                paidAmount = 5000m,
+                paymentMethod = "Cash",
+                items = new[]
+                {
+                    new
+                    {
+                        productId,
+                        batchNumber = $"B-BN-{uid}",
+                        expiryDate = DateTime.UtcNow.AddYears(2),
+                        quantity = 50,
+                        bonusQuantity = 15,
+                        unitPrice = 100m
+                    }
+                }
+            });
+        purchaseResp.EnsureSuccessStatusCode();
+        var purchaseDetails = JsonSerializer.Deserialize<PurchaseInvoiceDetailsResponse>(
+            await purchaseResp.Content.ReadAsStringAsync(),
+            JsonOptions)!;
+        Assert.Equal(5000m, purchaseDetails.Subtotal);
+        Assert.Equal(5000m, purchaseDetails.GrandTotal);
+
+        var itemsResp = await client.GetAsync($"/api/v1/purchase-invoices/{purchaseDetails.PurchaseInvoiceId}/items");
+        itemsResp.EnsureSuccessStatusCode();
+        var lines = JsonSerializer.Deserialize<List<PurchaseLineResponse>>(await itemsResp.Content.ReadAsStringAsync(), JsonOptions)!;
+        Assert.Single(lines);
+        Assert.Equal(50, lines[0].Quantity);
+        Assert.Equal(15, lines[0].BonusQuantity);
+
+        var batchId = await GetBatchIdByBatchNumberAsync($"B-BN-{uid}");
+        var batch = await QueryDbAsync(db => db.Set<StockBatch>().AsNoTracking().SingleAsync(b => b.Id == batchId));
+        Assert.Equal(65, batch.ReceivedQuantity);
+        Assert.Equal(65, batch.AvailableQuantity);
+        Assert.Equal(15, batch.BonusQuantity);
+
+        var purchaseInQty = await QueryDbAsync(db => db.Set<InventoryTransaction>()
+            .Where(t => t.StockBatchId == batchId && t.Type == TransactionType.PurchaseIn)
+            .Select(t => t.Quantity)
+            .SingleAsync());
+        Assert.Equal(65, purchaseInQty);
+    }
+
     private Task<int> CountAdjustmentTransactionsAsync(Guid batchId) =>
         QueryDbAsync(db => db.Set<InventoryTransaction>()
             .CountAsync(t => t.StockBatchId == batchId && t.Type == TransactionType.AdjustmentIn));
@@ -479,6 +539,8 @@ public sealed class StockFlowIntegrationTests
     private sealed record SalesInvoiceResponse(Guid SalesInvoiceId);
     private sealed record SalesLineResponse(Guid SalesInvoiceItemId, Guid StockBatchId, int Quantity);
     private sealed record PurchaseInvoiceResponse(Guid PurchaseInvoiceId);
+    private sealed record PurchaseInvoiceDetailsResponse(Guid PurchaseInvoiceId, decimal Subtotal, decimal GrandTotal);
+    private sealed record PurchaseLineResponse(int Quantity, int BonusQuantity);
     private sealed record CategoryResponse(Guid CategoryId);
     private sealed record SupplierResponse(Guid SupplierId);
     private sealed record ProductResponse(Guid ProductId);

@@ -100,6 +100,7 @@ namespace PharmacyProjectApi.Controllers.Inventory
                 ExpiryDate = request.ExpiryDate,
                 PurchasePrice = request.PurchasePrice,
                 ReceivedQuantity = request.ReceivedQuantity,
+                BonusQuantity = request.BonusQuantity,
                 SupplierId = request.SupplierId
             });
 

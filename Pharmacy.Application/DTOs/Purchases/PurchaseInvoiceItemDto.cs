@@ -14,6 +14,7 @@ namespace Pharmacy.Application.DTOs.Purchases
         public string BatchNumber { get; set; } = string.Empty;
         public DateTime ExpiryDate { get; set; }
         public int Quantity { get; set; }
+        public int BonusQuantity { get; set; }
         public decimal UnitPrice { get; set; }
     }
 }

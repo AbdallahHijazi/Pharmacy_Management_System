@@ -14,7 +14,10 @@ namespace Pharmacy.Domain.Entities.Purchases
         public Guid ProductId { get; set; }
         public string BatchNumber { get; set; } = string.Empty;
         public DateTime ExpiryDate { get; set; }
+        /// <summary>Paid / invoiced quantity (line total uses this × <see cref="UnitPrice"/>).</summary>
         public int Quantity { get; set; }
+        /// <summary>Free bonus units received with the line; not included in line total.</summary>
+        public int BonusQuantity { get; set; }
         public decimal UnitPrice { get; set; }
 
         public PurchaseInvoice PurchaseInvoice { get; set; } = null!;

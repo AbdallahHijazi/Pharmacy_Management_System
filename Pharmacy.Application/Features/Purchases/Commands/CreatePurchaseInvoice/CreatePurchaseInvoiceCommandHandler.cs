@@ -125,6 +125,9 @@ namespace Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseInvoice
                 if (item.Quantity <= 0)
                     throw new BadRequestException("الكمية يجب أن تكون أكبر من صفر");
 
+                if (item.BonusQuantity < 0)
+                    throw new BadRequestException("كمية البونص لا يمكن أن تكون سالبة");
+
                 if (item.UnitPrice < 0)
                     throw new BadRequestException("سعر الوحدة يجب أن يكون أكبر من أو يساوي صفر");
             }
@@ -227,6 +230,7 @@ namespace Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseInvoice
             foreach (var item in request.Items)
             {
                 var normalizedBatchNumber = item.BatchNumber.Trim();
+                var totalReceived = item.Quantity + item.BonusQuantity;
 
                 var invoiceItem = new PurchaseInvoiceItem
                 {
@@ -236,6 +240,7 @@ namespace Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseInvoice
                     BatchNumber = normalizedBatchNumber,
                     ExpiryDate = item.ExpiryDate,
                     Quantity = item.Quantity,
+                    BonusQuantity = item.BonusQuantity,
                     UnitPrice = item.UnitPrice,
                     CreatedAt = DateTime.UtcNow,
                     CreatedByUserId = _currentUserService.UserId.Value,
@@ -251,8 +256,9 @@ namespace Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseInvoice
                     BatchNumber = normalizedBatchNumber,
                     ExpiryDate = item.ExpiryDate,
                     PurchasePrice = item.UnitPrice,
-                    ReceivedQuantity = item.Quantity,
-                    AvailableQuantity = item.Quantity,
+                    ReceivedQuantity = totalReceived,
+                    AvailableQuantity = totalReceived,
+                    BonusQuantity = item.BonusQuantity,
                     SupplierId = request.SupplierId,
                     BranchId = _currentUserService.BranchId.Value,
                     CreatedAt = DateTime.UtcNow,
@@ -262,13 +268,17 @@ namespace Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseInvoice
 
                 _stockBatchRepository.Add(stockBatch);
 
+                var reason = item.BonusQuantity > 0
+                    ? $"Purchase invoice {normalizedInvoiceNumber} (paid {item.Quantity}, bonus {item.BonusQuantity}, total {totalReceived})"
+                    : $"Purchase invoice {normalizedInvoiceNumber}";
+
                 var inventoryTransaction = new InventoryTransaction
                 {
                     Id = Guid.NewGuid(),
                     StockBatchId = stockBatch.Id,
                     Type = TransactionType.PurchaseIn,
-                    Quantity = item.Quantity,
-                    Reason = $"Purchase invoice {normalizedInvoiceNumber}",
+                    Quantity = totalReceived,
+                    Reason = reason,
                     ReferenceId = invoice.Id,
                     ReferenceType = ReferenceType.PurchaseInvoice,
                     UserId = _currentUserService.UserId.Value,

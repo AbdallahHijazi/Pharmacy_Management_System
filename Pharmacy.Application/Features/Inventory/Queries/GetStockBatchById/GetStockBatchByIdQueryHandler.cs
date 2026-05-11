@@ -55,6 +55,7 @@ namespace Pharmacy.Application.Features.Inventory.Queries.GetStockBatchById
                 ExpiryDate = stockBatch.ExpiryDate,
                 PurchasePrice = stockBatch.PurchasePrice,
                 ReceivedQuantity = stockBatch.ReceivedQuantity,
+                BonusQuantity = stockBatch.BonusQuantity,
                 AvailableQuantity = stockBatch.AvailableQuantity,
                 SupplierId = stockBatch.SupplierId,
                 SupplierName = stockBatch.Supplier.Name,
