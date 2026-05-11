@@ -21,4 +21,8 @@
     <ProjectReference Include="..\Pharmacy.Infrastructure\Pharmacy.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Pharmacy.IntegrationTests" />
+  </ItemGroup>
+
 </Project>

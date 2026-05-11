@@ -1,0 +1,485 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Pharmacy.Domain.Entities.Catalog;
+using Pharmacy.Domain.Entities.Inventory;
+using Pharmacy.Domain.Enums;
+using Pharmacy.Infrastructure.Persistence;
+using Xunit;
+
+namespace Pharmacy.IntegrationTests;
+
+[Collection("inventory-integration")]
+public sealed class StockFlowIntegrationTests
+{
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    private readonly PharmacyWebApplicationFactory _factory;
+
+    public StockFlowIntegrationTests(PharmacyWebApplicationFactory factory)
+    {
+        _factory = factory;
+    }
+
+    private HttpClient CreateClient() => _factory.CreateClient();
+
+    private async Task AuthorizeAsync(HttpClient client, CancellationToken ct = default)
+    {
+        var login = new { email = "admin@pharmacy.com", password = "Admin@123" };
+        var loginResp = await client.PostAsJsonAsync("/api/Auth/login", login, ct);
+        loginResp.EnsureSuccessStatusCode();
+        var loginJson = await loginResp.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(loginJson);
+        var token = doc.RootElement.GetProperty("token").GetString()!;
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+    }
+
+    private async Task<T> QueryDbAsync<T>(Func<AppDbContext, Task<T>> query)
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        return await query(db);
+    }
+
+    [Fact]
+    public async Task Purchase_invoice_increases_available_stock()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..10];
+        using var client = CreateClient();
+        await AuthorizeAsync(client);
+
+        var categoryId = await CreateCategoryAsync(client, $"c-{uid}");
+        var supplierId = await CreateSupplierAsync(client, $"s-{uid}");
+        var productId = await CreateProductAsync(client, $"p-{uid}", $"bc-{uid}", categoryId, supplierId);
+
+        var qtyBefore = await SumAvailableAsync(productId);
+
+        var purchaseResp = await client.PostAsJsonAsync(
+            "/api/v1/purchase-invoices",
+            new
+            {
+                invoiceNumber = $"PI-{uid}",
+                supplierId,
+                taxRate = 0m,
+                paidAmount = 60m,
+                paymentMethod = "Cash",
+                items = new[]
+                {
+                    new
+                    {
+                        productId,
+                        batchNumber = $"B-{uid}",
+                        expiryDate = DateTime.UtcNow.AddYears(2),
+                        quantity = 12,
+                        unitPrice = 5m
+                    }
+                }
+            });
+
+        purchaseResp.EnsureSuccessStatusCode();
+
+        var qtyAfter = await SumAvailableAsync(productId);
+        Assert.Equal(qtyBefore + 12, qtyAfter);
+    }
+
+    [Fact]
+    public async Task Sale_consumes_earliest_expiring_batch_first()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..10];
+        using var client = CreateClient();
+        await AuthorizeAsync(client);
+
+        var categoryId = await CreateCategoryAsync(client, $"c2-{uid}");
+        var supplierId = await CreateSupplierAsync(client, $"s2-{uid}");
+        var productId = await CreateProductAsync(client, $"p2-{uid}", $"bc2-{uid}", categoryId, supplierId);
+
+        await client.PostAsJsonAsync(
+            "/api/v1/purchase-invoices",
+            new
+            {
+                invoiceNumber = $"PI-E-{uid}",
+                supplierId,
+                taxRate = 0m,
+                paidAmount = 10m,
+                paymentMethod = "Cash",
+                items = new[]
+                {
+                    new
+                    {
+                        productId,
+                        batchNumber = $"EARLY-{uid}",
+                        expiryDate = new DateTime(2030, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                        quantity = 10,
+                        unitPrice = 1m
+                    }
+                }
+            });
+        await client.PostAsJsonAsync(
+            "/api/v1/purchase-invoices",
+            new
+            {
+                invoiceNumber = $"PI-L-{uid}",
+                supplierId,
+                taxRate = 0m,
+                paidAmount = 10m,
+                paymentMethod = "Cash",
+                items = new[]
+                {
+                    new
+                    {
+                        productId,
+                        batchNumber = $"LATE-{uid}",
+                        expiryDate = new DateTime(2035, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                        quantity = 10,
+                        unitPrice = 1m
+                    }
+                }
+            });
+
+        var earlyBatchId = await GetBatchIdByBatchNumberAsync($"EARLY-{uid}");
+        var lateBatchId = await GetBatchIdByBatchNumberAsync($"LATE-{uid}");
+
+        var saleResp = await client.PostAsJsonAsync(
+            "/api/v1/sales-invoices",
+            new
+            {
+                customerId = (Guid?)null,
+                discountPercentage = 0m,
+                paidAmount = 50m,
+                paymentMethod = "Cash",
+                items = new[] { new { productId, quantity = 5 } }
+            });
+        saleResp.EnsureSuccessStatusCode();
+        var sale = JsonSerializer.Deserialize<SalesInvoiceResponse>(await saleResp.Content.ReadAsStringAsync(), JsonOptions)!;
+
+        var itemsResp = await client.GetAsync($"/api/v1/sales-invoices/{sale.SalesInvoiceId}/items");
+        itemsResp.EnsureSuccessStatusCode();
+        var lines = JsonSerializer.Deserialize<List<SalesLineResponse>>(await itemsResp.Content.ReadAsStringAsync(), JsonOptions)!;
+
+        Assert.Single(lines);
+        Assert.Equal(earlyBatchId, lines[0].StockBatchId);
+        Assert.Equal(5, lines[0].Quantity);
+
+        var earlyAvail = await GetAvailableAsync(earlyBatchId);
+        var lateAvail = await GetAvailableAsync(lateBatchId);
+        Assert.Equal(5, earlyAvail);
+        Assert.Equal(10, lateAvail);
+    }
+
+    [Fact]
+    public async Task Sales_return_restores_stock()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..10];
+        using var client = CreateClient();
+        await AuthorizeAsync(client);
+
+        var categoryId = await CreateCategoryAsync(client, $"c3-{uid}");
+        var supplierId = await CreateSupplierAsync(client, $"s3-{uid}");
+        var productId = await CreateProductAsync(client, $"p3-{uid}", $"bc3-{uid}", categoryId, supplierId);
+
+        await client.PostAsJsonAsync(
+            "/api/v1/purchase-invoices",
+            new
+            {
+                invoiceNumber = $"PI-SR-{uid}",
+                supplierId,
+                taxRate = 0m,
+                paidAmount = 20m,
+                paymentMethod = "Cash",
+                items = new[]
+                {
+                    new
+                    {
+                        productId,
+                        batchNumber = $"B-SR-{uid}",
+                        expiryDate = DateTime.UtcNow.AddYears(1),
+                        quantity = 10,
+                        unitPrice = 2m
+                    }
+                }
+            });
+
+        var batchId = await GetBatchIdByBatchNumberAsync($"B-SR-{uid}");
+        var beforeSale = await GetAvailableAsync(batchId);
+
+        var saleResp = await client.PostAsJsonAsync(
+            "/api/v1/sales-invoices",
+            new
+            {
+                customerId = (Guid?)null,
+                discountPercentage = 0m,
+                paidAmount = 40m,
+                paymentMethod = "Cash",
+                items = new[] { new { productId, quantity = 4 } }
+            });
+        saleResp.EnsureSuccessStatusCode();
+        var sale = JsonSerializer.Deserialize<SalesInvoiceResponse>(await saleResp.Content.ReadAsStringAsync(), JsonOptions)!;
+
+        var afterSale = await GetAvailableAsync(batchId);
+        Assert.Equal(beforeSale - 4, afterSale);
+
+        var itemsResp = await client.GetAsync($"/api/v1/sales-invoices/{sale.SalesInvoiceId}/items");
+        itemsResp.EnsureSuccessStatusCode();
+        var lines = JsonSerializer.Deserialize<List<SalesLineResponse>>(await itemsResp.Content.ReadAsStringAsync(), JsonOptions)!;
+        var lineId = lines[0].SalesInvoiceItemId;
+
+        var retResp = await client.PostAsJsonAsync(
+            "/api/v1/sales-returns",
+            new
+            {
+                salesInvoiceId = sale.SalesInvoiceId,
+                reason = "test return",
+                items = new[] { new { salesInvoiceItemId = lineId, quantity = 2 } }
+            });
+        retResp.EnsureSuccessStatusCode();
+
+        var afterReturn = await GetAvailableAsync(batchId);
+        Assert.Equal(afterSale + 2, afterReturn);
+    }
+
+    [Fact]
+    public async Task Purchase_return_reduces_stock()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..10];
+        using var client = CreateClient();
+        await AuthorizeAsync(client);
+
+        var categoryId = await CreateCategoryAsync(client, $"c4-{uid}");
+        var supplierId = await CreateSupplierAsync(client, $"s4-{uid}");
+        var productId = await CreateProductAsync(client, $"p4-{uid}", $"bc4-{uid}", categoryId, supplierId);
+
+        var purchaseResp = await client.PostAsJsonAsync(
+            "/api/v1/purchase-invoices",
+            new
+            {
+                invoiceNumber = $"PI-PR-{uid}",
+                supplierId,
+                taxRate = 0m,
+                paidAmount = 30m,
+                paymentMethod = "Cash",
+                items = new[]
+                {
+                    new
+                    {
+                        productId,
+                        batchNumber = $"B-PR-{uid}",
+                        expiryDate = DateTime.UtcNow.AddYears(1),
+                        quantity = 10,
+                        unitPrice = 3m
+                    }
+                }
+            });
+        purchaseResp.EnsureSuccessStatusCode();
+        var purchase = JsonSerializer.Deserialize<PurchaseInvoiceResponse>(await purchaseResp.Content.ReadAsStringAsync(), JsonOptions)!;
+
+        var batchId = await GetBatchIdByBatchNumberAsync($"B-PR-{uid}");
+        var before = await GetAvailableAsync(batchId);
+
+        var prResp = await client.PostAsJsonAsync(
+            "/api/v1/purchase-returns",
+            new
+            {
+                purchaseInvoiceId = purchase.PurchaseInvoiceId,
+                reason = "supplier return",
+                items = new[] { new { stockBatchId = batchId, quantity = 3 } }
+            });
+        prResp.EnsureSuccessStatusCode();
+
+        var after = await GetAvailableAsync(batchId);
+        Assert.Equal(before - 3, after);
+    }
+
+    [Fact]
+    public async Task Adjust_stock_creates_inventory_transaction()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..10];
+        using var client = CreateClient();
+        await AuthorizeAsync(client);
+
+        var categoryId = await CreateCategoryAsync(client, $"c5-{uid}");
+        var supplierId = await CreateSupplierAsync(client, $"s5-{uid}");
+        var productId = await CreateProductAsync(client, $"p5-{uid}", $"bc5-{uid}", categoryId, supplierId);
+
+        await client.PostAsJsonAsync(
+            "/api/v1/purchase-invoices",
+            new
+            {
+                invoiceNumber = $"PI-ADJ-{uid}",
+                supplierId,
+                taxRate = 0m,
+                paidAmount = 10m,
+                paymentMethod = "Cash",
+                items = new[]
+                {
+                    new
+                    {
+                        productId,
+                        batchNumber = $"B-ADJ-{uid}",
+                        expiryDate = DateTime.UtcNow.AddYears(1),
+                        quantity = 5,
+                        unitPrice = 2m
+                    }
+                }
+            });
+
+        var batchId = await GetBatchIdByBatchNumberAsync($"B-ADJ-{uid}");
+
+        var beforeCount = await CountAdjustmentTransactionsAsync(batchId);
+
+        var adjResp = await client.PostAsJsonAsync(
+            "/api/v1/inventory-transactions/adjust-stock",
+            new
+            {
+                stockBatchId = batchId,
+                type = nameof(TransactionType.AdjustmentIn),
+                quantity = 2,
+                reason = "integration test adjustment"
+            });
+        adjResp.EnsureSuccessStatusCode();
+
+        var afterCount = await CountAdjustmentTransactionsAsync(batchId);
+        Assert.Equal(beforeCount + 1, afterCount);
+
+        var lastRefType = await QueryDbAsync(async db =>
+            await db.Set<InventoryTransaction>()
+                .Where(t => t.StockBatchId == batchId && t.Type == TransactionType.AdjustmentIn)
+                .OrderByDescending(t => t.CreatedAt)
+                .Select(t => t.ReferenceType)
+                .FirstAsync());
+
+        Assert.Equal(ReferenceType.StockBatchAdjustment, lastRefType);
+    }
+
+    [Fact]
+    public async Task Concurrent_sales_on_same_batch_cannot_oversell()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..10];
+        using var client = CreateClient();
+        await AuthorizeAsync(client);
+
+        var categoryId = await CreateCategoryAsync(client, $"c6-{uid}");
+        var supplierId = await CreateSupplierAsync(client, $"s6-{uid}");
+        var productId = await CreateProductAsync(client, $"p6-{uid}", $"bc6-{uid}", categoryId, supplierId);
+
+        await client.PostAsJsonAsync(
+            "/api/v1/purchase-invoices",
+            new
+            {
+                invoiceNumber = $"PI-CC-{uid}",
+                supplierId,
+                taxRate = 0m,
+                paidAmount = 80m,
+                paymentMethod = "Cash",
+                items = new[]
+                {
+                    new
+                    {
+                        productId,
+                        batchNumber = $"B-CC-{uid}",
+                        expiryDate = DateTime.UtcNow.AddYears(1),
+                        quantity = 8,
+                        unitPrice = 10m
+                    }
+                }
+            });
+
+        var body = new
+        {
+            customerId = (Guid?)null,
+            discountPercentage = 0m,
+            paidAmount = 50m,
+            paymentMethod = "Cash",
+            items = new[] { new { productId, quantity = 5 } }
+        };
+
+        var t1 = client.PostAsJsonAsync("/api/v1/sales-invoices", body);
+        var t2 = client.PostAsJsonAsync("/api/v1/sales-invoices", body);
+        await Task.WhenAll(t1, t2);
+
+        var r1 = await t1;
+        var r2 = await t2;
+
+        var ok = new[] { r1, r2 }.Count(r => r.StatusCode == HttpStatusCode.Created);
+        var bad = new[] { r1, r2 }.Count(r => r.StatusCode == HttpStatusCode.BadRequest);
+
+        Assert.Equal(1, ok);
+        Assert.Equal(1, bad);
+
+        var batchId = await GetBatchIdByBatchNumberAsync($"B-CC-{uid}");
+        var remaining = await GetAvailableAsync(batchId);
+        Assert.Equal(3, remaining);
+    }
+
+    private Task<int> CountAdjustmentTransactionsAsync(Guid batchId) =>
+        QueryDbAsync(db => db.Set<InventoryTransaction>()
+            .CountAsync(t => t.StockBatchId == batchId && t.Type == TransactionType.AdjustmentIn));
+
+    private Task<int> SumAvailableAsync(Guid productId) =>
+        QueryDbAsync(db => db.Set<StockBatch>()
+            .Where(b => b.ProductId == productId)
+            .SumAsync(b => b.AvailableQuantity));
+
+    private Task<int> GetAvailableAsync(Guid batchId) =>
+        QueryDbAsync(db => db.Set<StockBatch>().Where(b => b.Id == batchId).Select(b => b.AvailableQuantity).SingleAsync());
+
+    private Task<Guid> GetBatchIdByBatchNumberAsync(string batchNumber) =>
+        QueryDbAsync(db => db.Set<StockBatch>()
+            .Where(b => b.BatchNumber == batchNumber)
+            .Select(b => b.Id)
+            .SingleAsync());
+
+    private async Task<Guid> CreateCategoryAsync(HttpClient client, string name)
+    {
+        var resp = await client.PostAsJsonAsync("/api/v1/categories", new { name });
+        resp.EnsureSuccessStatusCode();
+        var dto = JsonSerializer.Deserialize<CategoryResponse>(await resp.Content.ReadAsStringAsync(), JsonOptions)!;
+        return dto.CategoryId;
+    }
+
+    private async Task<Guid> CreateSupplierAsync(HttpClient client, string name)
+    {
+        var resp = await client.PostAsJsonAsync(
+            "/api/v1/suppliers",
+            new { name, contactPerson = "x", phone = "1", address = "a" });
+        resp.EnsureSuccessStatusCode();
+        var dto = JsonSerializer.Deserialize<SupplierResponse>(await resp.Content.ReadAsStringAsync(), JsonOptions)!;
+        return dto.SupplierId;
+    }
+
+    private async Task<Guid> CreateProductAsync(
+        HttpClient client,
+        string name,
+        string barcode,
+        Guid categoryId,
+        Guid supplierId)
+    {
+        var resp = await client.PostAsJsonAsync(
+            "/api/v1/products",
+            new
+            {
+                name,
+                scientificName = name,
+                barcode,
+                categoryId,
+                sellingPrice = 10m,
+                defaultSupplierId = supplierId
+            });
+        resp.EnsureSuccessStatusCode();
+        var dto = JsonSerializer.Deserialize<ProductResponse>(await resp.Content.ReadAsStringAsync(), JsonOptions)!;
+        return dto.ProductId;
+    }
+
+    private sealed record SalesInvoiceResponse(Guid SalesInvoiceId);
+    private sealed record SalesLineResponse(Guid SalesInvoiceItemId, Guid StockBatchId, int Quantity);
+    private sealed record PurchaseInvoiceResponse(Guid PurchaseInvoiceId);
+    private sealed record CategoryResponse(Guid CategoryId);
+    private sealed record SupplierResponse(Guid SupplierId);
+    private sealed record ProductResponse(Guid ProductId);
+}
