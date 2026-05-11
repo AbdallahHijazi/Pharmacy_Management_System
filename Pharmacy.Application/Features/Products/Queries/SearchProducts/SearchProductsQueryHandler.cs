@@ -1,27 +1,26 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Pharmacy.Application.Common.Inventory;
 using Pharmacy.Application.Common.Interfaces;
 using Pharmacy.Application.DTOs.Products;
 using Pharmacy.Domain.Entities.Catalog;
 using Pharmacy.Domain.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Pharmacy.Application.Features.Products.Queries.SearchProducts
 {
     public class SearchProductsQueryHandler : IRequestHandler<SearchProductsQuery, List<ProductListItemDto>>
     {
         private readonly IRepository<Product> _productRepository;
+        private readonly IRepository<StockBatch> _stockBatchRepository;
         private readonly ICurrentUserService _currentUserService;
 
         public SearchProductsQueryHandler(
             IRepository<Product> productRepository,
+            IRepository<StockBatch> stockBatchRepository,
             ICurrentUserService currentUserService)
         {
             _productRepository = productRepository;
+            _stockBatchRepository = stockBatchRepository;
             _currentUserService = currentUserService;
         }
 
@@ -40,8 +39,9 @@ namespace Pharmacy.Application.Features.Products.Queries.SearchProducts
 
             var normalizedQuery = query.ToLower();
             var branchId = _currentUserService.BranchId.Value;
+            var asOfUtc = DateTime.UtcNow;
 
-            var products = await _productRepository
+            var items = await _productRepository
                 .GetAllAsNoTracking()
                 .Include(p => p.Category)
                 .Where(p => !p.IsDeleted &&
@@ -64,27 +64,35 @@ namespace Pharmacy.Application.Features.Products.Queries.SearchProducts
                     SellingPrice = p.SellingPrice,
                     DefaultSupplierId = p.DefaultSupplierId,
                     BranchId = p.BranchId,
-                    TotalQuantity = p.StockBatches
-                        .Where(b => b.BranchId == branchId)
-                        .Sum(b => b.AvailableQuantity),
-
-                    SellableQuantity = p.StockBatches
-                        .Where(b =>
-                            b.BranchId == branchId &&
-                            b.AvailableQuantity > 0 &&
-                            b.ExpiryDate > DateTime.UtcNow)
-                        .Sum(b => b.AvailableQuantity),
-
-                    ExpiredQuantity = p.StockBatches
-                        .Where(b =>
-                            b.BranchId == branchId &&
-                            b.AvailableQuantity > 0 &&
-                            b.ExpiryDate <= DateTime.UtcNow)
-                        .Sum(b => b.AvailableQuantity)
+                    TotalQuantity = 0,
+                    SellableQuantity = 0,
+                    ExpiredQuantity = 0
                 })
                 .ToListAsync(cancellationToken);
 
-            return products;
+            var productIds = items.Select(i => i.ProductId).Distinct().ToList();
+            if (productIds.Count > 0)
+            {
+                var aggregates = await ProductAvailableQuantity.GetStockAggregatesByProductIds(
+                        _stockBatchRepository.GetAllAsNoTracking(),
+                        branchId,
+                        asOfUtc,
+                        productIds)
+                    .ToListAsync(cancellationToken);
+
+                var map = aggregates.ToDictionary(a => a.ProductId);
+                foreach (var item in items)
+                {
+                    if (!map.TryGetValue(item.ProductId, out var a))
+                        continue;
+
+                    item.TotalQuantity = a.TotalAvailableQuantity;
+                    item.SellableQuantity = a.SellableQuantity;
+                    item.ExpiredQuantity = a.ExpiredQuantity;
+                }
+            }
+
+            return items;
         }
     }
 }

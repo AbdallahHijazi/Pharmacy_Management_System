@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Pharmacy.Application.Common.Inventory;
 using Pharmacy.Application.Common.Interfaces;
 using Pharmacy.Application.DTOs.Reports;
 using Pharmacy.Domain.Entities.Catalog;
@@ -36,7 +37,7 @@ namespace Pharmacy.Application.Features.Reports.Queries.GetStockConsistencyDiagn
             var batches = await _stockBatchRepository
                 .GetAllAsNoTracking()
                 .Include(sb => sb.Product)
-                .Where(sb => !sb.IsDeleted && sb.BranchId == branchId)
+                .Where(ProductAvailableQuantity.ActiveBatchesInBranch(branchId))
                 .ToListAsync(cancellationToken);
 
             var batchIssues = new List<StockBatchConsistencyIssueDto>();
