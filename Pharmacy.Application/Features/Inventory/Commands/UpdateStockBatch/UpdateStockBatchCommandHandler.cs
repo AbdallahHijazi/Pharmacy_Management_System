@@ -5,6 +5,7 @@ using Pharmacy.Application.DTOs.Inventory;
 using Pharmacy.Domain.Entities.Catalog;
 using Pharmacy.Domain.Entities.Inventory;
 using Pharmacy.Domain.Entities.Partners;
+using Pharmacy.Domain.Entities.Sales;
 using Pharmacy.Domain.Enums;
 using Pharmacy.Domain.Exceptions;
 using System;
@@ -21,6 +22,7 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<Supplier> _supplierRepository;
         private readonly IRepository<InventoryTransaction> _inventoryTransactionRepository;
+        private readonly IRepository<SalesInvoiceItem> _salesInvoiceItemRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUserService _currentUserService;
 
@@ -29,6 +31,7 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
             IRepository<Product> productRepository,
             IRepository<Supplier> supplierRepository,
             IRepository<InventoryTransaction> inventoryTransactionRepository,
+            IRepository<SalesInvoiceItem> salesInvoiceItemRepository,
             IUnitOfWork unitOfWork,
             ICurrentUserService currentUserService)
         {
@@ -36,6 +39,7 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
             _productRepository = productRepository;
             _supplierRepository = supplierRepository;
             _inventoryTransactionRepository = inventoryTransactionRepository;
+            _salesInvoiceItemRepository = salesInvoiceItemRepository;
             _unitOfWork = unitOfWork;
             _currentUserService = currentUserService;
         }
@@ -110,12 +114,59 @@ namespace Pharmacy.Application.Features.Inventory.Commands.UpdateStockBatch
             if (exists)
                 throw new StatusAlreadyExistsException(request.LotNumber);
 
+            if (stockBatch.AvailableQuantity < 0 || stockBatch.AvailableQuantity > stockBatch.ReceivedQuantity)
+            {
+                throw new BadRequestException(
+                    "بيانات كميات الدفعة غير متسقة (متاح أكبر من مستلم أو متاح سالب). صحّح الكميات عبر تعديل المخزون ثم أعد المحاولة.");
+            }
+
+            var hasInventoryMovements = await _inventoryTransactionRepository
+                .GetAllAsNoTracking()
+                .AnyAsync(
+                    t => t.StockBatchId == stockBatch.Id && !t.IsDeleted,
+                    cancellationToken);
+
+            var hasSalesLines = await _salesInvoiceItemRepository
+                .GetAllAsNoTracking()
+                .AnyAsync(
+                    sii => sii.StockBatchId == stockBatch.Id && !sii.IsDeleted,
+                    cancellationToken);
+
+            if (request.ReceivedQuantity != stockBatch.ReceivedQuantity)
+            {
+                if (hasInventoryMovements || hasSalesLines)
+                {
+                    throw new BadRequestException(
+                        "لا يمكن تعديل الكمية المستلمة مباشرة لأن الدفعة لها حركات مخزون أو مبيعات. استخدم تعديل المخزون (Inventory Adjustment) لتغيير الكميات.");
+                }
+
+                var soldQty = await _salesInvoiceItemRepository
+                    .GetAllAsNoTracking()
+                    .Where(sii => sii.StockBatchId == stockBatch.Id && !sii.IsDeleted)
+                    .SumAsync(sii => (int?)sii.Quantity, cancellationToken) ?? 0;
+
+                var netDispatched = Math.Max(0, stockBatch.ReceivedQuantity - stockBatch.AvailableQuantity);
+                var minReceivedAllowed = Math.Max(soldQty, netDispatched);
+
+                if (request.ReceivedQuantity < minReceivedAllowed)
+                {
+                    throw new BadRequestException(
+                        $"لا يمكن أن تكون الكمية المستلمة أقل من الكمية المصروفة/المحجوزة من الدفعة (الحد الأدنى المسموح: {minReceivedAllowed}).");
+                }
+            }
+
             var deltaReceived = request.ReceivedQuantity - stockBatch.ReceivedQuantity;
             var newAvailable = stockBatch.AvailableQuantity + deltaReceived;
 
             if (newAvailable < 0)
                 throw new BadRequestException(
                     "لا يمكن تعديل الكمية المستلمة بهذا الشكل لأن الكمية المتاحة ستصبح سالبة.");
+
+            if (newAvailable > request.ReceivedQuantity)
+            {
+                throw new BadRequestException(
+                    "لا يمكن أن تصبح الكمية المتاحة أكبر من الكمية المستلمة بعد التعديل.");
+            }
 
             stockBatch.ProductId = request.ProductId;
             stockBatch.BatchNumber = normalizedBatchNumber;

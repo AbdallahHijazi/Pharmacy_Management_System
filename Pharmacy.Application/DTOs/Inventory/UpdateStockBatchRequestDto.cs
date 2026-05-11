@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace Pharmacy.Application.DTOs.Inventory
 {
+    /// <summary>
+    /// تحديث بيانات الدفعة. تعديل <see cref="ReceivedQuantity"/> غير مسموح إن وُجدت حركات مخزون أو بنود مبيعات على الدفعة؛ استخدم تعديل المخزون بدلًا من ذلك.
+    /// </summary>
     public class UpdateStockBatchRequestDto
     {
         public Guid ProductId { get; set; }
