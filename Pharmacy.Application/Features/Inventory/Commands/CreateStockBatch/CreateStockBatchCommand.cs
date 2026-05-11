@@ -15,7 +15,6 @@ namespace Pharmacy.Application.Features.Inventory.Commands.CreateStockBatch
         public DateTime ExpiryDate { get; set; }
         public decimal PurchasePrice { get; set; }
         public int ReceivedQuantity { get; set; }
-        public int AvailableQuantity { get; set; }
         public Guid SupplierId { get; set; }
     }
 }

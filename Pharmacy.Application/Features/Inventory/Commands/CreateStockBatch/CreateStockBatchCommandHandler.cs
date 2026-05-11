@@ -55,14 +55,8 @@ namespace Pharmacy.Application.Features.Inventory.Commands.CreateStockBatch
             if (request.PurchasePrice < 0)
                 throw new BadRequestException("سعر الشراء يجب أن يكون أكبر من أو يساوي صفر");
 
-            if (request.ReceivedQuantity < 0)
-                throw new BadRequestException("الكمية المستلمة يجب أن تكون أكبر من أو تساوي صفر");
-
-            if (request.AvailableQuantity < 0)
-                throw new BadRequestException("الكمية المتاحة يجب أن تكون أكبر من أو تساوي صفر");
-
-            if (request.AvailableQuantity > request.ReceivedQuantity)
-                throw new BadRequestException("الكمية المتاحة لا يمكن أن تكون أكبر من الكمية المستلمة");
+            if (request.ReceivedQuantity <= 0)
+                throw new BadRequestException("الكمية المستلمة يجب أن تكون أكبر من صفر");
 
             var product = await _productRepository
                 .GetAll()
@@ -107,7 +101,7 @@ namespace Pharmacy.Application.Features.Inventory.Commands.CreateStockBatch
                 ExpiryDate = request.ExpiryDate,
                 PurchasePrice = request.PurchasePrice,
                 ReceivedQuantity = request.ReceivedQuantity,
-                AvailableQuantity = request.AvailableQuantity,
+                AvailableQuantity = request.ReceivedQuantity,
                 SupplierId = request.SupplierId,
                 BranchId = _currentUserService.BranchId.Value,
                 CreatedAt = DateTime.UtcNow,
