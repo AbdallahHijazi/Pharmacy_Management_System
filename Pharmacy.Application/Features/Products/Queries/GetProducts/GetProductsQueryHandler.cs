@@ -77,7 +77,7 @@ namespace Pharmacy.Application.Features.Products.Queries.GetProducts
                     SellingPrice = p.SellingPrice,
                     DefaultSupplierId = p.DefaultSupplierId,
                     BranchId = p.BranchId,
-                    TotalQuantity = 0,
+                    TotalAvailableQuantity = 0,
                     SellableQuantity = 0,
                     ExpiredQuantity = 0
                 })
@@ -99,7 +99,7 @@ namespace Pharmacy.Application.Features.Products.Queries.GetProducts
                     if (!map.TryGetValue(item.ProductId, out var a))
                         continue;
 
-                    item.TotalQuantity = a.TotalAvailableQuantity;
+                    item.TotalAvailableQuantity = a.TotalAvailableQuantity;
                     item.SellableQuantity = a.SellableQuantity;
                     item.ExpiredQuantity = a.ExpiredQuantity;
                 }

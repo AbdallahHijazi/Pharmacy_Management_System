@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Pharmacy.Application.Common.Inventory;
 using Pharmacy.Application.Common.Interfaces;
 using Pharmacy.Application.DTOs.Products;
 using Pharmacy.Domain.Entities.Catalog;
@@ -18,6 +19,7 @@ namespace Pharmacy.Application.Features.Products.Commands.UpdateProduct
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<ProductCategory> _categoryRepository;
         private readonly IRepository<Supplier> _supplierRepository;
+        private readonly IRepository<StockBatch> _stockBatchRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUserService _currentUserService;
 
@@ -25,12 +27,14 @@ namespace Pharmacy.Application.Features.Products.Commands.UpdateProduct
             IRepository<Product> productRepository,
             IRepository<ProductCategory> categoryRepository,
             IRepository<Supplier> supplierRepository,
+            IRepository<StockBatch> stockBatchRepository,
             IUnitOfWork unitOfWork,
             ICurrentUserService currentUserService)
         {
             _productRepository = productRepository;
             _categoryRepository = categoryRepository;
             _supplierRepository = supplierRepository;
+            _stockBatchRepository = stockBatchRepository;
             _unitOfWork = unitOfWork;
             _currentUserService = currentUserService;
         }
@@ -113,6 +117,15 @@ namespace Pharmacy.Application.Features.Products.Commands.UpdateProduct
             _productRepository.Update(product);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+            var branchId = _currentUserService.BranchId.Value;
+            var asOfUtc = DateTime.UtcNow;
+            var aggregate = await ProductAvailableQuantity.GetStockAggregatesByProductIds(
+                    _stockBatchRepository.GetAllAsNoTracking(),
+                    branchId,
+                    asOfUtc,
+                    new[] { product.Id })
+                .FirstOrDefaultAsync(cancellationToken);
+
             return new ProductDetailsDto
             {
                 ProductId = product.Id,
@@ -123,7 +136,10 @@ namespace Pharmacy.Application.Features.Products.Commands.UpdateProduct
                 CategoryName = category.Name,
                 SellingPrice = product.SellingPrice,
                 DefaultSupplierId = product.DefaultSupplierId,
-                BranchId = product.BranchId
+                BranchId = product.BranchId,
+                TotalAvailableQuantity = aggregate?.TotalAvailableQuantity ?? 0,
+                SellableQuantity = aggregate?.SellableQuantity ?? 0,
+                ExpiredQuantity = aggregate?.ExpiredQuantity ?? 0
             };
         }
     }
