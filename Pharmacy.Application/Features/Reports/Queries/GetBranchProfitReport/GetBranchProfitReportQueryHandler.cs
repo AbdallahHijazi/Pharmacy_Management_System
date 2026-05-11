@@ -123,85 +123,10 @@ namespace Pharmacy.Application.Features.Reports.Queries.GetBranchProfitReport
 
             var salesReturnsRefund = returnsInPeriod.Sum(r => r.RefundAmount);
 
-            var returnItemLineIds = returnsInPeriod
-                .SelectMany(r => r.Items.Where(i => !i.IsDeleted && i.SalesInvoiceItemId.HasValue))
-                .Select(i => i.SalesInvoiceItemId!.Value)
-                .Distinct()
-                .ToList();
-
-            var returnCostByLineId = await LoadUnitCostsByLineIdsAsync(returnItemLineIds, cancellationToken);
-
-            var fifoKeys = returnsInPeriod
-                .SelectMany(r => r.Items
-                    .Where(i => !i.IsDeleted && !i.SalesInvoiceItemId.HasValue)
-                    .Select(i => (r.SalesInvoiceId, i.StockBatchId)))
-                .Distinct()
-                .ToList();
-
-            var fifoBuckets = new Dictionary<(Guid InvoiceId, Guid BatchId), List<FifoCostSegment>>();
-            foreach (var (invId, batchId) in fifoKeys)
-            {
-                var lines = await _salesInvoiceItemRepository
-                    .GetAllAsNoTracking()
-                    .Where(li =>
-                        !li.IsDeleted &&
-                        li.SalesInvoiceId == invId &&
-                        li.StockBatchId == batchId)
-                    .OrderBy(li => li.Id)
-                    .Select(li => new
-                    {
-                        li.Quantity,
-                        li.UnitEffectiveCostAtSale,
-                        li.BatchNominalPurchasePriceAtSale,
-                        li.BatchReceivedQuantityAtSale,
-                        li.BatchBonusQuantityAtSale
-                    })
-                    .ToListAsync(cancellationToken);
-
-                var segs = new List<FifoCostSegment>();
-                foreach (var li in lines)
-                {
-                    var u = EffectiveUnitCostResolver.ResolveForSaleLine(
-                        li.UnitEffectiveCostAtSale,
-                        li.BatchNominalPurchasePriceAtSale,
-                        li.BatchReceivedQuantityAtSale,
-                        li.BatchBonusQuantityAtSale);
-                    segs.Add(new FifoCostSegment { RemainingQty = li.Quantity, UnitCost = u });
-                }
-
-                fifoBuckets[(invId, batchId)] = segs;
-            }
-
-            decimal salesReturnCogsRecovery = 0;
-
-            foreach (var ret in returnsInPeriod.OrderBy(r => r.CreatedAt).ThenBy(r => r.Id))
-            {
-                foreach (var ri in ret.Items.Where(i => !i.IsDeleted).OrderBy(i => i.Id))
-                {
-                    if (ri.SalesInvoiceItemId is Guid sid)
-                    {
-                        if (returnCostByLineId.TryGetValue(sid, out var uc))
-                            salesReturnCogsRecovery += uc * ri.Quantity;
-                        continue;
-                    }
-
-                    if (!fifoBuckets.TryGetValue((ret.SalesInvoiceId, ri.StockBatchId), out var segments))
-                        continue;
-
-                    var need = ri.Quantity;
-                    while (need > 0)
-                    {
-                        var seg = segments.FirstOrDefault(s => s.RemainingQty > 0);
-                        if (seg is null)
-                            break;
-
-                        var take = Math.Min(seg.RemainingQty, need);
-                        salesReturnCogsRecovery += take * seg.UnitCost;
-                        seg.RemainingQty -= take;
-                        need -= take;
-                    }
-                }
-            }
+            var (salesReturnCogsRecovery, _) = await SalesReturnCogsRecoveryEvaluator.EvaluateAsync(
+                returnsInPeriod,
+                _salesInvoiceItemRepository,
+                cancellationToken);
 
             var prMovements = await _inventoryTransactionRepository
                 .GetAllAsNoTracking()
@@ -240,41 +165,6 @@ namespace Pharmacy.Application.Features.Reports.Queries.GetBranchProfitReport
                 prMovements.Count);
 
             return BranchProfitReportCalculator.Calculate(snapshot);
-        }
-
-        private async Task<Dictionary<Guid, decimal>> LoadUnitCostsByLineIdsAsync(
-            List<Guid> lineIds,
-            CancellationToken cancellationToken)
-        {
-            if (lineIds.Count == 0)
-                return new Dictionary<Guid, decimal>();
-
-            var rows = await _salesInvoiceItemRepository
-                .GetAllAsNoTracking()
-                .Where(li => lineIds.Contains(li.Id))
-                .Select(li => new
-                {
-                    li.Id,
-                    li.UnitEffectiveCostAtSale,
-                    li.BatchNominalPurchasePriceAtSale,
-                    li.BatchReceivedQuantityAtSale,
-                    li.BatchBonusQuantityAtSale
-                })
-                .ToListAsync(cancellationToken);
-
-            return rows.ToDictionary(
-                r => r.Id,
-                r => EffectiveUnitCostResolver.ResolveForSaleLine(
-                    r.UnitEffectiveCostAtSale,
-                    r.BatchNominalPurchasePriceAtSale,
-                    r.BatchReceivedQuantityAtSale,
-                    r.BatchBonusQuantityAtSale));
-        }
-
-        private sealed class FifoCostSegment
-        {
-            public int RemainingQty { get; set; }
-            public decimal UnitCost { get; set; }
         }
     }
 }
