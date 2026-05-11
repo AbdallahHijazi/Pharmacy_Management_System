@@ -49,7 +49,11 @@ namespace Pharmacy.Application.Features.Sales.Queries.GetSalesInvoiceItems
                     ProductName = i.StockBatch.Product.Name,
                     Quantity = i.Quantity,
                     UnitPrice = i.UnitPrice,
-                    Subtotal = i.Subtotal
+                    Subtotal = i.Subtotal,
+                    UnitEffectiveCostAtSale = i.UnitEffectiveCostAtSale,
+                    BatchNominalPurchasePriceAtSale = i.BatchNominalPurchasePriceAtSale,
+                    BatchReceivedQuantityAtSale = i.BatchReceivedQuantityAtSale,
+                    BatchBonusQuantityAtSale = i.BatchBonusQuantityAtSale
                 })
                 .ToListAsync(cancellationToken);
 
