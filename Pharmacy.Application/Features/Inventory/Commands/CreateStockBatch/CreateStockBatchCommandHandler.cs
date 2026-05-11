@@ -116,13 +116,17 @@ namespace Pharmacy.Application.Features.Inventory.Commands.CreateStockBatch
 
             _stockBatchRepository.Add(stockBatch);
 
+            var reason =
+                $"إدخال دفعة يدوية | المنتج: {product.Name} | التشغيلة: {normalizedBatchNumber} | الكمية: {request.ReceivedQuantity} | المورد: {supplier.Name}";
+
             var inventoryTransaction = new InventoryTransaction
             {
                 Id = Guid.NewGuid(),
+                ProductId = request.ProductId,
                 StockBatchId = stockBatch.Id,
-                Type = TransactionType.AdjustmentIn,
+                Type = TransactionType.ManualBatchIn,
                 Quantity = request.ReceivedQuantity,
-                Reason = $"إنشاء دفعة مخزون يدوية — التشغيلة {normalizedBatchNumber}",
+                Reason = reason,
                 ReferenceId = stockBatch.Id,
                 ReferenceType = ReferenceType.StockBatchManualEntry,
                 UserId = _currentUserService.UserId.Value,

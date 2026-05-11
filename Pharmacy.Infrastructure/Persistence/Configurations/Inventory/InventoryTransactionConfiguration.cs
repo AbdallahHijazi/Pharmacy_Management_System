@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Pharmacy.Domain.Entities.Catalog;
 using Pharmacy.Domain.Entities.Inventory;
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,14 @@ namespace Pharmacy.Infrastructure.Persistence.Configurations.Inventory
             builder.Property(t => t.ReferenceType).HasConversion<string>().IsRequired();
 
             builder.HasOne(t => t.StockBatch).WithMany(sb => sb.Transactions).HasForeignKey(t => t.StockBatchId).OnDelete(DeleteBehavior.Restrict);
+            builder.Property(t => t.ProductId).IsRequired(false);
+            builder.HasIndex(t => t.ProductId);
+            builder.HasOne<Product>()
+                .WithMany()
+                .HasForeignKey(t => t.ProductId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
             builder.HasIndex(t => t.StockBatchId);
             builder.HasIndex(t => t.ReferenceId);
             builder.HasIndex(t => t.Type);

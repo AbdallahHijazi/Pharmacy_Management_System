@@ -70,6 +70,7 @@ namespace Pharmacy.Application.Features.Inventory.Commands.AdjustStock
                 case TransactionType.PurchaseIn:
                 case TransactionType.ReturnIn:
                 case TransactionType.AdjustmentIn:
+                case TransactionType.ManualBatchIn:
                     newAvailableQuantity += request.Quantity;
                     break;
 

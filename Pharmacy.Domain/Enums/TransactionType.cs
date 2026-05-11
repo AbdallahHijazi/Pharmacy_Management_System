@@ -14,6 +14,8 @@ namespace Pharmacy.Domain.Enums
         AdjustmentOut, 
         ExpiredWriteOff,
         /// <summary>Stock leaving the store on supplier purchase return.</summary>
-        PurchaseReturnOut
+        PurchaseReturnOut,
+        /// <summary>Initial stock received when creating a batch manually (not from a purchase invoice line).</summary>
+        ManualBatchIn
     }
 }
