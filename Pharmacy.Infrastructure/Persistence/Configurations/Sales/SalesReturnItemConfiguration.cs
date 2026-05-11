@@ -28,6 +28,12 @@ namespace Pharmacy.Infrastructure.Persistence.Configurations.Purchases
                    .HasForeignKey(ri => ri.StockBatchId)
                    .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasOne(ri => ri.SalesInvoiceItem)
+                .WithMany()
+                .HasForeignKey(ri => ri.SalesInvoiceItemId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
             builder.HasIndex(ri => ri.SalesReturnId);
 
             builder.HasIndex(ri => ri.StockBatchId);

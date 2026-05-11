@@ -148,6 +148,7 @@ namespace Pharmacy.Application.Features.Sales.Commands.CreateSalesReturn
                 {
                     Id = Guid.NewGuid(),
                     SalesReturnId = salesReturn.Id,
+                    SalesInvoiceItemId = invoiceItem.Id,
                     Quantity = item.Quantity,
                     UnitPrice = invoiceItem.UnitPrice,
                     StockBatchId = invoiceItem.StockBatchId,
