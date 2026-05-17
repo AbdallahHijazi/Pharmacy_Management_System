@@ -16,7 +16,7 @@ public sealed class StatCardControl : Control
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
         Size = new Size(200, 108);
         Font = PharmaTheme.BodyFont;
-        BackColor = Color.Transparent;
+        BackColor = PharmaTheme.Background;
         Padding = new Padding(16, 14, 16, 14);
     }
 

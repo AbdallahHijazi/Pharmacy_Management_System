@@ -7,6 +7,11 @@ internal static class PharmaTheme
     public static readonly Color PrimaryGreen = Color.FromArgb(7, 100, 67); // #076443
     public static readonly Color SoftGreenBackground = Color.FromArgb(231, 255, 241);
     public static readonly Color CardBackground = Color.White;
+    /// <summary>Main app / dashboard backdrop.</summary>
+    public static Color Background => SoftGreenBackground;
+    /// <summary>Cards, panels, and elevated surfaces.</summary>
+    public static Color Surface => CardBackground;
+    public static readonly Color InputSurface = Color.FromArgb(246, 249, 247);
     public static readonly Color TextDark = Color.FromArgb(11, 31, 23);
     public static readonly Color MutedText = Color.FromArgb(111, 122, 114);
     public static readonly Color SidebarBackground = Color.FromArgb(5, 72, 49);

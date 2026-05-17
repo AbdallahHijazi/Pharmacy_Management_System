@@ -40,7 +40,7 @@ public partial class LoginForm
 
         mainLayout = new TableLayoutPanel
         {
-            BackColor = Color.Transparent,
+            BackColor = Color.White,
             ColumnCount = 2,
             Dock = DockStyle.Fill,
             RowCount = 1
@@ -70,7 +70,7 @@ public partial class LoginForm
 
         loginOuter = new TableLayoutPanel
         {
-            BackColor = Color.Transparent,
+            BackColor = Color.White,
             ColumnCount = 1,
             Dock = DockStyle.Fill,
             RowCount = 3
@@ -84,7 +84,7 @@ public partial class LoginForm
         {
             Anchor = AnchorStyles.None,
             AutoSize = true,
-            BackColor = Color.Transparent,
+            BackColor = Color.White,
             ColumnCount = 1,
             Margin = new Padding(0),
             MaximumSize = new Size(380, 0),

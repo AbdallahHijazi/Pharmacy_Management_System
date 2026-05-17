@@ -34,6 +34,7 @@ partial class MainForm
 
         mainShell = new Panel
         {
+            BackColor = PharmaTheme.Background,
             Dock = DockStyle.Fill,
             Padding = new Padding(0)
         };
@@ -42,6 +43,7 @@ partial class MainForm
 
         contentHost = new Panel
         {
+            BackColor = PharmaTheme.Background,
             Dock = DockStyle.Fill,
             Padding = new Padding(0)
         };

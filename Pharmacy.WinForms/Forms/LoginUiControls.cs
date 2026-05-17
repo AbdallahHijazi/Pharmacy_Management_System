@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
+using Pharmacy.WinForms.Ui;
 
 namespace Pharmacy.WinForms.Forms;
 
@@ -135,12 +136,12 @@ public sealed class RoundedTextInput : UserControl
     public RoundedTextInput()
     {
         DoubleBuffered = true;
-        BackColor = Color.Transparent;
+        BackColor = Color.White;
         Height = 48;
         Padding = new Padding(48, 13, 18, 8);
 
         textBox.BorderStyle = BorderStyle.None;
-        textBox.BackColor = Color.FromArgb(246, 249, 247);
+        textBox.BackColor = PharmaTheme.InputSurface;
         textBox.ForeColor = Color.FromArgb(20, 48, 37);
         textBox.Font = new Font("Segoe UI", 10.5F);
         textBox.Dock = DockStyle.Fill;
@@ -184,7 +185,7 @@ public sealed class RoundedTextInput : UserControl
 
         var rect = new Rectangle(0, 0, Width - 1, Height - 1);
         using var path = RoundedGeometry.Create(rect, 18);
-        using var bg = new SolidBrush(Color.FromArgb(246, 249, 247));
+        using var bg = new SolidBrush(PharmaTheme.InputSurface);
         using var border = new Pen(
             focused ? Color.FromArgb(12, 119, 78) : Color.FromArgb(214, 226, 220),
             focused ? 1.8F : 1F);

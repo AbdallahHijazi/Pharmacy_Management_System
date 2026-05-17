@@ -42,6 +42,7 @@ partial class DashboardControl
 
         headerPanel = new Panel
         {
+            BackColor = PharmaTheme.Background,
             Dock = DockStyle.Top,
             Height = 64,
             Padding = new Padding(0, 0, 0, 8)
@@ -99,6 +100,7 @@ partial class DashboardControl
 
         statsGrid = new TableLayoutPanel
         {
+            BackColor = PharmaTheme.Background,
             ColumnCount = 3,
             Dock = DockStyle.Top,
             Height = 240,

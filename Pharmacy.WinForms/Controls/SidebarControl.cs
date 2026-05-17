@@ -49,6 +49,7 @@ public sealed class SidebarControl : Panel
         var navHost = new FlowLayoutPanel
         {
             AutoScroll = true,
+            BackColor = PharmaTheme.SidebarBackground,
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
             Padding = new Padding(0, 8, 0, 8),
@@ -147,6 +148,7 @@ public sealed class SidebarControl : Panel
 
         public SidebarButton()
         {
+            BackColor = PharmaTheme.SidebarBackground;
             Cursor = Cursors.Hand;
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
         }
@@ -168,17 +170,19 @@ public sealed class SidebarControl : Panel
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
-            var back = _isActive
-                ? PharmaTheme.SidebarActive
-                : _isHover
-                    ? PharmaTheme.SidebarHover
-                    : IsLogoutStyle
-                        ? Color.FromArgb(48, 18, 18)
-                        : Color.Transparent;
-
-            if (back != Color.Transparent)
+            if (_isActive || _isHover || IsLogoutStyle)
             {
+                var back = _isActive
+                    ? PharmaTheme.SidebarActive
+                    : _isHover
+                        ? PharmaTheme.SidebarHover
+                        : Color.FromArgb(48, 18, 18);
                 using var brush = new SolidBrush(back);
+                e.Graphics.FillRectangle(brush, ClientRectangle);
+            }
+            else
+            {
+                using var brush = new SolidBrush(BackColor);
                 e.Graphics.FillRectangle(brush, ClientRectangle);
             }
 
