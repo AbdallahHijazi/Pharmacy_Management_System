@@ -1,6 +1,10 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
+using Pharmacy.Domain.Entities.Catalog;
+using Pharmacy.Infrastructure.Persistence;
 using Xunit;
 
 namespace Pharmacy.IntegrationTests;
@@ -22,6 +26,19 @@ public sealed class ProfitReportIntegrationTests
     }
 
     private HttpClient CreateClient() => _factory.CreateClient();
+
+    private async Task<T> QueryDbAsync<T>(Func<AppDbContext, Task<T>> query)
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        return await query(db);
+    }
+
+    private Task<Guid> GetBatchIdByBatchNumberAsync(string batchNumber) =>
+        QueryDbAsync(db => db.Set<StockBatch>()
+            .Where(b => b.BatchNumber == batchNumber)
+            .Select(b => b.Id)
+            .SingleAsync());
 
     private static async Task AuthorizeAsync(HttpClient client, CancellationToken ct = default)
     {
@@ -236,6 +253,141 @@ public sealed class ProfitReportIntegrationTests
         Assert.Equal(48m, report.GrossProfit);
     }
 
+    [Fact]
+    public async Task Branch_profit_purchase_return_with_bonus_aligns_refund_and_cogs_recovery()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..10];
+        using var client = CreateClient();
+        await AuthorizeAsync(client);
+        var periodStart = DateTime.UtcNow;
+
+        var categoryId = await CreateCategoryAsync(client, $"pf4-c-{uid}");
+        var supplierId = await CreateSupplierAsync(client, $"pf4-s-{uid}");
+        var productId = await CreateProductAsync(client, $"pf4-p-{uid}", $"pf4-bc-{uid}", categoryId, supplierId);
+
+        var purchaseResp = await client.PostAsJsonAsync(
+            "/api/v1/purchase-invoices",
+            new
+            {
+                invoiceNumber = $"PI-PF4-{uid}",
+                supplierId,
+                taxRate = 0m,
+                paidAmount = 5000m,
+                paymentMethod = "Cash",
+                items = new[]
+                {
+                    new
+                    {
+                        productId,
+                        batchNumber = $"B-PF4-{uid}",
+                        expiryDate = DateTime.UtcNow.AddYears(1),
+                        quantity = 50,
+                        bonusQuantity = 15,
+                        unitPrice = 100m
+                    }
+                }
+            });
+        purchaseResp.EnsureSuccessStatusCode();
+        var purchase = JsonSerializer.Deserialize<PurchaseInvoiceIdOnly>(
+            await purchaseResp.Content.ReadAsStringAsync(),
+            JsonOptions)!;
+
+        var batchId = await GetBatchIdByBatchNumberAsync($"B-PF4-{uid}");
+        const int returnQty = 10;
+        var expectedRecovery = returnQty * (50m * 100m / 65m);
+
+        var prResp = await client.PostAsJsonAsync(
+            "/api/v1/purchase-returns",
+            new
+            {
+                purchaseInvoiceId = purchase.PurchaseInvoiceId,
+                reason = "profit purchase return",
+                items = new[] { new { stockBatchId = batchId, quantity = returnQty } }
+            });
+        prResp.EnsureSuccessStatusCode();
+        var prDetails = JsonSerializer.Deserialize<PurchaseReturnDetailsResponse>(
+            await prResp.Content.ReadAsStringAsync(),
+            JsonOptions)!;
+
+        var periodEnd = DateTime.UtcNow;
+        var profitResp = await client.GetAsync(
+            $"/api/v1/reports/profit/branch?fromDate={Uri.EscapeDataString(periodStart.ToString("O"))}&toDate={Uri.EscapeDataString(periodEnd.ToString("O"))}");
+        profitResp.EnsureSuccessStatusCode();
+        var report = JsonSerializer.Deserialize<BranchProfitReportResponse>(
+            await profitResp.Content.ReadAsStringAsync(),
+            JsonOptions)!;
+
+        Assert.Equal(Math.Round(expectedRecovery, 2, MidpointRounding.AwayFromZero), prDetails.RefundAmount);
+        Assert.Equal(1, report.PurchaseReturnMovementCount);
+        Assert.Equal(expectedRecovery, report.PurchaseReturnCogsRecoveryTotal, precision: 4);
+        Assert.Equal(prDetails.RefundAmount, Math.Round(report.PurchaseReturnCogsRecoveryTotal, 2, MidpointRounding.AwayFromZero));
+    }
+
+    [Fact]
+    public async Task Branch_profit_purchase_return_without_bonus_keeps_nominal_refund()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..10];
+        using var client = CreateClient();
+        await AuthorizeAsync(client);
+        var periodStart = DateTime.UtcNow;
+
+        var categoryId = await CreateCategoryAsync(client, $"pf5-c-{uid}");
+        var supplierId = await CreateSupplierAsync(client, $"pf5-s-{uid}");
+        var productId = await CreateProductAsync(client, $"pf5-p-{uid}", $"pf5-bc-{uid}", categoryId, supplierId);
+
+        var purchaseResp = await client.PostAsJsonAsync(
+            "/api/v1/purchase-invoices",
+            new
+            {
+                invoiceNumber = $"PI-PF5-{uid}",
+                supplierId,
+                taxRate = 0m,
+                paidAmount = 30m,
+                paymentMethod = "Cash",
+                items = new[]
+                {
+                    new
+                    {
+                        productId,
+                        batchNumber = $"B-PF5-{uid}",
+                        expiryDate = DateTime.UtcNow.AddYears(1),
+                        quantity = 10,
+                        unitPrice = 3m
+                    }
+                }
+            });
+        purchaseResp.EnsureSuccessStatusCode();
+        var purchase = JsonSerializer.Deserialize<PurchaseInvoiceIdOnly>(
+            await purchaseResp.Content.ReadAsStringAsync(),
+            JsonOptions)!;
+
+        var batchId = await GetBatchIdByBatchNumberAsync($"B-PF5-{uid}");
+
+        var prResp = await client.PostAsJsonAsync(
+            "/api/v1/purchase-returns",
+            new
+            {
+                purchaseInvoiceId = purchase.PurchaseInvoiceId,
+                reason = "no bonus return",
+                items = new[] { new { stockBatchId = batchId, quantity = 3 } }
+            });
+        prResp.EnsureSuccessStatusCode();
+        var prDetails = JsonSerializer.Deserialize<PurchaseReturnDetailsResponse>(
+            await prResp.Content.ReadAsStringAsync(),
+            JsonOptions)!;
+
+        var periodEnd = DateTime.UtcNow;
+        var profitResp = await client.GetAsync(
+            $"/api/v1/reports/profit/branch?fromDate={Uri.EscapeDataString(periodStart.ToString("O"))}&toDate={Uri.EscapeDataString(periodEnd.ToString("O"))}");
+        profitResp.EnsureSuccessStatusCode();
+        var report = JsonSerializer.Deserialize<BranchProfitReportResponse>(
+            await profitResp.Content.ReadAsStringAsync(),
+            JsonOptions)!;
+
+        Assert.Equal(9m, prDetails.RefundAmount);
+        Assert.Equal(9m, report.PurchaseReturnCogsRecoveryTotal);
+    }
+
     private static async Task<Guid> CreateCategoryAsync(HttpClient client, string name)
     {
         var resp = await client.PostAsJsonAsync("/api/v1/categories", new { name });
@@ -285,9 +437,14 @@ public sealed class ProfitReportIntegrationTests
         decimal NetSalesAfterReturns,
         decimal SalesCogsTotal,
         decimal SalesReturnCogsRecoveryTotal,
+        decimal PurchaseReturnCogsRecoveryTotal,
+        int PurchaseReturnMovementCount,
         decimal NetCogs,
         decimal GrossProfit,
         decimal? GrossProfitMarginPercent);
+
+    private sealed record PurchaseReturnDetailsResponse(Guid PurchaseReturnId, decimal RefundAmount);
+    private sealed record PurchaseInvoiceIdOnly(Guid PurchaseInvoiceId);
 
     private sealed record SalesInvoiceIdResponse(Guid SalesInvoiceId);
     private sealed record SalesLineIdOnly(Guid SalesInvoiceItemId);
