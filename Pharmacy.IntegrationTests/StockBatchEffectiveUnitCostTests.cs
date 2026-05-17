@@ -35,6 +35,20 @@ public sealed class StockBatchEffectiveUnitCostTests
     }
 
     [Fact]
+    public void HasInvalidCostBasis_when_only_bonus_units_remain_on_hand()
+    {
+        var batch = new StockBatch
+        {
+            PurchasePrice = 100m,
+            ReceivedQuantity = 10,
+            AvailableQuantity = 4,
+            BonusQuantity = 10
+        };
+
+        Assert.True(StockBatchEffectiveUnitCost.HasInvalidCostBasis(batch));
+    }
+
+    [Fact]
     public void Purchase_return_refund_formula_matches_effective_cost_times_quantity()
     {
         var batch = new StockBatch
