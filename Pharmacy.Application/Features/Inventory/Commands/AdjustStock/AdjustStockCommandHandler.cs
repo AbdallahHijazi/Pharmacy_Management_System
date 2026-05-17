@@ -1,15 +1,12 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Pharmacy.Application.Common.Accounting;
 using Pharmacy.Application.Common.Interfaces;
+using Pharmacy.Application.Common.Inventory;
 using Pharmacy.Domain.Entities.Catalog;
 using Pharmacy.Domain.Entities.Inventory;
 using Pharmacy.Domain.Enums;
 using Pharmacy.Domain.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Pharmacy.Application.Features.Inventory.Commands.AdjustStock
 {
@@ -52,6 +49,23 @@ namespace Pharmacy.Application.Features.Inventory.Commands.AdjustStock
             if (!Enum.TryParse<TransactionType>(request.Type, true, out var transactionType))
                 throw new BadRequestException("نوع حركة المخزون غير صحيح");
 
+            if (!StockBatchManualAdjustment.IsAllowed(transactionType))
+            {
+                throw new BadRequestException(
+                    "نوع الحركة غير مدعوم في التعديل اليدوي. استخدم AdjustmentIn أو AdjustmentOut أو ExpiredWriteOff فقط. " +
+                    "للشراء أو البيع أو الدفعة اليدوية استخدم المسارات المخصصة.");
+            }
+
+            if (!StockBatchManualAdjustment.TryGetQuantityDeltas(
+                    transactionType,
+                    request.Quantity,
+                    out var availableDelta,
+                    out var receivedDelta,
+                    out var bonusDelta))
+            {
+                throw new BadRequestException("نوع حركة المخزون غير مدعوم");
+            }
+
             var stockBatch = await _stockBatchRepository
                 .GetAll()
                 .FirstOrDefaultAsync(
@@ -63,31 +77,25 @@ namespace Pharmacy.Application.Features.Inventory.Commands.AdjustStock
             if (stockBatch is null)
                 throw new NotFoundException("StockBatch", request.StockBatchId);
 
-            var newAvailableQuantity = stockBatch.AvailableQuantity;
+            StockBatchManualAdjustment.ValidateInvariants(stockBatch);
 
-            switch (transactionType)
-            {
-                case TransactionType.PurchaseIn:
-                case TransactionType.ReturnIn:
-                case TransactionType.AdjustmentIn:
-                case TransactionType.ManualBatchIn:
-                    newAvailableQuantity += request.Quantity;
-                    break;
-
-                case TransactionType.SaleOut:
-                case TransactionType.AdjustmentOut:
-                case TransactionType.ExpiredWriteOff:
-                    newAvailableQuantity -= request.Quantity;
-                    break;
-
-                default:
-                    throw new BadRequestException("نوع حركة المخزون غير مدعوم");
-            }
-
-            if (newAvailableQuantity < 0)
+            if (availableDelta < 0 && stockBatch.AvailableQuantity + availableDelta < 0)
                 throw new BadRequestException("لا يمكن أن تصبح الكمية المتاحة أقل من صفر");
 
-            stockBatch.AvailableQuantity = newAvailableQuantity;
+            if (StockBatchEffectiveUnitCost.HasInvalidCostBasis(stockBatch))
+            {
+                throw new BadRequestException(
+                    "أساس تكلفة الدفعة غير صالح (كل الوحدات المستلمة بونص). صحّح الدفعة قبل التعديل اليدوي.");
+            }
+
+            StockBatchManualAdjustment.Apply(stockBatch, availableDelta, receivedDelta, bonusDelta);
+
+            if (StockBatchEffectiveUnitCost.HasInvalidCostBasis(stockBatch))
+            {
+                throw new BadRequestException(
+                    "التعديل ينتج دفعة بأساس تكلفة غير صالح. راجع كميات البونص والمستلم.");
+            }
+
             stockBatch.UpdatedAt = DateTime.UtcNow;
             stockBatch.UpdatedByUserId = _currentUserService.UserId.Value;
 

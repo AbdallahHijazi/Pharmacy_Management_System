@@ -18,5 +18,11 @@ namespace Pharmacy.Application.Common.Accounting
 
             return (batch.PurchasePrice * paidUnits) / batch.ReceivedQuantity;
         }
+
+        /// <summary>دفعة بها مخزون متاح لكن بدون وحدات مدفوعة — تكلفة فعلية صفرية ولا يُسمح ببيعها على هذا الأساس.</summary>
+        public static bool HasInvalidCostBasis(StockBatch batch) =>
+            batch.AvailableQuantity > 0 &&
+            batch.ReceivedQuantity > 0 &&
+            batch.ReceivedQuantity - batch.BonusQuantity <= 0;
     }
 }

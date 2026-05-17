@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Pharmacy.Application.Common.Accounting;
 using Pharmacy.Domain.Entities.Catalog;
 using Pharmacy.Domain.Entities.Inventory;
 using Pharmacy.Domain.Enums;
@@ -432,6 +433,273 @@ public sealed class StockFlowIntegrationTests
                 .FirstAsync());
 
         Assert.Equal(ReferenceType.StockBatchAdjustment, lastRefType);
+
+        var batch = await QueryDbAsync(db => db.Set<StockBatch>().AsNoTracking().SingleAsync(b => b.Id == batchId));
+        Assert.Equal(7, batch.AvailableQuantity);
+        Assert.Equal(7, batch.ReceivedQuantity);
+        Assert.Equal(2, batch.BonusQuantity);
+    }
+
+    [Fact]
+    public async Task Manual_adjustment_out_keeps_effective_unit_cost_and_received_quantity()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..10];
+        using var client = CreateClient();
+        await AuthorizeAsync(client);
+
+        var categoryId = await CreateCategoryAsync(client, $"c-adj-out-{uid}");
+        var supplierId = await CreateSupplierAsync(client, $"s-adj-out-{uid}");
+        var productId = await CreateProductAsync(client, $"p-adj-out-{uid}", $"bc-adj-out-{uid}", categoryId, supplierId);
+
+        await client.PostAsJsonAsync(
+            "/api/v1/purchase-invoices",
+            new
+            {
+                invoiceNumber = $"PI-AO-{uid}",
+                supplierId,
+                taxRate = 0m,
+                paidAmount = 5000m,
+                paymentMethod = "Cash",
+                items = new[]
+                {
+                    new
+                    {
+                        productId,
+                        batchNumber = $"B-AO-{uid}",
+                        expiryDate = DateTime.UtcNow.AddYears(1),
+                        quantity = 50,
+                        bonusQuantity = 15,
+                        unitPrice = 100m
+                    }
+                }
+            });
+
+        var batchId = await GetBatchIdByBatchNumberAsync($"B-AO-{uid}");
+        var before = await QueryDbAsync(db => db.Set<StockBatch>().AsNoTracking().SingleAsync(b => b.Id == batchId));
+        var effectiveBefore = StockBatchEffectiveUnitCost.Calculate(before);
+
+        var adjResp = await client.PostAsJsonAsync(
+            "/api/v1/inventory-transactions/adjust-stock",
+            new
+            {
+                stockBatchId = batchId,
+                type = nameof(TransactionType.AdjustmentOut),
+                quantity = 5,
+                reason = "damaged units"
+            });
+        adjResp.EnsureSuccessStatusCode();
+
+        var after = await QueryDbAsync(db => db.Set<StockBatch>().AsNoTracking().SingleAsync(b => b.Id == batchId));
+        Assert.Equal(60, after.AvailableQuantity);
+        Assert.Equal(65, after.ReceivedQuantity);
+        Assert.Equal(15, after.BonusQuantity);
+        Assert.Equal(effectiveBefore, StockBatchEffectiveUnitCost.Calculate(after));
+    }
+
+    [Fact]
+    public async Task Manual_adjustment_in_syncs_received_quantity_without_bonus_keeps_effective_cost()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..10];
+        using var client = CreateClient();
+        await AuthorizeAsync(client);
+
+        var categoryId = await CreateCategoryAsync(client, $"c-adj-in-{uid}");
+        var supplierId = await CreateSupplierAsync(client, $"s-adj-in-{uid}");
+        var productId = await CreateProductAsync(client, $"p-adj-in-{uid}", $"bc-adj-in-{uid}", categoryId, supplierId);
+
+        await client.PostAsJsonAsync(
+            "/api/v1/purchase-invoices",
+            new
+            {
+                invoiceNumber = $"PI-AI-{uid}",
+                supplierId,
+                taxRate = 0m,
+                paidAmount = 20m,
+                paymentMethod = "Cash",
+                items = new[]
+                {
+                    new
+                    {
+                        productId,
+                        batchNumber = $"B-AI-{uid}",
+                        expiryDate = DateTime.UtcNow.AddYears(1),
+                        quantity = 10,
+                        unitPrice = 2m
+                    }
+                }
+            });
+
+        var batchId = await GetBatchIdByBatchNumberAsync($"B-AI-{uid}");
+
+        var adjResp = await client.PostAsJsonAsync(
+            "/api/v1/inventory-transactions/adjust-stock",
+            new
+            {
+                stockBatchId = batchId,
+                type = nameof(TransactionType.AdjustmentIn),
+                quantity = 5,
+                reason = "stock gain correction"
+            });
+        adjResp.EnsureSuccessStatusCode();
+
+        var batch = await QueryDbAsync(db => db.Set<StockBatch>().AsNoTracking().SingleAsync(b => b.Id == batchId));
+        Assert.Equal(15, batch.ReceivedQuantity);
+        Assert.Equal(15, batch.AvailableQuantity);
+        Assert.Equal(5, batch.BonusQuantity);
+        Assert.Equal(2m * 10m / 15m, StockBatchEffectiveUnitCost.Calculate(batch));
+    }
+
+    [Fact]
+    public async Task Manual_adjustment_in_with_bonus_dilutes_effective_unit_cost()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..10];
+        using var client = CreateClient();
+        await AuthorizeAsync(client);
+
+        var categoryId = await CreateCategoryAsync(client, $"c-adj-bin-{uid}");
+        var supplierId = await CreateSupplierAsync(client, $"s-adj-bin-{uid}");
+        var productId = await CreateProductAsync(client, $"p-adj-bin-{uid}", $"bc-adj-bin-{uid}", categoryId, supplierId);
+
+        await client.PostAsJsonAsync(
+            "/api/v1/purchase-invoices",
+            new
+            {
+                invoiceNumber = $"PI-AIB-{uid}",
+                supplierId,
+                taxRate = 0m,
+                paidAmount = 5000m,
+                paymentMethod = "Cash",
+                items = new[]
+                {
+                    new
+                    {
+                        productId,
+                        batchNumber = $"B-AIB-{uid}",
+                        expiryDate = DateTime.UtcNow.AddYears(1),
+                        quantity = 50,
+                        bonusQuantity = 15,
+                        unitPrice = 100m
+                    }
+                }
+            });
+
+        var batchId = await GetBatchIdByBatchNumberAsync($"B-AIB-{uid}");
+        var effectiveBefore = StockBatchEffectiveUnitCost.Calculate(await QueryDbAsync(db =>
+            db.Set<StockBatch>().AsNoTracking().SingleAsync(b => b.Id == batchId)));
+
+        var adjResp = await client.PostAsJsonAsync(
+            "/api/v1/inventory-transactions/adjust-stock",
+            new
+            {
+                stockBatchId = batchId,
+                type = nameof(TransactionType.AdjustmentIn),
+                quantity = 10,
+                reason = "found extra units"
+            });
+        adjResp.EnsureSuccessStatusCode();
+
+        var batch = await QueryDbAsync(db => db.Set<StockBatch>().AsNoTracking().SingleAsync(b => b.Id == batchId));
+        Assert.Equal(75, batch.ReceivedQuantity);
+        Assert.Equal(75, batch.AvailableQuantity);
+        Assert.Equal(25, batch.BonusQuantity);
+        Assert.NotEqual(effectiveBefore, StockBatchEffectiveUnitCost.Calculate(batch));
+        Assert.Equal(100m * 50m / 75m, StockBatchEffectiveUnitCost.Calculate(batch));
+    }
+
+    [Fact]
+    public async Task Manual_adjustment_rejects_sale_out_type()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..10];
+        using var client = CreateClient();
+        await AuthorizeAsync(client);
+
+        var categoryId = await CreateCategoryAsync(client, $"c-adj-bad-{uid}");
+        var supplierId = await CreateSupplierAsync(client, $"s-adj-bad-{uid}");
+        var productId = await CreateProductAsync(client, $"p-adj-bad-{uid}", $"bc-adj-bad-{uid}", categoryId, supplierId);
+
+        await client.PostAsJsonAsync(
+            "/api/v1/purchase-invoices",
+            new
+            {
+                invoiceNumber = $"PI-AB-{uid}",
+                supplierId,
+                taxRate = 0m,
+                paidAmount = 10m,
+                paymentMethod = "Cash",
+                items = new[]
+                {
+                    new
+                    {
+                        productId,
+                        batchNumber = $"B-AB-{uid}",
+                        expiryDate = DateTime.UtcNow.AddYears(1),
+                        quantity = 5,
+                        unitPrice = 2m
+                    }
+                }
+            });
+
+        var batchId = await GetBatchIdByBatchNumberAsync($"B-AB-{uid}");
+
+        var adjResp = await client.PostAsJsonAsync(
+            "/api/v1/inventory-transactions/adjust-stock",
+            new
+            {
+                stockBatchId = batchId,
+                type = nameof(TransactionType.SaleOut),
+                quantity = 1,
+                reason = "invalid type"
+            });
+
+        Assert.Equal(HttpStatusCode.BadRequest, adjResp.StatusCode);
+    }
+
+    [Fact]
+    public async Task Manual_adjustment_out_rejects_insufficient_available_quantity()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..10];
+        using var client = CreateClient();
+        await AuthorizeAsync(client);
+
+        var categoryId = await CreateCategoryAsync(client, $"c-adj-neg-{uid}");
+        var supplierId = await CreateSupplierAsync(client, $"s-adj-neg-{uid}");
+        var productId = await CreateProductAsync(client, $"p-adj-neg-{uid}", $"bc-adj-neg-{uid}", categoryId, supplierId);
+
+        await client.PostAsJsonAsync(
+            "/api/v1/purchase-invoices",
+            new
+            {
+                invoiceNumber = $"PI-AN-{uid}",
+                supplierId,
+                taxRate = 0m,
+                paidAmount = 10m,
+                paymentMethod = "Cash",
+                items = new[]
+                {
+                    new
+                    {
+                        productId,
+                        batchNumber = $"B-AN-{uid}",
+                        expiryDate = DateTime.UtcNow.AddYears(1),
+                        quantity = 5,
+                        unitPrice = 2m
+                    }
+                }
+            });
+
+        var batchId = await GetBatchIdByBatchNumberAsync($"B-AN-{uid}");
+
+        var adjResp = await client.PostAsJsonAsync(
+            "/api/v1/inventory-transactions/adjust-stock",
+            new
+            {
+                stockBatchId = batchId,
+                type = nameof(TransactionType.AdjustmentOut),
+                quantity = 99,
+                reason = "too much"
+            });
+
+        Assert.Equal(HttpStatusCode.BadRequest, adjResp.StatusCode);
     }
 
     [Fact]
