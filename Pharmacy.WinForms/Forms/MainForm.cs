@@ -1,80 +1,146 @@
-using System.Drawing;
-using System.Windows.Forms;
+using Pharmacy.WinForms.Controls;
+using Pharmacy.WinForms.Forms.Dashboard;
+using Pharmacy.WinForms.Models;
 using Pharmacy.WinForms.Services;
 
 namespace Pharmacy.WinForms.Forms;
 
-public sealed class MainForm : Form
+public sealed partial class MainForm : Form
 {
     private readonly AuthService _authService;
+    private readonly Dictionary<AppNavigation, Control> _pages = new();
+    private Control? _activePage;
+    private DashboardControl? _dashboard;
 
     public MainForm(AuthService authService)
     {
         _authService = authService;
+        InitializeComponent();
+        WireEvents();
+        ShowPage(AppNavigation.Dashboard);
+    }
 
-        Text = "Pharmacy Management System";
-        StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = new Size(720, 480);
-        Size = new Size(960, 600);
-        BackColor = Color.FromArgb(248, 251, 249);
-        Font = new Font("Segoe UI", 10F);
-
-        var user = SessionManager.CurrentUser;
-        var welcome = user is null
-            ? "Welcome"
-            : $"Welcome, {user.FullName}";
-
-        var header = new Label
+    private void WireEvents()
+    {
+        sidebar.NavigationRequested += (_, navigation) => ShowPage(navigation);
+        sidebar.LogoutRequested += (_, _) => RequestLogout();
+        topBar.LogoutRequested += (_, _) => RequestLogout();
+        topBar.SearchSubmitted += (_, query) =>
         {
-            AutoSize = false,
-            Dock = DockStyle.Top,
-            Font = new Font("Segoe UI", 22F, FontStyle.Bold),
-            ForeColor = Color.FromArgb(9, 76, 50),
-            Height = 56,
-            Padding = new Padding(32, 24, 32, 0),
-            Text = welcome
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return;
+            }
+
+            MessageBox.Show(
+                this,
+                $"البحث عن \"{query}\" سيتوفر عند ربط الوحدات.",
+                "بحث",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
         };
 
-        var details = new Label
-        {
-            AutoSize = false,
-            Dock = DockStyle.Top,
-            Font = new Font("Segoe UI", 10.5F),
-            ForeColor = Color.FromArgb(80, 100, 90),
-            Height = 72,
-            Padding = new Padding(32, 8, 32, 0),
-            Text = user is null
-                ? "Dashboard placeholder — modules will be added here."
-                : $"Email: {user.Email}\r\nRole: {user.Role}\r\nBranch: {user.BranchId}"
-        };
-
-        var logoutButton = new Button
-        {
-            AutoSize = true,
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-            ForeColor = Color.White,
-            BackColor = Color.FromArgb(2, 104, 67),
-            Margin = new Padding(32, 24, 32, 32),
-            Padding = new Padding(20, 10, 20, 10),
-            Text = "Logout",
-            UseVisualStyleBackColor = false
-        };
-        logoutButton.FlatAppearance.BorderSize = 0;
-        logoutButton.Click += (_, _) => Close();
         FormClosed += (_, _) => _authService.Logout();
+    }
 
-        var footer = new FlowLayoutPanel
+    private void ShowPage(AppNavigation navigation)
+    {
+        sidebar.SetActive(navigation);
+        var page = GetOrCreatePage(navigation);
+        if (_activePage == page)
         {
-            AutoSize = true,
-            Dock = DockStyle.Bottom,
-            FlowDirection = FlowDirection.LeftToRight,
-            Padding = new Padding(0, 0, 0, 16)
-        };
-        footer.Controls.Add(logoutButton);
+            return;
+        }
 
-        Controls.Add(footer);
-        Controls.Add(details);
-        Controls.Add(header);
+        contentHost.SuspendLayout();
+        contentHost.Controls.Clear();
+        contentHost.Controls.Add(page);
+        page.Dock = DockStyle.Fill;
+        contentHost.ResumeLayout(true);
+        _activePage = page;
+
+        Text = navigation switch
+        {
+            AppNavigation.Dashboard => "PharmaCare — لوحة التحكم",
+            AppNavigation.Inventory => "PharmaCare — المخزون",
+            AppNavigation.PointOfSale => "PharmaCare — نقطة البيع",
+            AppNavigation.Purchases => "PharmaCare — المشتريات",
+            AppNavigation.Customers => "PharmaCare — الزبائن",
+            AppNavigation.Suppliers => "PharmaCare — الموردين",
+            AppNavigation.Reports => "PharmaCare — التقارير",
+            AppNavigation.Users => "PharmaCare — المستخدمين",
+            AppNavigation.Settings => "PharmaCare — الإعدادات",
+            _ => "PharmaCare"
+        };
+    }
+
+    private Control GetOrCreatePage(AppNavigation navigation)
+    {
+        if (_pages.TryGetValue(navigation, out var existing))
+        {
+            return existing;
+        }
+
+        Control page = navigation switch
+        {
+            AppNavigation.Dashboard => CreateDashboard(),
+            AppNavigation.Inventory => new PlaceholderPageControl("المخزون"),
+            AppNavigation.PointOfSale => new PlaceholderPageControl("نقطة البيع"),
+            AppNavigation.Purchases => new PlaceholderPageControl("المشتريات"),
+            AppNavigation.Customers => new PlaceholderPageControl("الزبائن"),
+            AppNavigation.Suppliers => new PlaceholderPageControl("الموردين"),
+            AppNavigation.Reports => new PlaceholderPageControl("التقارير"),
+            AppNavigation.Users => new PlaceholderPageControl("المستخدمين"),
+            AppNavigation.Settings => new PlaceholderPageControl("الإعدادات"),
+            _ => new PlaceholderPageControl("الصفحة")
+        };
+
+        _pages[navigation] = page;
+        return page;
+    }
+
+    private DashboardControl CreateDashboard()
+    {
+        _dashboard = new DashboardControl();
+        _dashboard.QuickActionRequested += (_, action) =>
+        {
+            MessageBox.Show(
+                this,
+                $"الاختصار \"{action}\" سيتوفر عند ربط الوحدة.",
+                "اختصار سريع",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        };
+        return _dashboard;
+    }
+
+    private void RequestLogout()
+    {
+        var confirm = MessageBox.Show(
+            this,
+            "هل تريد تسجيل الخروج؟",
+            "تسجيل الخروج",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question,
+            MessageBoxDefaultButton.Button2);
+
+        if (confirm == DialogResult.Yes)
+        {
+            Close();
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            components?.Dispose();
+            foreach (var page in _pages.Values)
+            {
+                page.Dispose();
+            }
+        }
+
+        base.Dispose(disposing);
     }
 }

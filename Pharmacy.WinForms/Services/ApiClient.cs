@@ -68,6 +68,34 @@ public sealed class ApiClient : IDisposable
         }
     }
 
+    public async Task<(bool Success, T? Data, string? ErrorMessage, bool IsConnectionError)> GetAsync<T>(
+        string relativeUrl,
+        CancellationToken cancellationToken = default)
+        where T : class
+    {
+        try
+        {
+            using var response = await _httpClient.GetAsync(relativeUrl, cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken);
+                return (true, data, null, false);
+            }
+
+            var message = await TryReadErrorMessageAsync(response, cancellationToken);
+            return (false, null, message, false);
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return (false, null, "انتهت مهلة الاتصال بالخادم. تحقق من أن API يعمل.", true);
+        }
+        catch (HttpRequestException)
+        {
+            return (false, null, "تعذر الاتصال بالخادم. تأكد من تشغيل PharmacyProjectApi.", true);
+        }
+    }
+
     private static async Task<string> TryReadErrorMessageAsync(
         HttpResponseMessage response,
         CancellationToken cancellationToken)
