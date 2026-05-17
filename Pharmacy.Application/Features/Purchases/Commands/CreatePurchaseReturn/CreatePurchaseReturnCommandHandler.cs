@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Pharmacy.Application.Common.Accounting;
 using Pharmacy.Application.Common.Interfaces;
 using Pharmacy.Application.DTOs.Purchases;
 using Pharmacy.Domain.Entities.Catalog;
@@ -130,7 +131,8 @@ namespace Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseReturn
                 if (stockBatch.AvailableQuantity < item.Quantity)
                     throw new BadRequestException("الكمية المرتجعة أكبر من الكمية المتاحة في الدفعة");
 
-                refundAmount += item.Quantity * stockBatch.PurchasePrice;
+                var effectiveUnitCost = StockBatchEffectiveUnitCost.Calculate(stockBatch);
+                refundAmount += item.Quantity * effectiveUnitCost;
             }
 
             var purchaseReturn = new PurchaseReturn
@@ -138,7 +140,7 @@ namespace Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseReturn
                 Id = Guid.NewGuid(),
                 PurchaseInvoiceId = invoice.Id,
                 UserId = _currentUserService.UserId.Value,
-                RefundAmount = refundAmount,
+                RefundAmount = Math.Round(refundAmount, 2, MidpointRounding.AwayFromZero),
                 Reason = request.Reason.Trim(),
                 CreatedAt = DateTime.UtcNow,
                 CreatedByUserId = _currentUserService.UserId.Value,
@@ -150,6 +152,10 @@ namespace Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseReturn
             foreach (var item in request.Items)
             {
                 var stockBatch = stockBatches.First(sb => sb.Id == item.StockBatchId);
+                var effectiveUnitCost = Math.Round(
+                    StockBatchEffectiveUnitCost.Calculate(stockBatch),
+                    2,
+                    MidpointRounding.AwayFromZero);
 
                 var purchaseReturnItem = new PurchaseReturnItem
                 {
@@ -158,7 +164,7 @@ namespace Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseReturn
                     ProductId = stockBatch.ProductId,
                     //StockBatchId = stockBatch.Id,
                     Quantity = item.Quantity,
-                    UnitPrice = stockBatch.PurchasePrice,
+                    UnitPrice = effectiveUnitCost,
                     CreatedAt = DateTime.UtcNow,
                     CreatedByUserId = _currentUserService.UserId.Value,
                     IsDeleted = false
@@ -190,7 +196,7 @@ namespace Pharmacy.Application.Features.Purchases.Commands.CreatePurchaseReturn
                 _inventoryTransactionRepository.Add(inventoryTransaction);
             }
 
-            supplier.PayableAmount -= refundAmount;
+            supplier.PayableAmount -= purchaseReturn.RefundAmount;
             if (supplier.PayableAmount < 0)
                 supplier.PayableAmount = 0;
 

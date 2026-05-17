@@ -291,9 +291,86 @@ public sealed class StockFlowIntegrationTests
                 items = new[] { new { stockBatchId = batchId, quantity = 3 } }
             });
         prResp.EnsureSuccessStatusCode();
+        var prDetails = JsonSerializer.Deserialize<PurchaseReturnDetailsResponse>(
+            await prResp.Content.ReadAsStringAsync(),
+            JsonOptions)!;
+        Assert.Equal(9m, prDetails.RefundAmount);
 
         var after = await GetAvailableAsync(batchId);
         Assert.Equal(before - 3, after);
+    }
+
+    [Fact]
+    public async Task Purchase_return_with_bonus_uses_effective_unit_cost_for_refund()
+    {
+        var uid = Guid.NewGuid().ToString("N")[..10];
+        using var client = CreateClient();
+        await AuthorizeAsync(client);
+
+        var categoryId = await CreateCategoryAsync(client, $"c-prb-{uid}");
+        var supplierId = await CreateSupplierAsync(client, $"s-prb-{uid}");
+        var productId = await CreateProductAsync(client, $"p-prb-{uid}", $"bc-prb-{uid}", categoryId, supplierId);
+
+        var purchaseResp = await client.PostAsJsonAsync(
+            "/api/v1/purchase-invoices",
+            new
+            {
+                invoiceNumber = $"PI-PRB-{uid}",
+                supplierId,
+                taxRate = 0m,
+                paidAmount = 5000m,
+                paymentMethod = "Cash",
+                items = new[]
+                {
+                    new
+                    {
+                        productId,
+                        batchNumber = $"B-PRB-{uid}",
+                        expiryDate = DateTime.UtcNow.AddYears(1),
+                        quantity = 50,
+                        bonusQuantity = 15,
+                        unitPrice = 100m
+                    }
+                }
+            });
+        purchaseResp.EnsureSuccessStatusCode();
+        var purchase = JsonSerializer.Deserialize<PurchaseInvoiceResponse>(await purchaseResp.Content.ReadAsStringAsync(), JsonOptions)!;
+
+        var batchId = await GetBatchIdByBatchNumberAsync($"B-PRB-{uid}");
+        var before = await GetAvailableAsync(batchId);
+        Assert.Equal(65, before);
+
+        const int returnQty = 10;
+        var expectedRefund = Math.Round(returnQty * 50m * 100m / 65m, 2, MidpointRounding.AwayFromZero);
+
+        var prResp = await client.PostAsJsonAsync(
+            "/api/v1/purchase-returns",
+            new
+            {
+                purchaseInvoiceId = purchase.PurchaseInvoiceId,
+                reason = "bonus batch return",
+                items = new[] { new { stockBatchId = batchId, quantity = returnQty } }
+            });
+        prResp.EnsureSuccessStatusCode();
+        var prDetails = JsonSerializer.Deserialize<PurchaseReturnDetailsResponse>(
+            await prResp.Content.ReadAsStringAsync(),
+            JsonOptions)!;
+        Assert.Equal(expectedRefund, prDetails.RefundAmount);
+
+        var itemsResp = await client.GetAsync($"/api/v1/purchase-returns/{prDetails.PurchaseReturnId}/items");
+        itemsResp.EnsureSuccessStatusCode();
+        var lines = JsonSerializer.Deserialize<List<PurchaseReturnLineResponse>>(
+            await itemsResp.Content.ReadAsStringAsync(),
+            JsonOptions)!;
+        Assert.Single(lines);
+        Assert.Equal(Math.Round(50m * 100m / 65m, 2, MidpointRounding.AwayFromZero), lines[0].UnitPrice);
+        Assert.Equal(lines[0].UnitPrice * returnQty, lines[0].Subtotal);
+
+        var after = await GetAvailableAsync(batchId);
+        Assert.Equal(55, after);
+
+        var nominalRefund = returnQty * 100m;
+        Assert.NotEqual(nominalRefund, prDetails.RefundAmount);
     }
 
     [Fact]
@@ -539,6 +616,8 @@ public sealed class StockFlowIntegrationTests
     private sealed record SalesInvoiceResponse(Guid SalesInvoiceId);
     private sealed record SalesLineResponse(Guid SalesInvoiceItemId, Guid StockBatchId, int Quantity);
     private sealed record PurchaseInvoiceResponse(Guid PurchaseInvoiceId);
+    private sealed record PurchaseReturnDetailsResponse(Guid PurchaseReturnId, decimal RefundAmount);
+    private sealed record PurchaseReturnLineResponse(decimal UnitPrice, decimal Subtotal);
     private sealed record PurchaseInvoiceDetailsResponse(Guid PurchaseInvoiceId, decimal Subtotal, decimal GrandTotal);
     private sealed record PurchaseLineResponse(int Quantity, int BonusQuantity);
     private sealed record CategoryResponse(Guid CategoryId);
