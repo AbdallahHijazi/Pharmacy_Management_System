@@ -166,31 +166,34 @@ public sealed class LoginBackgroundControl : Panel
 
     private static void DrawCrossIcons(Graphics g, Rectangle bounds)
     {
-        using var pen = new Pen(Color.FromArgb(28, PharmaTheme.PrimaryGreen), 1.6f)
+        var scale = Math.Min(bounds.Width, bounds.Height) / 900f;
+        if (scale < 0.3f)
         {
-            StartCap = LineCap.Round,
-            EndCap = LineCap.Round
-        };
-        var s = Math.Max(14, Math.Min(22, bounds.Width / 48));
-        void Plus(float nx, float ny)
+            scale = 0.3f;
+        }
+
+        void SoftBloom(float nx, float ny, int alpha, float radius)
         {
             var cx = bounds.X + nx * bounds.Width;
             var cy = bounds.Y + ny * bounds.Height;
-            g.DrawLine(pen, cx - s, cy, cx + s, cy);
-            g.DrawLine(pen, cx, cy - s, cx, cy + s);
+            var r = radius * scale;
+            using var path = new GraphicsPath();
+            path.AddEllipse(cx - r, cy - r, r * 2, r * 2);
+            using var brush = new SolidBrush(Color.FromArgb(alpha, PharmaTheme.AccentTeal.R, PharmaTheme.AccentTeal.G, PharmaTheme.AccentTeal.B));
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.FillPath(brush, path);
         }
 
-        Plus(0.18f, 0.35f);
-        Plus(0.78f, 0.42f);
-        Plus(0.72f, 0.88f);
+        SoftBloom(0.18f, 0.35f, 22, 22f);
+        SoftBloom(0.78f, 0.42f, 18, 18f);
+        SoftBloom(0.72f, 0.88f, 16, 20f);
     }
 }
 
 /// <summary>Rounded elevated card with soft shadow (no transparent control backgrounds).</summary>
 public sealed class LoginCardPanel : Panel
 {
-    private const int CornerRadius = 22;
-    private const int ShadowInset = 6;
+    private const int ShadowInset = 8;
 
     public LoginCardPanel()
     {
@@ -198,8 +201,8 @@ public sealed class LoginCardPanel : Panel
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
         BackColor = PharmaTheme.LoginCardFill;
-        Margin = new Padding(8);
-        Padding = new Padding(32 + ShadowInset, 28 + ShadowInset, 32 + ShadowInset, 28 + ShadowInset);
+        Margin = new Padding(10);
+        Padding = new Padding(36 + ShadowInset, 30 + ShadowInset, 36 + ShadowInset, 34 + ShadowInset);
         RightToLeft = RightToLeft.Yes;
     }
 
@@ -235,22 +238,23 @@ public sealed class LoginCardPanel : Panel
             return;
         }
 
-        for (var i = 3; i >= 1; i--)
+        var radius = PharmaTheme.LoginCardCornerRadius;
+        for (var i = 4; i >= 1; i--)
         {
             var offset = i * 2;
-            var alpha = 8 + i * 4;
+            var alpha = 5 + i * 3;
             using var path = RoundedRect(
                 new Rectangle(rect.X + offset, rect.Y + offset, rect.Width, rect.Height),
-                CornerRadius);
-            using var brush = new SolidBrush(Color.FromArgb(alpha, 20, 40, 32));
+                radius);
+            using var brush = new SolidBrush(Color.FromArgb(alpha, 18, 48, 36));
             g.FillPath(brush, path);
         }
 
-        using (var path = RoundedRect(rect, CornerRadius))
+        using (var path = RoundedRect(rect, radius))
         {
             using var fill = new SolidBrush(PharmaTheme.LoginCardFill);
             g.FillPath(fill, path);
-            using var border = new Pen(PharmaTheme.LoginCardBorder, 1.2F);
+            using var border = new Pen(PharmaTheme.LoginCardBorder, 1.15F) { LineJoin = LineJoin.Round };
             g.DrawPath(border, path);
         }
     }

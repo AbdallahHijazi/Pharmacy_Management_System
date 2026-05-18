@@ -20,8 +20,6 @@ public partial class LoginForm : Form
         InitializeComponent();
 
         loginButton.Click += async (_, _) => await OnLoginClickedAsync();
-        showPasswordCheckBox.CheckedChanged += (_, _) =>
-            passwordInput.IsPassword = !showPasswordCheckBox.Checked;
 
         AcceptButton = loginButton;
     }
@@ -62,16 +60,14 @@ public partial class LoginForm : Form
 
     private void ShowError(string message)
     {
-        errorLabel.MaximumSize = new Size(loginStack.Width, 0);
-        errorLabel.Text = message;
-        errorLabel.Visible = true;
+        loginErrorNotice.MaximumSize = new Size(loginStack.Width, 0);
+        loginErrorNotice.Message = message;
         loginStack.PerformLayout();
     }
 
     private void ClearError()
     {
-        errorLabel.Text = string.Empty;
-        errorLabel.Visible = false;
+        loginErrorNotice.Message = string.Empty;
     }
 
     private void SetLoadingState(bool isLoading)
@@ -81,7 +77,7 @@ public partial class LoginForm : Form
         loginButton.Enabled = !isLoading;
         emailInput.ReadOnly = isLoading;
         passwordInput.ReadOnly = isLoading;
-        showPasswordCheckBox.Enabled = !isLoading;
+        passwordInput.SetRevealInteractionEnabled(!isLoading);
         loginButton.Text = isLoading ? "جاري التحميل..." : DefaultLoginButtonText;
         UseWaitCursor = isLoading;
     }

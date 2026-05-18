@@ -12,8 +12,7 @@ public partial class LoginForm
     private TableLayoutPanel loginStack = null!;
     private RoundedTextInput emailInput = null!;
     private RoundedTextInput passwordInput = null!;
-    private CheckBox showPasswordCheckBox = null!;
-    private Label errorLabel = null!;
+    private LoginSoftNoticePanel loginErrorNotice = null!;
     private RoundedButton loginButton = null!;
     private Panel loadingOverlay = null!;
     private Label loadingLabel = null!;
@@ -52,7 +51,7 @@ public partial class LoginForm
             RightToLeft = RightToLeft.Yes
         };
         loginStack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        for (var row = 0; row < 10; row++)
+        for (var row = 0; row < 9; row++)
         {
             loginStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         }
@@ -138,7 +137,7 @@ public partial class LoginForm
             PharmaTheme.LoginSubtitleFont,
             PharmaTheme.MutedText,
             ContentAlignment.MiddleCenter,
-            bottomMargin: 20,
+            bottomMargin: 22,
             useRtlReading: false), 0, 2);
     }
 
@@ -148,8 +147,9 @@ public partial class LoginForm
         emailInput = new RoundedTextInput
         {
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 4, 0, 12),
-            MinimumSize = new Size(0, 48),
+            FieldKind = LoginInputFieldKind.Email,
+            Margin = new Padding(0, 4, 0, 14),
+            MinimumSize = new Size(0, PharmaTheme.LoginInputHeight),
             PlaceholderText = "admin@pharmacy.com"
         };
         loginStack.Controls.Add(emailInput, 0, 4);
@@ -158,40 +158,21 @@ public partial class LoginForm
         passwordInput = new RoundedTextInput
         {
             Dock = DockStyle.Fill,
+            FieldKind = LoginInputFieldKind.Password,
             IsPassword = true,
-            Margin = new Padding(0, 4, 0, 8),
-            MinimumSize = new Size(0, 48),
+            Margin = new Padding(0, 4, 0, 12),
+            MinimumSize = new Size(0, PharmaTheme.LoginInputHeight),
             PlaceholderText = "••••••••"
         };
         loginStack.Controls.Add(passwordInput, 0, 6);
 
-        showPasswordCheckBox = new CheckBox
+        loginErrorNotice = new LoginSoftNoticePanel
         {
             AutoSize = true,
             Dock = DockStyle.Fill,
-            Font = PharmaTheme.SmallFont,
-            ForeColor = PharmaTheme.MutedText,
-            Margin = new Padding(0, 0, 0, 10),
-            RightToLeft = RightToLeft.Yes,
-            Text = "إظهار كلمة المرور",
-            UseCompatibleTextRendering = true
+            Margin = new Padding(0, 0, 0, 12)
         };
-        loginStack.Controls.Add(showPasswordCheckBox, 0, 7);
-
-        errorLabel = new Label
-        {
-            AutoSize = true,
-            Dock = DockStyle.Fill,
-            Font = PharmaTheme.SmallFont,
-            ForeColor = PharmaTheme.Danger,
-            Margin = new Padding(0, 0, 0, 10),
-            MaximumSize = new Size(PharmaTheme.LoginCardMaxWidth, 0),
-            RightToLeft = RightToLeft.Yes,
-            TextAlign = ContentAlignment.TopRight,
-            UseCompatibleTextRendering = true,
-            Visible = false
-        };
-        loginStack.Controls.Add(errorLabel, 0, 8);
+        loginStack.Controls.Add(loginErrorNotice, 0, 7);
 
         loginButton = new RoundedButton
         {
@@ -199,7 +180,7 @@ public partial class LoginForm
             Margin = new Padding(0, 4, 0, 0),
             Text = "تسجيل الدخول"
         };
-        loginStack.Controls.Add(loginButton, 0, 9);
+        loginStack.Controls.Add(loginButton, 0, 8);
     }
 
     private static Label CreateRtlLabel(
@@ -230,7 +211,7 @@ public partial class LoginForm
         Dock = DockStyle.Fill,
         Font = PharmaTheme.LoginFieldLabelFont,
         ForeColor = PharmaTheme.TextDark,
-        Margin = new Padding(0, 0, 0, 2),
+        Margin = new Padding(0, 0, 0, 4),
         RightToLeft = RightToLeft.Yes,
         Text = text,
         TextAlign = ContentAlignment.MiddleRight,

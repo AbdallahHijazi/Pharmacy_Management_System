@@ -42,7 +42,18 @@ internal static class PharmaTheme
     public static Font LoginButtonFont { get; } = new("Segoe UI", 11F, FontStyle.Bold);
     public static Font LoginFieldLabelFont { get; } = new("Segoe UI", 10F, FontStyle.Bold);
 
-    public const int LoginButtonHeight = 48;
-    public const int LoginCardMinWidth = 380;
-    public const int LoginCardMaxWidth = 430;
+    public const int LoginButtonHeight = 52;
+    public const int LoginCardMinWidth = 420;
+    public const int LoginCardMaxWidth = 480;
+    public const int LoginCardCornerRadius = 28;
+    public const int LoginInputCornerRadius = 22;
+    public const int LoginButtonCornerRadius = 24;
+    public const int LoginInputHeight = 52;
+    public const int LoginIconColumnWidth = 48;
+    public const int LoginRevealColumnWidth = 44;
+    public const int LoginNoticeCornerRadius = 16;
+
+    public static readonly Color LoginErrorSurface = Color.FromArgb(255, 251, 249);
+    public static readonly Color LoginErrorBorder = Color.FromArgb(232, 200, 200);
+    public static readonly Color LoginRevealHover = Color.FromArgb(236, 248, 242);
 }
