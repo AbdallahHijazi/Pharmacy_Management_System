@@ -11,6 +11,14 @@ internal static class PharmaTheme
     public static readonly Color AccentTeal = Color.FromArgb(43, 184, 168);
     public static readonly Color SoftGreenBackground = Color.FromArgb(231, 255, 241); // #E7FFF1
     public static readonly Color CardBackground = Color.White; // #FFFFFF surface
+    /// <summary>Primary card / KPI surface (reference: surface-container-lowest).</summary>
+    public static readonly Color SurfaceContainerLowest = Color.White;
+    public static readonly Color SurfaceContainerLow = Color.FromArgb(225, 249, 235); // #E1F9EB
+    public static readonly Color SurfaceContainer = Color.FromArgb(220, 244, 229);
+    public static readonly Color SurfaceContainerHighest = Color.FromArgb(208, 232, 218); // #D0E8DA
+    public static readonly Color OutlineVariant = Color.FromArgb(190, 201, 192); // #BEC9C0
+    /// <summary>Secondary text on surfaces (reference: on-surface-variant).</summary>
+    public static readonly Color OnSurfaceVariant = Color.FromArgb(63, 73, 67); // #3F4943
     /// <summary>Main app / dashboard backdrop.</summary>
     public static Color Background => SoftGreenBackground;
     /// <summary>Cards, panels, and elevated surfaces.</summary>
@@ -18,12 +26,26 @@ internal static class PharmaTheme
     public static readonly Color InputSurface = Color.FromArgb(246, 249, 247);
     public static readonly Color TextDark = Color.FromArgb(11, 31, 23);
     public static readonly Color MutedText = Color.FromArgb(111, 122, 114); // #6F7A72
+    /// <summary>Legacy dark sidebar (login / older screens); dashboard uses <see cref="SidebarLightBackground"/>.</summary>
     public static readonly Color SidebarBackground = Color.FromArgb(5, 72, 49);
     public static readonly Color SidebarHover = Color.FromArgb(14, 92, 63);
     public static readonly Color SidebarActive = Color.FromArgb(22, 118, 78);
+    /// <summary>Light docked sidebar (PharmaCare reference).</summary>
+    public static readonly Color SidebarLightBackground = Color.FromArgb(244, 246, 247); // #F4F6F7
+    public static readonly Color SidebarNavHoverFill = Color.FromArgb(230, 241, 235);
+    public static readonly Color SidebarDivider = Color.FromArgb(210, 220, 214);
     public static readonly Color BorderLight = Color.FromArgb(214, 228, 220);
-    public static readonly Color Danger = Color.FromArgb(176, 42, 42);
-    public static readonly Color Warning = Color.FromArgb(180, 120, 20);
+    public static readonly Color Danger = Color.FromArgb(186, 26, 26); // #BA1A1A
+    public static readonly Color Warning = Color.FromArgb(245, 158, 11); // #F59E0B
+    public static readonly Color WarningStrong = Color.FromArgb(217, 119, 6); // #D97706
+    public static readonly Color WarningSurface = Color.FromArgb(255, 251, 235); // #FFFBEB
+    public static readonly Color ErrorContainer = Color.FromArgb(255, 218, 214); // #FFDAD6
+    public static readonly Color TopBarGradientDeep = Color.FromArgb(255, 220, 241, 232);
+    /// <summary>Soft KPI / section shadow tint (reference: rgba(7,100,67,0.02)).</summary>
+    public static readonly Color DashboardCardShadow = Color.FromArgb(6, 7, 100, 67);
+
+    public const int DashboardSectionCornerRadius = 14;
+    public const int DashboardStatCornerRadius = 16;
 
     // Login screen (read by LoginForm / LoginBackgroundControl; future theme switch can remap these)
     public static readonly Color LoginGradientTop = Color.FromArgb(238, 252, 247);
@@ -33,6 +55,9 @@ internal static class PharmaTheme
     public static readonly Color LoginOverlayScrim = Color.FromArgb(170, 232, 248, 240);
 
     public static Font TitleFont { get; } = new("Segoe UI", 14F, FontStyle.Bold);
+    /// <summary>Dashboard page title (reference: text-2xl / ~2rem).</summary>
+    public static Font DashboardHeadlineFont { get; } = new("Segoe UI", 15.75F, FontStyle.Bold);
+    public static Font DashboardSubtitleFont { get; } = new("Segoe UI", 10F, FontStyle.Regular);
     public static Font SectionFont { get; } = new("Segoe UI", 11.5F, FontStyle.Bold);
     public static Font BodyFont { get; } = new("Segoe UI", 10F);
     public static Font SmallFont { get; } = new("Segoe UI", 9F);

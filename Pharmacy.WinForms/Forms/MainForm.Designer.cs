@@ -45,7 +45,7 @@ partial class MainForm
         {
             BackColor = PharmaTheme.Background,
             Dock = DockStyle.Fill,
-            Padding = new Padding(0)
+            Padding = new Padding(4, 4, 8, 12)
         };
 
         mainShell.Controls.Add(contentHost);
