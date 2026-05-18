@@ -7,6 +7,7 @@ namespace Pharmacy.WinForms.Forms;
 partial class MainForm
 {
     private System.ComponentModel.IContainer? components;
+    private TableLayoutPanel shellLayout = null!;
     private SidebarControl sidebar = null!;
     private Panel mainShell = null!;
     private TopBarControl topBar = null!;
@@ -26,33 +27,54 @@ partial class MainForm
         MinimumSize = new Size(1024, 680);
         Name = "MainForm";
         RightToLeft = RightToLeft.Yes;
-        RightToLeftLayout = true;
         StartPosition = FormStartPosition.CenterScreen;
         Text = "PharmaCare — لوحة التحكم";
 
-        sidebar = new SidebarControl();
+        shellLayout = new TableLayoutPanel
+        {
+            ColumnCount = 2,
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0),
+            Padding = new Padding(0),
+            RightToLeft = RightToLeft.Yes,
+            RowCount = 1
+        };
+        shellLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 260F));
+        shellLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+        sidebar = new SidebarControl
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0)
+        };
 
         mainShell = new Panel
         {
             BackColor = PharmaTheme.Background,
             Dock = DockStyle.Fill,
+            Margin = new Padding(0),
             Padding = new Padding(0)
         };
 
-        topBar = new TopBarControl();
+        topBar = new TopBarControl
+        {
+            Dock = DockStyle.Top
+        };
 
         contentHost = new Panel
         {
             BackColor = PharmaTheme.Background,
             Dock = DockStyle.Fill,
-            Padding = new Padding(4, 4, 8, 12)
+            Padding = new Padding(8, 4, 12, 12)
         };
 
         mainShell.Controls.Add(contentHost);
         mainShell.Controls.Add(topBar);
 
-        Controls.Add(mainShell);
-        Controls.Add(sidebar);
+        shellLayout.Controls.Add(sidebar, 0, 0);
+        shellLayout.Controls.Add(mainShell, 1, 0);
+
+        Controls.Add(shellLayout);
 
         ResumeLayout(false);
     }

@@ -26,6 +26,7 @@ public sealed partial class DashboardControl : UserControl
         SizeChanged += (_, _) => OnChromeSizeChanged();
         stockAlertsFlow.Resize += (_, _) => LayoutStockAlertWidths();
         quickActionsFlow.Resize += (_, _) => LayoutQuickActionWidths();
+        latestSalesList.Resize += (_, _) => ResizeLatestSalesColumns();
         OnChromeSizeChanged();
     }
 
@@ -65,8 +66,6 @@ public sealed partial class DashboardControl : UserControl
     {
         var w = Math.Max(220, ClientSize.Width - Padding.Horizontal - 8);
         errorBannerLabel.MaximumSize = new Size(w, 0);
-        mockBannerLabel.MaximumSize = new Size(w, 0);
-        bannerHost.PerformLayout();
         ResizeLatestSalesColumns();
         LayoutStockAlertWidths();
         LayoutQuickActionWidths();
@@ -80,8 +79,8 @@ public sealed partial class DashboardControl : UserControl
         }
 
         var inner = Math.Max(80, latestSalesList.ClientSize.Width - SystemInformation.VerticalScrollBarWidth - 4);
-        latestSalesList.Columns[0].Width = Math.Max(72, (int)(inner * 0.17));
-        latestSalesList.Columns[1].Width = Math.Max(88, (int)(inner * 0.26));
+        latestSalesList.Columns[0].Width = Math.Max(72, (int)(inner * 0.18));
+        latestSalesList.Columns[1].Width = Math.Max(88, (int)(inner * 0.28));
         latestSalesList.Columns[2].Width = Math.Max(72, (int)(inner * 0.16));
         latestSalesList.Columns[3].Width = Math.Max(96, (int)(inner * 0.22));
         latestSalesList.Columns[4].Width = Math.Max(72, inner - latestSalesList.Columns[0].Width - latestSalesList.Columns[1].Width - latestSalesList.Columns[2].Width - latestSalesList.Columns[3].Width);
@@ -89,7 +88,7 @@ public sealed partial class DashboardControl : UserControl
 
     private void LayoutStockAlertWidths()
     {
-        var inner = Math.Max(80, stockAlertsFlow.ClientSize.Width - stockAlertsFlow.Padding.Horizontal);
+        var inner = Math.Max(120, stockAlertsFlow.ClientSize.Width - stockAlertsFlow.Padding.Horizontal - 4);
         foreach (Control c in stockAlertsFlow.Controls)
         {
             c.Width = inner;
@@ -98,7 +97,7 @@ public sealed partial class DashboardControl : UserControl
 
     private void LayoutQuickActionWidths()
     {
-        var inner = Math.Max(80, quickActionsFlow.ClientSize.Width - quickActionsFlow.Padding.Horizontal);
+        var inner = Math.Max(120, quickActionsFlow.ClientSize.Width - quickActionsFlow.Padding.Horizontal);
         foreach (Control c in quickActionsFlow.Controls)
         {
             if (c is Button b)
@@ -119,6 +118,7 @@ public sealed partial class DashboardControl : UserControl
         expiringCard.CardValue = summary.ExpiringSoonBatchesCount.ToString("N0");
         todayInvoicesCard.CardValue = summary.TodayInvoicesCount.ToString("N0");
 
+        latestSalesList.BeginUpdate();
         latestSalesList.Items.Clear();
         foreach (var sale in summary.LatestSales)
         {
@@ -130,6 +130,13 @@ public sealed partial class DashboardControl : UserControl
             latestSalesList.Items.Add(item);
         }
 
+        latestSalesList.EndUpdate();
+
+        var hasSales = summary.LatestSales.Count > 0;
+        latestSalesList.Visible = hasSales;
+        latestSalesEmptyLabel.Visible = !hasSales;
+
+        stockAlertsFlow.SuspendLayout();
         stockAlertsFlow.Controls.Clear();
         if (summary.StockAlerts.Count == 0)
         {
@@ -143,6 +150,7 @@ public sealed partial class DashboardControl : UserControl
             }
         }
 
+        stockAlertsFlow.ResumeLayout(true);
         LayoutStockAlertWidths();
 
         if (result.HasError)
@@ -156,20 +164,12 @@ public sealed partial class DashboardControl : UserControl
             errorBannerLabel.Text = string.Empty;
         }
 
-        if (result.IsMockData)
-        {
-            mockBannerLabel.Text = "يتم عرض بيانات تجريبية — تحقق من اتصال API.";
-            mockBannerLabel.Visible = true;
-        }
-        else
-        {
-            mockBannerLabel.Visible = false;
-            mockBannerLabel.Text = string.Empty;
-        }
+        ResizeLatestSalesColumns();
     }
 
     private void BuildQuickActions()
     {
+        quickActionsFlow.Controls.Clear();
         AddQuickAction("بيع جديد", "فتح نقطة البيع", "₪");
         AddQuickAction("فاتورة شراء", "تسجيل مشتريات جديدة", "↧");
         AddQuickAction("إضافة منتج", "إضافة منتج للمخزون", "＋");
@@ -202,69 +202,80 @@ public sealed partial class DashboardControl : UserControl
 
     private Control CreateAlertCard(DashboardStockAlert alert)
     {
-        var outer = new TableLayoutPanel
+        var panel = new Panel
         {
-            AutoSize = true,
-            ColumnCount = 2,
-            Dock = DockStyle.Top,
-            Margin = new Padding(0, 0, 0, 10),
-            Padding = new Padding(0),
-            RightToLeft = RightToLeft.Yes,
-            RowCount = 1
-        };
-        outer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 4F));
-        outer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-
-        var accent = new Panel
-        {
-            BackColor = alert.IsExpiryAlert ? PharmaTheme.Warning : PharmaTheme.PrimaryContainer,
-            Dock = DockStyle.Fill
-        };
-
-        var body = new Panel
-        {
-            AutoSize = true,
             BackColor = alert.IsExpiryAlert ? PharmaTheme.WarningSurface : PharmaTheme.SurfaceContainerLow,
-            Dock = DockStyle.Fill,
-            Padding = new Padding(12, 10, 12, 10)
+            Height = 78,
+            Margin = new Padding(0, 0, 0, 10),
+            Padding = new Padding(12, 8, 12, 8),
+            RightToLeft = RightToLeft.Yes
+        };
+
+        panel.Paint += (_, e) =>
+        {
+            using var pen = new Pen(alert.IsExpiryAlert ? PharmaTheme.Warning : PharmaTheme.PrimaryContainer, 3);
+            var y1 = 6;
+            var y2 = panel.Height - 6;
+            e.Graphics.DrawLine(pen, panel.Width - 4, y1, panel.Width - 4, y2);
+        };
+
+        var kind = new Label
+        {
+            AutoSize = false,
+            Dock = DockStyle.Top,
+            Font = new Font(PharmaTheme.SmallFont, FontStyle.Bold),
+            ForeColor = alert.IsExpiryAlert ? PharmaTheme.WarningStrong : PharmaTheme.PrimaryGreen,
+            Height = 18,
+            Text = string.IsNullOrWhiteSpace(alert.AlertKind)
+                ? (alert.IsExpiryAlert ? "قريب الانتهاء" : "مخزون منخفض")
+                : alert.AlertKind,
+            TextAlign = ContentAlignment.MiddleRight
         };
 
         var title = new Label
         {
-            AutoSize = true,
+            AutoSize = false,
             Dock = DockStyle.Top,
             Font = new Font(PharmaTheme.BodyFont, FontStyle.Bold),
             ForeColor = PharmaTheme.TextDark,
-            MaximumSize = new Size(360, 0),
+            Height = 22,
             Text = alert.Title,
-            TextAlign = ContentAlignment.TopRight
+            TextAlign = ContentAlignment.MiddleRight
         };
+
+        var detailText = alert.Detail;
+        if (!string.IsNullOrWhiteSpace(alert.BatchNumber))
+        {
+            detailText = $"رقم التشغيلة: {alert.BatchNumber} — {detailText}";
+        }
+
         var detail = new Label
         {
-            AutoSize = true,
+            AutoSize = false,
             Dock = DockStyle.Top,
             Font = PharmaTheme.SmallFont,
             ForeColor = PharmaTheme.OnSurfaceVariant,
-            MaximumSize = new Size(360, 0),
-            Text = alert.Detail,
-            TextAlign = ContentAlignment.TopRight
+            Height = 20,
+            Text = detailText,
+            TextAlign = ContentAlignment.MiddleRight
         };
-        body.Controls.Add(detail);
-        body.Controls.Add(title);
 
-        outer.Controls.Add(accent, 0, 0);
-        outer.Controls.Add(body, 1, 0);
-        return outer;
+        panel.Controls.Add(detail);
+        panel.Controls.Add(title);
+        panel.Controls.Add(kind);
+        return panel;
     }
 
     private static Label CreateMutedLabel(string text) => new()
     {
-        AutoSize = true,
+        AutoSize = false,
         Font = PharmaTheme.SmallFont,
         ForeColor = PharmaTheme.MutedText,
+        Height = 32,
         Margin = new Padding(0, 8, 0, 0),
         Text = text,
-        TextAlign = ContentAlignment.TopRight
+        TextAlign = ContentAlignment.MiddleRight,
+        Width = 200
     };
 
     private static string LocalizeInvoiceStatus(string? status)

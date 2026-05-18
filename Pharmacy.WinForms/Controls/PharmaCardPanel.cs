@@ -4,7 +4,7 @@ using Pharmacy.WinForms.Ui;
 
 namespace Pharmacy.WinForms.Controls;
 
-/// <summary>Rounded surface panel for dashboard sections (fills and clips to a rounded rectangle).</summary>
+/// <summary>Rounded surface panel for dashboard sections (border only; does not clip children).</summary>
 public sealed class PharmaCardPanel : Panel
 {
     private int _cornerRadius = PharmaTheme.DashboardSectionCornerRadius;
@@ -16,23 +16,6 @@ public sealed class PharmaCardPanel : Panel
         BackColor = PharmaTheme.SurfaceContainerLowest;
         BorderStyle = BorderStyle.None;
         Padding = new Padding(16);
-        Paint += OnCardPaint;
-        UpdateRegion();
-    }
-
-    private void OnCardPaint(object? sender, PaintEventArgs e)
-    {
-        var bounds = ClientRectangle;
-        bounds.Inflate(-1, -1);
-        if (bounds.Width <= 1 || bounds.Height <= 1)
-        {
-            return;
-        }
-
-        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        using var path = RoundedRect(bounds, _cornerRadius);
-        using var border = new Pen(PharmaTheme.OutlineVariant);
-        e.Graphics.DrawPath(border, path);
     }
 
     [Browsable(false)]
@@ -43,39 +26,26 @@ public sealed class PharmaCardPanel : Panel
         set
         {
             _cornerRadius = Math.Max(4, value);
-            UpdateRegion();
+            Invalidate();
         }
     }
 
-    protected override void OnSizeChanged(EventArgs e)
+    protected override void OnPaint(PaintEventArgs e)
     {
-        base.OnSizeChanged(e);
-        UpdateRegion();
-    }
-
-    private void UpdateRegion()
-    {
-        if (Width <= 2 || Height <= 2)
+        base.OnPaint(e);
+        var bounds = ClientRectangle;
+        bounds.Inflate(-1, -1);
+        if (bounds.Width <= 1 || bounds.Height <= 1)
         {
             return;
         }
 
-        using var path = RoundedRect(new Rectangle(0, 0, Width - 1, Height - 1), _cornerRadius);
-        var newRegion = new Region(path);
-        var old = Region;
-        Region = newRegion;
-        old?.Dispose();
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            Region?.Dispose();
-            Region = null;
-        }
-
-        base.Dispose(disposing);
+        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        using var path = RoundedRect(bounds, _cornerRadius);
+        using var fill = new SolidBrush(BackColor);
+        e.Graphics.FillPath(fill, path);
+        using var border = new Pen(PharmaTheme.OutlineVariant);
+        e.Graphics.DrawPath(border, path);
     }
 
     private static GraphicsPath RoundedRect(Rectangle bounds, int radius)

@@ -15,8 +15,8 @@ public sealed class SidebarControl : Panel
 
     public SidebarControl()
     {
-        Dock = DockStyle.Right;
         Width = 260;
+        MinimumSize = new Size(240, 0);
         BackColor = PharmaTheme.SidebarLightBackground;
         Padding = new Padding(0);
         RightToLeft = RightToLeft.Yes;

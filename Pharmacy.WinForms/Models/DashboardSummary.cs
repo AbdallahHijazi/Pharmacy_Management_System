@@ -27,6 +27,8 @@ public sealed class DashboardStockAlert
     public string Title { get; init; } = string.Empty;
     public string Detail { get; init; } = string.Empty;
     public bool IsExpiryAlert { get; init; }
+    public string AlertKind { get; init; } = string.Empty;
+    public string? BatchNumber { get; init; }
 }
 
 public sealed class DashboardLoadResult

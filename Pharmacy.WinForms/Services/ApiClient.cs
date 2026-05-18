@@ -1,9 +1,13 @@
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Pharmacy.WinForms.Models;
 
 namespace Pharmacy.WinForms.Services;
+
+public readonly record struct ApiGetResult<T>(bool Success, T? Data, string? ErrorMessage, bool IsConnectionError, int? StatusCode)
+    where T : class;
 
 public sealed class ApiClient : IDisposable
 {
@@ -68,33 +72,84 @@ public sealed class ApiClient : IDisposable
         }
     }
 
-    public async Task<(bool Success, T? Data, string? ErrorMessage, bool IsConnectionError)> GetAsync<T>(
+    public Task<ApiGetResult<T>> GetAsync<T>(string relativeUrl, CancellationToken cancellationToken = default)
+        where T : class
+        => GetAsync<T>(relativeUrl, logContext: null, cancellationToken);
+
+    public async Task<ApiGetResult<T>> GetAsync<T>(
         string relativeUrl,
+        string? logContext,
         CancellationToken cancellationToken = default)
         where T : class
     {
+        var requestUri = BuildRequestUri(relativeUrl);
         try
         {
             using var response = await _httpClient.GetAsync(relativeUrl, cancellationToken);
+            var statusCode = (int)response.StatusCode;
 
             if (response.IsSuccessStatusCode)
             {
                 var data = await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken);
-                return (true, data, null, false);
+                if (data is null)
+                {
+                    LogApi(logContext, requestUri, statusCode, "استجابة فارغة أو غير قابلة للتحليل.");
+                    return new ApiGetResult<T>(false, null, "استجابة غير صالحة من الخادم.", false, statusCode);
+                }
+
+                LogApi(logContext, requestUri, statusCode, "OK");
+                return new ApiGetResult<T>(true, data, null, false, statusCode);
             }
 
+            var body = await SafeReadBodyAsync(response, cancellationToken);
             var message = await TryReadErrorMessageAsync(response, cancellationToken);
-            return (false, null, message, false);
+            LogApi(logContext, requestUri, statusCode, $"{message} | body: {Truncate(body, 300)}");
+            return new ApiGetResult<T>(false, null, message, false, statusCode);
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            return (false, null, "انتهت مهلة الاتصال بالخادم. تحقق من أن API يعمل.", true);
+            LogApi(logContext, requestUri, null, "Timeout");
+            return new ApiGetResult<T>(false, null, "انتهت مهلة الاتصال بالخادم. تحقق من أن API يعمل.", true, null);
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
-            return (false, null, "تعذر الاتصال بالخادم. تأكد من تشغيل PharmacyProjectApi.", true);
+            LogApi(logContext, requestUri, null, $"HttpRequestException: {ex.Message}");
+            return new ApiGetResult<T>(false, null, "تعذر الاتصال بالخادم. تأكد من تشغيل PharmacyProjectApi.", true, null);
+        }
+        catch (Exception ex)
+        {
+            LogApi(logContext, requestUri, null, ex.ToString());
+            return new ApiGetResult<T>(false, null, "حدث خطأ غير متوقع أثناء الاتصال بالخادم.", false, null);
         }
     }
+
+    private string BuildRequestUri(string relativeUrl)
+    {
+        var baseUri = _httpClient.BaseAddress?.ToString().TrimEnd('/') ?? ApiConfiguration.BaseUrl.TrimEnd('/');
+        var path = relativeUrl.TrimStart('/');
+        return $"{baseUri}/{path}";
+    }
+
+    private static async Task<string> SafeReadBodyAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await response.Content.ReadAsStringAsync(cancellationToken);
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private static void LogApi(string? context, string url, int? statusCode, string detail)
+    {
+        var prefix = string.IsNullOrWhiteSpace(context) ? "API" : $"API/{context}";
+        Debug.WriteLine($"[{prefix}] {url} | status={(statusCode?.ToString() ?? "—")} | {detail}");
+    }
+
+    private static string Truncate(string value, int max) =>
+        value.Length <= max ? value : value[..max] + "…";
 
     private static async Task<string> TryReadErrorMessageAsync(
         HttpResponseMessage response,

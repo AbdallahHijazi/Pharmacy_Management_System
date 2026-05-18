@@ -11,69 +11,86 @@ public enum StatCardVisualTone
     Danger
 }
 
-public sealed class StatCardControl : Control
+/// <summary>KPI card using labels (stable layout, no clipped custom text).</summary>
+public sealed class StatCardControl : UserControl
 {
-    private string _title = string.Empty;
-    private string _value = "0";
-    private string? _subtitle;
-    private string _iconText = "●";
+    private readonly Label _titleLabel;
+    private readonly Label _valueLabel;
+    private readonly Label _iconLabel;
     private StatCardVisualTone _tone = StatCardVisualTone.Normal;
 
     public StatCardControl()
     {
-        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
-        Size = new Size(200, 112);
-        Font = PharmaTheme.BodyFont;
-        BackColor = PharmaTheme.Background;
-        Padding = new Padding(16, 14, 16, 14);
+        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+        DoubleBuffered = true;
+        BackColor = PharmaTheme.SurfaceContainerLowest;
+        MinimumSize = new Size(140, 112);
+        Height = 112;
+        Margin = new Padding(6, 4, 6, 4);
+        Padding = new Padding(14, 12, 14, 12);
+        RightToLeft = RightToLeft.Yes;
+
+        _iconLabel = new Label
+        {
+            AutoSize = false,
+            BackColor = PharmaTheme.SurfaceContainerLow,
+            Font = PharmaTheme.SectionFont,
+            ForeColor = PharmaTheme.PrimaryGreen,
+            Size = new Size(40, 40),
+            Text = "●",
+            TextAlign = ContentAlignment.MiddleCenter
+        };
+
+        _titleLabel = new Label
+        {
+            AutoSize = false,
+            Font = PharmaTheme.SmallFont,
+            ForeColor = PharmaTheme.OnSurfaceVariant,
+            Height = 22,
+            Text = string.Empty,
+            TextAlign = ContentAlignment.MiddleRight
+        };
+
+        _valueLabel = new Label
+        {
+            AutoSize = false,
+            Font = PharmaTheme.StatValueFont,
+            ForeColor = PharmaTheme.TextDark,
+            Height = 40,
+            Text = "0",
+            TextAlign = ContentAlignment.MiddleRight
+        };
+
+        Controls.Add(_valueLabel);
+        Controls.Add(_titleLabel);
+        Controls.Add(_iconLabel);
+
+        Resize += (_, _) => LayoutCard();
+        LayoutCard();
     }
 
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string CardTitle
     {
-        get => _title;
-        set
-        {
-            _title = value;
-            Invalidate();
-        }
+        get => _titleLabel.Text;
+        set => _titleLabel.Text = value;
     }
 
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string CardValue
     {
-        get => _value;
-        set
-        {
-            _value = value;
-            Invalidate();
-        }
-    }
-
-    [Browsable(false)]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public string? CardSubtitle
-    {
-        get => _subtitle;
-        set
-        {
-            _subtitle = value;
-            Invalidate();
-        }
+        get => _valueLabel.Text;
+        set => _valueLabel.Text = value;
     }
 
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string IconText
     {
-        get => _iconText;
-        set
-        {
-            _iconText = value;
-            Invalidate();
-        }
+        get => _iconLabel.Text;
+        set => _iconLabel.Text = value;
     }
 
     [Browsable(false)]
@@ -84,99 +101,70 @@ public sealed class StatCardControl : Control
         set
         {
             _tone = value;
+            ApplyTone();
             Invalidate();
         }
+    }
+
+    private void ApplyTone()
+    {
+        switch (_tone)
+        {
+            case StatCardVisualTone.Danger:
+                _iconLabel.BackColor = PharmaTheme.ErrorContainer;
+                _iconLabel.ForeColor = PharmaTheme.Danger;
+                _valueLabel.ForeColor = PharmaTheme.Danger;
+                break;
+            case StatCardVisualTone.Warning:
+                _iconLabel.BackColor = PharmaTheme.WarningSurface;
+                _iconLabel.ForeColor = PharmaTheme.WarningStrong;
+                _valueLabel.ForeColor = PharmaTheme.WarningStrong;
+                break;
+            default:
+                _iconLabel.BackColor = PharmaTheme.SurfaceContainerLow;
+                _iconLabel.ForeColor = PharmaTheme.PrimaryGreen;
+                _valueLabel.ForeColor = PharmaTheme.TextDark;
+                break;
+        }
+    }
+
+    private void LayoutCard()
+    {
+        var pad = Padding;
+        var innerW = Math.Max(1, ClientSize.Width - pad.Horizontal);
+        var innerH = Math.Max(1, ClientSize.Height - pad.Vertical);
+
+        _iconLabel.SetBounds(pad.Left + innerW - _iconLabel.Width, pad.Top + 4, _iconLabel.Width, _iconLabel.Height);
+
+        var textW = Math.Max(60, innerW - _iconLabel.Width - 10);
+        _titleLabel.SetBounds(pad.Left, pad.Top + 2, textW, _titleLabel.Height);
+        _valueLabel.SetBounds(pad.Left, _titleLabel.Bottom + 2, textW, Math.Max(36, innerH - _titleLabel.Bottom - 6));
     }
 
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-
-        var radius = PharmaTheme.DashboardStatCornerRadius;
         var bounds = ClientRectangle;
-        bounds.Inflate(-2, -2);
-        using var path = RoundedRect(bounds, radius);
-
-        using (var shadow = new SolidBrush(PharmaTheme.DashboardCardShadow))
+        bounds.Inflate(-1, -1);
+        if (bounds.Width <= 2 || bounds.Height <= 2)
         {
-            e.Graphics.FillPath(shadow, RoundedRect(new Rectangle(bounds.X, bounds.Y + 2, bounds.Width, bounds.Height), radius));
+            return;
         }
 
-        using (var fill = new SolidBrush(PharmaTheme.SurfaceContainerLowest))
+        using var path = RoundedRect(bounds, PharmaTheme.DashboardStatCornerRadius);
+        using (var fill = new SolidBrush(BackColor))
         {
             e.Graphics.FillPath(fill, path);
         }
 
-        if (_tone != StatCardVisualTone.Normal)
-        {
-            var ring = _tone == StatCardVisualTone.Danger
-                ? Color.FromArgb(55, PharmaTheme.Danger)
-                : Color.FromArgb(50, PharmaTheme.Warning);
-            using var ringPen = new Pen(ring, 1.5f);
-            e.Graphics.DrawPath(ringPen, path);
-        }
-        else
-        {
-            using var border = new Pen(PharmaTheme.OutlineVariant);
-            e.Graphics.DrawPath(border, path);
-        }
-
-        var (iconBack, iconFore) = _tone switch
-        {
-            StatCardVisualTone.Danger => (PharmaTheme.ErrorContainer, PharmaTheme.Danger),
-            StatCardVisualTone.Warning => (PharmaTheme.WarningSurface, PharmaTheme.WarningStrong),
-            _ => (PharmaTheme.SurfaceContainerLow, PharmaTheme.PrimaryGreen)
-        };
-
-        var iconRect = new Rectangle(bounds.Right - 52, bounds.Y + 14, 36, 36);
-        using (var iconBg = new SolidBrush(iconBack))
-        {
-            using var iconPath = RoundedRect(iconRect, 10);
-            e.Graphics.FillPath(iconBg, iconPath);
-        }
-
-        TextRenderer.DrawText(
-            e.Graphics,
-            _iconText,
-            PharmaTheme.SectionFont,
-            iconRect,
-            iconFore,
-            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-
-        var textLeft = bounds.X + Padding.Left;
-        var textWidth = bounds.Width - Padding.Horizontal - 48;
-
-        var titleRect = new Rectangle(textLeft, bounds.Y + 12, textWidth, 24);
-        TextRenderer.DrawText(
-            e.Graphics,
-            _title,
-            PharmaTheme.SmallFont,
-            titleRect,
-            PharmaTheme.OnSurfaceVariant,
-            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
-
-        var valueColor = _tone == StatCardVisualTone.Danger ? PharmaTheme.Danger : PharmaTheme.TextDark;
-        var valueRect = new Rectangle(textLeft, bounds.Y + 36, textWidth, 36);
-        TextRenderer.DrawText(
-            e.Graphics,
-            _value,
-            PharmaTheme.StatValueFont,
-            valueRect,
-            valueColor,
-            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
-
-        if (!string.IsNullOrWhiteSpace(_subtitle))
-        {
-            var subRect = new Rectangle(textLeft, bounds.Bottom - 28, textWidth, 20);
-            TextRenderer.DrawText(
-                e.Graphics,
-                _subtitle!,
-                PharmaTheme.SmallFont,
-                subRect,
-                PharmaTheme.MutedText,
-                TextFormatFlags.Right | TextFormatFlags.EndEllipsis);
-        }
+        var borderColor = _tone == StatCardVisualTone.Normal
+            ? PharmaTheme.OutlineVariant
+            : _tone == StatCardVisualTone.Danger
+                ? Color.FromArgb(80, PharmaTheme.Danger)
+                : Color.FromArgb(80, PharmaTheme.Warning);
+        using var border = new Pen(borderColor);
+        e.Graphics.DrawPath(border, path);
     }
 
     private static GraphicsPath RoundedRect(Rectangle bounds, int radius)

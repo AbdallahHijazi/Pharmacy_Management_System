@@ -13,9 +13,7 @@ partial class DashboardControl
     private Label titleLabel = null!;
     private Label subtitleLabel = null!;
     private Button newInvoiceButton = null!;
-    private FlowLayoutPanel bannerHost = null!;
     private Label errorBannerLabel = null!;
-    private Label mockBannerLabel = null!;
     private TableLayoutPanel statsGrid = null!;
     private StatCardControl totalProductsCard = null!;
     private StatCardControl todaySalesCard = null!;
@@ -26,6 +24,7 @@ partial class DashboardControl
     private TableLayoutPanel lowerOuter = null!;
     private PharmaCardPanel latestSalesCard = null!;
     private ListView latestSalesList = null!;
+    private Label latestSalesEmptyLabel = null!;
     private PharmaCardPanel stockAlertsCard = null!;
     private FlowLayoutPanel stockAlertsFlow = null!;
     private PharmaCardPanel quickActionsCard = null!;
@@ -42,15 +41,15 @@ partial class DashboardControl
         AutoScroll = true;
         BackColor = PharmaTheme.SoftGreenBackground;
         Font = PharmaTheme.BodyFont;
-        Padding = new Padding(22, 8, 26, 20);
+        Padding = new Padding(20, 8, 24, 16);
         RightToLeft = RightToLeft.Yes;
 
         headerLayout = new TableLayoutPanel
         {
             ColumnCount = 2,
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Top,
+            Height = 78,
             Margin = new Padding(0, 0, 0, 8),
-            MinimumSize = new Size(0, 78),
             Padding = new Padding(0, 4, 0, 8),
             RightToLeft = RightToLeft.Yes,
             RowCount = 1
@@ -61,8 +60,7 @@ partial class DashboardControl
         titleStack = new Panel
         {
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 0, 12, 0),
-            MinimumSize = new Size(200, 72)
+            Margin = new Padding(0, 0, 12, 0)
         };
 
         titleLabel = new Label
@@ -87,8 +85,8 @@ partial class DashboardControl
             TextAlign = ContentAlignment.MiddleRight
         };
 
-        titleStack.Controls.Add(titleLabel);
         titleStack.Controls.Add(subtitleLabel);
+        titleStack.Controls.Add(titleLabel);
 
         newInvoiceButton = new Button
         {
@@ -112,60 +110,35 @@ partial class DashboardControl
         headerLayout.Controls.Add(titleStack, 0, 0);
         headerLayout.Controls.Add(newInvoiceButton, 1, 0);
 
-        bannerHost = new FlowLayoutPanel
-        {
-            AutoSize = true,
-            AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Dock = DockStyle.Top,
-            FlowDirection = FlowDirection.TopDown,
-            Margin = new Padding(0, 0, 0, 4),
-            Padding = new Padding(0),
-            RightToLeft = RightToLeft.Yes,
-            WrapContents = false
-        };
-
         errorBannerLabel = new Label
         {
             AutoSize = true,
+            Dock = DockStyle.Top,
             Font = PharmaTheme.SmallFont,
             ForeColor = PharmaTheme.Danger,
-            Margin = new Padding(0, 0, 0, 6),
+            Margin = new Padding(0, 0, 0, 8),
             MaximumSize = new Size(920, 0),
             Padding = new Padding(14, 10, 14, 10),
             TextAlign = ContentAlignment.TopRight,
             Visible = false
         };
-
-        mockBannerLabel = new Label
-        {
-            AutoSize = true,
-            BackColor = PharmaTheme.WarningSurface,
-            Font = PharmaTheme.SmallFont,
-            ForeColor = PharmaTheme.WarningStrong,
-            Margin = new Padding(0, 0, 0, 6),
-            MaximumSize = new Size(920, 0),
-            Padding = new Padding(14, 10, 14, 10),
-            TextAlign = ContentAlignment.TopRight,
-            Visible = false
-        };
-
-        bannerHost.Controls.Add(errorBannerLabel);
-        bannerHost.Controls.Add(mockBannerLabel);
 
         statsGrid = new TableLayoutPanel
         {
             BackColor = Color.Transparent,
             ColumnCount = 3,
-            Dock = DockStyle.Fill,
-            Margin = new Padding(0, 4, 0, 12),
+            Dock = DockStyle.Top,
+            Height = 248,
+            Margin = new Padding(0, 0, 0, 12),
             Padding = new Padding(0),
-            RightToLeft = RightToLeft.Yes
+            RightToLeft = RightToLeft.Yes,
+            RowCount = 2
         };
         statsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
         statsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
         statsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34F));
-        statsGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-        statsGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+        statsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 120F));
+        statsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 120F));
 
         totalProductsCard = CreateStatCard("إجمالي المنتجات", "0", "📦");
         todaySalesCard = CreateStatCard("مبيعات اليوم", "0", "💰");
@@ -185,13 +158,15 @@ partial class DashboardControl
         {
             ColumnCount = 2,
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 0, 0, 0),
+            Margin = new Padding(0),
+            MinimumSize = new Size(0, 320),
             Padding = new Padding(0),
             RightToLeft = RightToLeft.Yes,
             RowCount = 1
         };
         lowerOuter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58F));
         lowerOuter.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42F));
+        lowerOuter.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         latestSalesCard = CreateSalesCard();
         stockAlertsCard = CreateAlertsCard();
@@ -201,7 +176,7 @@ partial class DashboardControl
         {
             ColumnCount = 1,
             Dock = DockStyle.Fill,
-            Margin = new Padding(10, 0, 0, 0),
+            Margin = new Padding(8, 0, 0, 0),
             Padding = new Padding(0),
             RightToLeft = RightToLeft.Yes,
             RowCount = 2
@@ -227,11 +202,11 @@ partial class DashboardControl
         };
         rootTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         rootTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        rootTable.RowStyles.Add(new RowStyle(SizeType.Absolute, 272F));
+        rootTable.RowStyles.Add(new RowStyle(SizeType.Absolute, 248F));
         rootTable.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         rootTable.Controls.Add(headerLayout, 0, 0);
-        rootTable.Controls.Add(bannerHost, 0, 1);
+        rootTable.Controls.Add(errorBannerLabel, 0, 1);
         rootTable.Controls.Add(statsGrid, 0, 2);
         rootTable.Controls.Add(lowerOuter, 0, 3);
 
@@ -263,8 +238,8 @@ partial class DashboardControl
         {
             CornerRadius = PharmaTheme.DashboardSectionCornerRadius,
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 0, 10, 0),
-            MinimumSize = new Size(280, 280)
+            Margin = new Padding(0, 0, 8, 0),
+            MinimumSize = new Size(260, 260)
         };
 
         var header = new TableLayoutPanel
@@ -272,7 +247,7 @@ partial class DashboardControl
             ColumnCount = 2,
             Dock = DockStyle.Top,
             Height = 36,
-            Margin = new Padding(0, 0, 0, 10),
+            Margin = new Padding(0, 0, 0, 8),
             RightToLeft = RightToLeft.Yes,
             RowCount = 1
         };
@@ -302,13 +277,16 @@ partial class DashboardControl
             TextAlign = ContentAlignment.MiddleLeft,
             VisitedLinkColor = PharmaTheme.PrimaryGreen
         };
-        viewAll.LinkClicked += (_, _) =>
-        {
-            QuickActionRequested?.Invoke(this, "عرض الكل");
-        };
+        viewAll.LinkClicked += (_, _) => QuickActionRequested?.Invoke(this, "عرض الكل");
 
         header.Controls.Add(title, 0, 0);
         header.Controls.Add(viewAll, 1, 0);
+
+        var listHost = new Panel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(0)
+        };
 
         latestSalesList = new ListView
         {
@@ -326,22 +304,27 @@ partial class DashboardControl
             BackColor = PharmaTheme.SurfaceContainerLow,
             ForeColor = PharmaTheme.TextDark
         };
-        latestSalesList.Columns.Add("رقم الفاتورة", Math.Max(100, (int)Math.Round(110 * DeviceDpi / 96f)));
-        latestSalesList.Columns.Add("الزبون", Math.Max(120, (int)Math.Round(160 * DeviceDpi / 96f)));
-        latestSalesList.Columns.Add("القيمة", Math.Max(90, (int)Math.Round(100 * DeviceDpi / 96f)));
-        latestSalesList.Columns.Add("الوقت", Math.Max(110, (int)Math.Round(130 * DeviceDpi / 96f)));
-        latestSalesList.Columns.Add("الحالة", Math.Max(80, (int)Math.Round(100 * DeviceDpi / 96f)));
+        latestSalesList.Columns.Add("رقم الفاتورة", 110);
+        latestSalesList.Columns.Add("الزبون", 140);
+        latestSalesList.Columns.Add("القيمة", 90);
+        latestSalesList.Columns.Add("الوقت", 120);
+        latestSalesList.Columns.Add("الحالة", 90);
 
-        var rowHeight = new ImageList { ImageSize = new Size(1, 42), ColorDepth = ColorDepth.Depth32Bit };
-        using (var spacer = new Bitmap(1, 42))
+        latestSalesEmptyLabel = new Label
         {
-            rowHeight.Images.Add(spacer, Color.Transparent);
-        }
+            Dock = DockStyle.Fill,
+            Font = PharmaTheme.BodyFont,
+            ForeColor = PharmaTheme.MutedText,
+            Text = "لا توجد فواتير حديثة",
+            TextAlign = ContentAlignment.MiddleCenter,
+            Visible = false
+        };
 
-        latestSalesList.SmallImageList = rowHeight;
+        listHost.Controls.Add(latestSalesEmptyLabel);
+        listHost.Controls.Add(latestSalesList);
 
+        card.Controls.Add(listHost);
         card.Controls.Add(header);
-        card.Controls.Add(latestSalesList);
         return card;
     }
 
@@ -351,8 +334,8 @@ partial class DashboardControl
         {
             CornerRadius = PharmaTheme.DashboardSectionCornerRadius,
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 0, 0, 10),
-            MinimumSize = new Size(240, 160)
+            Margin = new Padding(0, 0, 0, 8),
+            MinimumSize = new Size(220, 160)
         };
 
         var header = new Label
@@ -363,7 +346,6 @@ partial class DashboardControl
             ForeColor = PharmaTheme.TextDark,
             Height = 32,
             Margin = new Padding(0, 0, 0, 8),
-            Padding = new Padding(0, 0, 6, 0),
             Text = "تنبيهات المخزون والصلاحية",
             TextAlign = ContentAlignment.MiddleRight
         };
@@ -374,32 +356,12 @@ partial class DashboardControl
             BackColor = Color.Transparent,
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
-            Padding = new Padding(0, 0, 6, 0),
+            Padding = new Padding(0, 0, 4, 0),
             WrapContents = false
         };
 
-        var accent = new Panel
-        {
-            BackColor = PharmaTheme.Warning,
-            Dock = DockStyle.Fill
-        };
-
-        var inner = new TableLayoutPanel
-        {
-            ColumnCount = 2,
-            Dock = DockStyle.Fill,
-            Margin = new Padding(0),
-            Padding = new Padding(0),
-            RightToLeft = RightToLeft.Yes,
-            RowCount = 1
-        };
-        inner.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 4F));
-        inner.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        inner.Controls.Add(accent, 0, 0);
-        inner.Controls.Add(stockAlertsFlow, 1, 0);
-
+        card.Controls.Add(stockAlertsFlow);
         card.Controls.Add(header);
-        card.Controls.Add(inner);
         return card;
     }
 
@@ -410,7 +372,7 @@ partial class DashboardControl
             CornerRadius = PharmaTheme.DashboardSectionCornerRadius,
             Dock = DockStyle.Fill,
             Margin = new Padding(0),
-            MinimumSize = new Size(240, 140)
+            MinimumSize = new Size(220, 120)
         };
 
         var header = new Label
@@ -435,8 +397,8 @@ partial class DashboardControl
             WrapContents = false
         };
 
-        card.Controls.Add(header);
         card.Controls.Add(quickActionsFlow);
+        card.Controls.Add(header);
         return card;
     }
 
@@ -448,8 +410,6 @@ partial class DashboardControl
             CardValue = value,
             Dock = DockStyle.Fill,
             IconText = icon,
-            Margin = new Padding(5, 4, 5, 4),
-            MinimumSize = new Size(120, 118),
             VisualTone = tone
         };
     }
