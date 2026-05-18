@@ -37,4 +37,12 @@ internal static class PharmaTheme
     public static Font BodyFont { get; } = new("Segoe UI", 10F);
     public static Font SmallFont { get; } = new("Segoe UI", 9F);
     public static Font StatValueFont { get; } = new("Segoe UI", 20F, FontStyle.Bold);
+    public static Font LoginTitleFont { get; } = new("Segoe UI", 20F, FontStyle.Bold);
+    public static Font LoginSubtitleFont { get; } = new("Segoe UI", 9.75F);
+    public static Font LoginButtonFont { get; } = new("Segoe UI", 11F, FontStyle.Bold);
+    public static Font LoginFieldLabelFont { get; } = new("Segoe UI", 10F, FontStyle.Bold);
+
+    public const int LoginButtonHeight = 48;
+    public const int LoginCardMinWidth = 380;
+    public const int LoginCardMaxWidth = 430;
 }

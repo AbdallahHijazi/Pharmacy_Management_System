@@ -31,6 +31,8 @@ public partial class LoginForm
         FormBorderStyle = FormBorderStyle.Sizable;
         MinimumSize = new Size(880, 520);
         Name = "LoginForm";
+        RightToLeft = RightToLeft.Yes;
+        RightToLeftLayout = true;
         StartPosition = FormStartPosition.CenterScreen;
         Text = "PharmaCare — تسجيل الدخول";
 
@@ -46,8 +48,14 @@ public partial class LoginForm
             BackColor = PharmaTheme.LoginCardFill,
             ColumnCount = 1,
             Dock = DockStyle.Top,
-            Margin = new Padding(0)
+            Margin = new Padding(0),
+            RightToLeft = RightToLeft.Yes
         };
+        loginStack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        for (var row = 0; row < 10; row++)
+        {
+            loginStack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        }
 
         AddHeader();
         AddLoginControls();
@@ -75,6 +83,7 @@ public partial class LoginForm
             AutoSize = true,
             Font = PharmaTheme.SectionFont,
             ForeColor = PharmaTheme.PrimaryGreen,
+            RightToLeft = RightToLeft.Yes,
             Text = "جاري تسجيل الدخول...",
             TextAlign = ContentAlignment.MiddleCenter
         };
@@ -97,9 +106,9 @@ public partial class LoginForm
             AutoSize = true,
             BackColor = PharmaTheme.LoginCardFill,
             ColumnCount = 3,
-            Dock = DockStyle.Top,
-            Padding = new Padding(0, 0, 0, 8),
-            RowCount = 1
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 0, 0, 4),
+            RightToLeft = RightToLeft.Yes
         };
         logoRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
         logoRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -108,49 +117,29 @@ public partial class LoginForm
         var logoMark = new LogoMark
         {
             Anchor = AnchorStyles.None,
-            Margin = new Padding(0),
-            Size = new Size(64, 64)
+            Margin = new Padding(0)
         };
 
-        var leftPad = new Panel
-        {
-            BackColor = PharmaTheme.LoginCardFill,
-            Dock = DockStyle.Fill
-        };
-        var rightPad = new Panel
-        {
-            BackColor = PharmaTheme.LoginCardFill,
-            Dock = DockStyle.Fill
-        };
-
-        logoRow.Controls.Add(leftPad, 0, 0);
+        logoRow.Controls.Add(new Panel { BackColor = PharmaTheme.LoginCardFill, Dock = DockStyle.Fill }, 0, 0);
         logoRow.Controls.Add(logoMark, 1, 0);
-        logoRow.Controls.Add(rightPad, 2, 0);
+        logoRow.Controls.Add(new Panel { BackColor = PharmaTheme.LoginCardFill, Dock = DockStyle.Fill }, 2, 0);
 
         loginStack.Controls.Add(logoRow, 0, 0);
 
-        loginStack.Controls.Add(new Label
-        {
-            AutoSize = false,
-            Dock = DockStyle.Top,
-            Font = new Font("Segoe UI", 20F, FontStyle.Bold),
-            ForeColor = PharmaTheme.PrimaryGreen,
-            Height = 44,
-            Text = "مرحباً بعودتك",
-            TextAlign = ContentAlignment.MiddleCenter
-        }, 0, 1);
+        loginStack.Controls.Add(CreateRtlLabel(
+            "أهلاً بعودتك",
+            PharmaTheme.LoginTitleFont,
+            PharmaTheme.PrimaryGreen,
+            ContentAlignment.MiddleCenter,
+            bottomMargin: 4), 0, 1);
 
-        loginStack.Controls.Add(new Label
-        {
-            AutoSize = false,
-            Dock = DockStyle.Top,
-            Font = PharmaTheme.BodyFont,
-            ForeColor = PharmaTheme.MutedText,
-            Height = 26,
-            Margin = new Padding(0, 0, 0, 20),
-            Text = "Welcome back — سجّل الدخول للمتابعة",
-            TextAlign = ContentAlignment.MiddleCenter
-        }, 0, 2);
+        loginStack.Controls.Add(CreateRtlLabel(
+            "Welcome back",
+            PharmaTheme.LoginSubtitleFont,
+            PharmaTheme.MutedText,
+            ContentAlignment.MiddleCenter,
+            bottomMargin: 20,
+            useRtlReading: false), 0, 2);
     }
 
     private void AddLoginControls()
@@ -158,9 +147,9 @@ public partial class LoginForm
         loginStack.Controls.Add(FieldLabel("البريد الإلكتروني"), 0, 3);
         emailInput = new RoundedTextInput
         {
-            Dock = DockStyle.Top,
-            Height = 48,
-            Margin = new Padding(0, 6, 0, 12),
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 4, 0, 12),
+            MinimumSize = new Size(0, 48),
             PlaceholderText = "admin@pharmacy.com"
         };
         loginStack.Controls.Add(emailInput, 0, 4);
@@ -168,10 +157,10 @@ public partial class LoginForm
         loginStack.Controls.Add(FieldLabel("كلمة المرور"), 0, 5);
         passwordInput = new RoundedTextInput
         {
-            Dock = DockStyle.Top,
-            Height = 48,
+            Dock = DockStyle.Fill,
             IsPassword = true,
-            Margin = new Padding(0, 6, 0, 8),
+            Margin = new Padding(0, 4, 0, 8),
+            MinimumSize = new Size(0, 48),
             PlaceholderText = "••••••••"
         };
         loginStack.Controls.Add(passwordInput, 0, 6);
@@ -179,47 +168,72 @@ public partial class LoginForm
         showPasswordCheckBox = new CheckBox
         {
             AutoSize = true,
-            Dock = DockStyle.Top,
+            Dock = DockStyle.Fill,
             Font = PharmaTheme.SmallFont,
             ForeColor = PharmaTheme.MutedText,
-            Margin = new Padding(0, 0, 0, 8),
-            Text = "إظهار كلمة المرور"
+            Margin = new Padding(0, 0, 0, 10),
+            RightToLeft = RightToLeft.Yes,
+            Text = "إظهار كلمة المرور",
+            UseCompatibleTextRendering = true
         };
         loginStack.Controls.Add(showPasswordCheckBox, 0, 7);
 
         errorLabel = new Label
         {
-            AutoSize = false,
-            Dock = DockStyle.Top,
+            AutoSize = true,
+            Dock = DockStyle.Fill,
             Font = PharmaTheme.SmallFont,
             ForeColor = PharmaTheme.Danger,
-            Height = 40,
             Margin = new Padding(0, 0, 0, 10),
-            TextAlign = ContentAlignment.TopCenter,
+            MaximumSize = new Size(PharmaTheme.LoginCardMaxWidth, 0),
+            RightToLeft = RightToLeft.Yes,
+            TextAlign = ContentAlignment.TopRight,
+            UseCompatibleTextRendering = true,
             Visible = false
         };
         loginStack.Controls.Add(errorLabel, 0, 8);
 
         loginButton = new RoundedButton
         {
-            BorderRadius = 16,
-            Dock = DockStyle.Top,
-            Font = new Font("Segoe UI", 11F, FontStyle.Bold),
-            Height = 48,
-            Text = "تسجيل الدخول",
-            UseVisualStyleBackColor = false
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 4, 0, 0),
+            Text = "تسجيل الدخول"
         };
         loginStack.Controls.Add(loginButton, 0, 9);
     }
 
+    private static Label CreateRtlLabel(
+        string text,
+        Font font,
+        Color foreColor,
+        ContentAlignment align,
+        int bottomMargin = 0,
+        bool useRtlReading = true)
+    {
+        return new Label
+        {
+            AutoSize = true,
+            Dock = DockStyle.Fill,
+            Font = font,
+            ForeColor = foreColor,
+            Margin = new Padding(0, 0, 0, bottomMargin),
+            RightToLeft = useRtlReading ? RightToLeft.Yes : RightToLeft.No,
+            Text = text,
+            TextAlign = align,
+            UseCompatibleTextRendering = true
+        };
+    }
+
     private static Label FieldLabel(string text) => new()
     {
-        AutoSize = false,
-        Dock = DockStyle.Top,
-        Font = PharmaTheme.SectionFont,
+        AutoSize = true,
+        Dock = DockStyle.Fill,
+        Font = PharmaTheme.LoginFieldLabelFont,
         ForeColor = PharmaTheme.TextDark,
-        Height = 22,
+        Margin = new Padding(0, 0, 0, 2),
+        RightToLeft = RightToLeft.Yes,
         Text = text,
-        TextAlign = ContentAlignment.BottomCenter
+        TextAlign = ContentAlignment.MiddleRight,
+        UseCompatibleTextRendering = true
     };
 }

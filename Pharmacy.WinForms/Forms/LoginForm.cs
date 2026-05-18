@@ -62,8 +62,10 @@ public partial class LoginForm : Form
 
     private void ShowError(string message)
     {
+        errorLabel.MaximumSize = new Size(loginStack.Width, 0);
         errorLabel.Text = message;
         errorLabel.Visible = true;
+        loginStack.PerformLayout();
     }
 
     private void ClearError()

@@ -40,9 +40,13 @@ public sealed class LoginBackgroundControl : Panel
         }
 
         var horizontalMargin = Math.Max(16, ClientSize.Width / 28);
-        var maxCardWidth = Math.Max(280, Math.Min(420, ClientSize.Width - horizontalMargin * 2));
-        _hostedCard.MaximumSize = new Size(maxCardWidth, 4000);
-        _hostedCard.MinimumSize = new Size(Math.Min(280, maxCardWidth), 120);
+        var maxCardWidth = Math.Max(
+            PharmaTheme.LoginCardMinWidth,
+            Math.Min(PharmaTheme.LoginCardMaxWidth, ClientSize.Width - horizontalMargin * 2));
+        _hostedCard.MaximumSize = new Size(maxCardWidth, 8000);
+        _hostedCard.MinimumSize = new Size(
+            Math.Min(PharmaTheme.LoginCardMinWidth, maxCardWidth),
+            120);
         _hostedCard.Width = maxCardWidth;
         _hostedCard.Left = (ClientSize.Width - _hostedCard.Width) / 2;
         _hostedCard.Top = Math.Max(16, (ClientSize.Height - _hostedCard.Height) / 2);
@@ -196,6 +200,23 @@ public sealed class LoginCardPanel : Panel
         BackColor = PharmaTheme.LoginCardFill;
         Margin = new Padding(8);
         Padding = new Padding(32 + ShadowInset, 28 + ShadowInset, 32 + ShadowInset, 28 + ShadowInset);
+        RightToLeft = RightToLeft.Yes;
+    }
+
+    protected override void OnLayout(LayoutEventArgs levent)
+    {
+        base.OnLayout(levent);
+        var innerWidth = ClientSize.Width - Padding.Horizontal;
+        if (innerWidth <= 0)
+        {
+            return;
+        }
+
+        foreach (Control child in Controls)
+        {
+            child.Width = innerWidth;
+            child.Left = Padding.Left;
+        }
     }
 
     protected override void OnPaint(PaintEventArgs e)

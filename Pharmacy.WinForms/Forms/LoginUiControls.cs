@@ -8,6 +8,8 @@ namespace Pharmacy.WinForms.Forms;
 
 public sealed class RoundedTextInput : UserControl
 {
+    private const int IconColumnWidth = 44;
+    private readonly Panel iconPanel;
     private readonly TextBox textBox = new();
     private bool focused;
 
@@ -16,16 +18,37 @@ public sealed class RoundedTextInput : UserControl
         DoubleBuffered = true;
         BackColor = PharmaTheme.LoginCardFill;
         Height = 48;
-        Padding = new Padding(48, 13, 18, 8);
+        MinimumSize = new Size(200, 48);
+        Padding = new Padding(0);
+        RightToLeft = RightToLeft.No;
+
+        iconPanel = new Panel
+        {
+            BackColor = PharmaTheme.InputSurface,
+            Dock = DockStyle.Left,
+            Width = IconColumnWidth
+        };
+        iconPanel.Paint += PaintIcon;
 
         textBox.BorderStyle = BorderStyle.None;
         textBox.BackColor = PharmaTheme.InputSurface;
         textBox.ForeColor = PharmaTheme.TextDark;
-        textBox.Font = new Font("Segoe UI", 10.5F);
+        textBox.Font = PharmaTheme.BodyFont;
         textBox.Dock = DockStyle.Fill;
+        textBox.RightToLeft = RightToLeft.No;
         textBox.GotFocus += (_, _) => { focused = true; Invalidate(); };
         textBox.LostFocus += (_, _) => { focused = false; Invalidate(); };
-        Controls.Add(textBox);
+
+        var inputHost = new Panel
+        {
+            BackColor = PharmaTheme.InputSurface,
+            Dock = DockStyle.Fill,
+            Padding = new Padding(4, 0, 12, 0)
+        };
+        inputHost.Controls.Add(textBox);
+
+        Controls.Add(inputHost);
+        Controls.Add(iconPanel);
     }
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
@@ -46,7 +69,11 @@ public sealed class RoundedTextInput : UserControl
     public bool IsPassword
     {
         get => textBox.UseSystemPasswordChar;
-        set => textBox.UseSystemPasswordChar = value;
+        set
+        {
+            textBox.UseSystemPasswordChar = value;
+            iconPanel.Invalidate();
+        }
     }
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
@@ -56,9 +83,24 @@ public sealed class RoundedTextInput : UserControl
         set => textBox.ReadOnly = value;
     }
 
+    private void PaintIcon(object? sender, PaintEventArgs e)
+    {
+        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        using var iconPen = new Pen(PharmaTheme.PrimaryGreen, 1.8F);
+        if (IsPassword)
+        {
+            e.Graphics.DrawRectangle(iconPen, 14, 23, 12, 10);
+            e.Graphics.DrawArc(iconPen, 15, 14, 10, 16, 190, 160);
+        }
+        else
+        {
+            e.Graphics.DrawEllipse(iconPen, 14, 14, 12, 12);
+            e.Graphics.DrawArc(iconPen, 9, 27, 23, 14, 200, 140);
+        }
+    }
+
     protected override void OnPaint(PaintEventArgs e)
     {
-        base.OnPaint(e);
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
         var rect = new Rectangle(0, 0, Width - 1, Height - 1);
@@ -69,18 +111,6 @@ public sealed class RoundedTextInput : UserControl
             focused ? 1.8F : 1F);
         e.Graphics.FillPath(bg, path);
         e.Graphics.DrawPath(border, path);
-
-        using var iconPen = new Pen(PharmaTheme.PrimaryGreen, 1.8F);
-        if (IsPassword)
-        {
-            e.Graphics.DrawRectangle(iconPen, 18, 23, 12, 10);
-            e.Graphics.DrawArc(iconPen, 19, 14, 10, 16, 190, 160);
-        }
-        else
-        {
-            e.Graphics.DrawEllipse(iconPen, 18, 14, 12, 12);
-            e.Graphics.DrawArc(iconPen, 13, 27, 23, 14, 200, 140);
-        }
     }
 
     protected override void OnPaintBackground(PaintEventArgs pevent)
@@ -93,15 +123,23 @@ public sealed class RoundedTextInput : UserControl
 public sealed class RoundedButton : Button
 {
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public int BorderRadius { get; set; } = 18;
+    public int BorderRadius { get; set; } = 16;
 
     public RoundedButton()
     {
+        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
         FlatStyle = FlatStyle.Flat;
         FlatAppearance.BorderSize = 0;
         BackColor = PharmaTheme.PrimaryGreen;
         Cursor = Cursors.Hand;
         ForeColor = Color.White;
+        Font = PharmaTheme.LoginButtonFont;
+        TextAlign = ContentAlignment.MiddleCenter;
+        UseCompatibleTextRendering = true;
+        MinimumSize = new Size(120, PharmaTheme.LoginButtonHeight);
+        Height = PharmaTheme.LoginButtonHeight;
+        Padding = new Padding(20, 10, 20, 10);
+        RightToLeft = RightToLeft.Yes;
         MouseEnter += (_, _) => BackColor = PharmaTheme.PrimaryContainer;
         MouseLeave += (_, _) => BackColor = PharmaTheme.PrimaryGreen;
     }
@@ -109,9 +147,30 @@ public sealed class RoundedButton : Button
     protected override void OnPaint(PaintEventArgs pevent)
     {
         pevent.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-        using var path = RoundedGeometry.Create(ClientRectangle, BorderRadius);
-        Region = new Region(path);
-        base.OnPaint(pevent);
+        pevent.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+        var rect = ClientRectangle;
+        if (rect.Width <= 0 || rect.Height <= 0)
+        {
+            return;
+        }
+
+        using var path = RoundedGeometry.Create(rect, BorderRadius);
+        using var brush = new SolidBrush(BackColor);
+        pevent.Graphics.FillPath(brush, path);
+
+        var textRect = Rectangle.Inflate(rect, -Padding.Horizontal / 2, -Padding.Vertical / 2);
+        TextRenderer.DrawText(
+            pevent.Graphics,
+            Text,
+            Font,
+            textRect,
+            ForeColor,
+            TextFormatFlags.HorizontalCenter
+                | TextFormatFlags.VerticalCenter
+                | TextFormatFlags.SingleLine
+                | TextFormatFlags.WordEllipsis
+                | TextFormatFlags.RightToLeft);
     }
 }
 
@@ -141,11 +200,12 @@ internal sealed class LogoMark : Control
     {
         DoubleBuffered = true;
         BackColor = PharmaTheme.LoginCardFill;
+        MinimumSize = new Size(64, 64);
+        Size = new Size(64, 64);
     }
 
     protected override void OnPaint(PaintEventArgs e)
     {
-        base.OnPaint(e);
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
         using var cross = new SolidBrush(PharmaTheme.PrimaryGreen);
