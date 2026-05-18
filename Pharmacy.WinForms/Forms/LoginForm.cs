@@ -8,7 +8,7 @@ public partial class LoginForm : Form
 {
     private readonly AuthService _authService;
     private bool _isLoggingIn;
-    private const string DefaultLoginButtonText = "Login";
+    private const string DefaultLoginButtonText = "تسجيل الدخول";
 
     public LoginForm() : this(AppServices.AuthService)
     {
@@ -24,15 +24,6 @@ public partial class LoginForm : Form
             passwordInput.IsPassword = !showPasswordCheckBox.Checked;
 
         AcceptButton = loginButton;
-    }
-
-    protected override void OnResize(EventArgs e)
-    {
-        base.OnResize(e);
-        if (WindowState != FormWindowState.Minimized && ClientSize.Width > 0 && ClientSize.Height > 0)
-        {
-            Region = new Region(RoundedGeometry.Create(ClientRectangle, 22));
-        }
     }
 
     private async Task OnLoginClickedAsync()
@@ -89,7 +80,7 @@ public partial class LoginForm : Form
         emailInput.ReadOnly = isLoading;
         passwordInput.ReadOnly = isLoading;
         showPasswordCheckBox.Enabled = !isLoading;
-        loginButton.Text = isLoading ? "Signing in..." : DefaultLoginButtonText;
+        loginButton.Text = isLoading ? "جاري التحميل..." : DefaultLoginButtonText;
         UseWaitCursor = isLoading;
     }
 }

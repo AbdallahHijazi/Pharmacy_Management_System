@@ -1,15 +1,14 @@
 using System.Drawing;
 using System.Windows.Forms;
+using Pharmacy.WinForms.Controls;
+using Pharmacy.WinForms.Ui;
 
 namespace Pharmacy.WinForms.Forms;
 
 public partial class LoginForm
 {
-    private AmbientFormSurface ambientSurface = null!;
-    private TableLayoutPanel mainLayout = null!;
-    private Panel loginSide = null!;
-    private DnaPanel dnaSide = null!;
-    private TableLayoutPanel loginOuter = null!;
+    private LoginBackgroundControl loginBackground = null!;
+    private LoginCardPanel loginCard = null!;
     private TableLayoutPanel loginStack = null!;
     private RoundedTextInput emailInput = null!;
     private RoundedTextInput passwordInput = null!;
@@ -25,96 +24,48 @@ public partial class LoginForm
 
         AutoScaleDimensions = new SizeF(96F, 96F);
         AutoScaleMode = AutoScaleMode.Dpi;
-        BackColor = Color.White;
-        ClientSize = new Size(1180, 680);
+        BackColor = PharmaTheme.LoginGradientTop;
+        ClientSize = new Size(1180, 720);
         DoubleBuffered = true;
-        Font = new Font("Segoe UI", 10F);
+        Font = PharmaTheme.BodyFont;
         FormBorderStyle = FormBorderStyle.Sizable;
-        MinimumSize = new Size(900, 560);
+        MinimumSize = new Size(880, 520);
         Name = "LoginForm";
         StartPosition = FormStartPosition.CenterScreen;
-        Text = "Pharmacy Management System";
+        Text = "PharmaCare — تسجيل الدخول";
 
-        ambientSurface = new AmbientFormSurface();
-        Controls.Add(ambientSurface);
+        loginBackground = new LoginBackgroundControl();
+        Controls.Add(loginBackground);
 
-        mainLayout = new TableLayoutPanel
+        loginCard = new LoginCardPanel();
+
+        loginStack = new TableLayoutPanel
         {
-            BackColor = Color.White,
-            ColumnCount = 2,
-            Dock = DockStyle.Fill,
-            RowCount = 1
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            BackColor = PharmaTheme.LoginCardFill,
+            ColumnCount = 1,
+            Dock = DockStyle.Top,
+            Margin = new Padding(0)
         };
-        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-        ambientSurface.Controls.Add(mainLayout);
 
-        BuildLoginSide();
-        BuildDnaSide();
+        AddHeader();
+        AddLoginControls();
+
+        loginCard.Controls.Add(loginStack);
+        loginBackground.SetHostedCard(loginCard);
+
         BuildLoadingOverlay();
 
         ResumeLayout(false);
         PerformLayout();
     }
 
-    private void BuildLoginSide()
-    {
-        loginSide = new Panel
-        {
-            BackColor = Color.White,
-            Dock = DockStyle.Fill,
-            Padding = new Padding(48)
-        };
-        mainLayout.Controls.Add(loginSide, 0, 0);
-
-        loginOuter = new TableLayoutPanel
-        {
-            BackColor = Color.White,
-            ColumnCount = 1,
-            Dock = DockStyle.Fill,
-            RowCount = 3
-        };
-        loginOuter.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-        loginOuter.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        loginOuter.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-        loginSide.Controls.Add(loginOuter);
-
-        loginStack = new TableLayoutPanel
-        {
-            Anchor = AnchorStyles.None,
-            AutoSize = true,
-            BackColor = Color.White,
-            ColumnCount = 1,
-            Margin = new Padding(0),
-            MaximumSize = new Size(380, 0),
-            MinimumSize = new Size(330, 0),
-            RowCount = 12
-        };
-
-        loginOuter.Controls.Add(new Panel(), 0, 0);
-        loginOuter.Controls.Add(loginStack, 0, 1);
-        loginOuter.Controls.Add(new Panel(), 0, 2);
-
-        AddHeader();
-        AddLoginControls();
-    }
-
-    private void BuildDnaSide()
-    {
-        dnaSide = new DnaPanel
-        {
-            Dock = DockStyle.Fill,
-            Margin = new Padding(0)
-        };
-        mainLayout.Controls.Add(dnaSide, 1, 0);
-    }
-
     private void BuildLoadingOverlay()
     {
         loadingOverlay = new Panel
         {
-            BackColor = Color.FromArgb(140, 255, 255, 255),
+            BackColor = PharmaTheme.LoginOverlayScrim,
             Dock = DockStyle.Fill,
             Visible = false
         };
@@ -122,14 +73,14 @@ public partial class LoginForm
         loadingLabel = new Label
         {
             AutoSize = true,
-            Font = new Font("Segoe UI", 11F, FontStyle.Bold),
-            ForeColor = Color.FromArgb(9, 76, 50),
+            Font = PharmaTheme.SectionFont,
+            ForeColor = PharmaTheme.PrimaryGreen,
             Text = "جاري تسجيل الدخول...",
             TextAlign = ContentAlignment.MiddleCenter
         };
         loadingOverlay.Controls.Add(loadingLabel);
         loadingOverlay.Resize += (_, _) => CenterLoadingLabel();
-        ambientSurface.Controls.Add(loadingOverlay);
+        loginBackground.Controls.Add(loadingOverlay);
         loadingOverlay.BringToFront();
     }
 
@@ -141,22 +92,51 @@ public partial class LoginForm
 
     private void AddHeader()
     {
+        var logoRow = new TableLayoutPanel
+        {
+            AutoSize = true,
+            BackColor = PharmaTheme.LoginCardFill,
+            ColumnCount = 3,
+            Dock = DockStyle.Top,
+            Padding = new Padding(0, 0, 0, 8),
+            RowCount = 1
+        };
+        logoRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        logoRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        logoRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+
         var logoMark = new LogoMark
         {
             Anchor = AnchorStyles.None,
-            Margin = new Padding(0, 0, 0, 14),
+            Margin = new Padding(0),
             Size = new Size(64, 64)
         };
-        loginStack.Controls.Add(logoMark, 0, 0);
+
+        var leftPad = new Panel
+        {
+            BackColor = PharmaTheme.LoginCardFill,
+            Dock = DockStyle.Fill
+        };
+        var rightPad = new Panel
+        {
+            BackColor = PharmaTheme.LoginCardFill,
+            Dock = DockStyle.Fill
+        };
+
+        logoRow.Controls.Add(leftPad, 0, 0);
+        logoRow.Controls.Add(logoMark, 1, 0);
+        logoRow.Controls.Add(rightPad, 2, 0);
+
+        loginStack.Controls.Add(logoRow, 0, 0);
 
         loginStack.Controls.Add(new Label
         {
             AutoSize = false,
             Dock = DockStyle.Top,
             Font = new Font("Segoe UI", 20F, FontStyle.Bold),
-            ForeColor = Color.FromArgb(9, 76, 50),
-            Height = 52,
-            Text = "Pharmacy Management System",
+            ForeColor = PharmaTheme.PrimaryGreen,
+            Height = 44,
+            Text = "مرحباً بعودتك",
             TextAlign = ContentAlignment.MiddleCenter
         }, 0, 1);
 
@@ -164,35 +144,35 @@ public partial class LoginForm
         {
             AutoSize = false,
             Dock = DockStyle.Top,
-            Font = new Font("Segoe UI", 10F),
-            ForeColor = Color.FromArgb(102, 118, 111),
-            Height = 28,
-            Margin = new Padding(0, 0, 0, 24),
-            Text = "Sign in to manage your pharmacy.",
+            Font = PharmaTheme.BodyFont,
+            ForeColor = PharmaTheme.MutedText,
+            Height = 26,
+            Margin = new Padding(0, 0, 0, 20),
+            Text = "Welcome back — سجّل الدخول للمتابعة",
             TextAlign = ContentAlignment.MiddleCenter
         }, 0, 2);
     }
 
     private void AddLoginControls()
     {
-        loginStack.Controls.Add(FieldLabel("Email"), 0, 3);
+        loginStack.Controls.Add(FieldLabel("البريد الإلكتروني"), 0, 3);
         emailInput = new RoundedTextInput
         {
             Dock = DockStyle.Top,
             Height = 48,
-            Margin = new Padding(0, 8, 0, 14),
+            Margin = new Padding(0, 6, 0, 12),
             PlaceholderText = "admin@pharmacy.com"
         };
         loginStack.Controls.Add(emailInput, 0, 4);
 
-        loginStack.Controls.Add(FieldLabel("Password"), 0, 5);
+        loginStack.Controls.Add(FieldLabel("كلمة المرور"), 0, 5);
         passwordInput = new RoundedTextInput
         {
             Dock = DockStyle.Top,
             Height = 48,
             IsPassword = true,
-            Margin = new Padding(0, 8, 0, 8),
-            PlaceholderText = "Enter your password"
+            Margin = new Padding(0, 6, 0, 8),
+            PlaceholderText = "••••••••"
         };
         loginStack.Controls.Add(passwordInput, 0, 6);
 
@@ -200,10 +180,10 @@ public partial class LoginForm
         {
             AutoSize = true,
             Dock = DockStyle.Top,
-            Font = new Font("Segoe UI", 9F),
-            ForeColor = Color.FromArgb(68, 92, 80),
-            Margin = new Padding(0, 0, 0, 10),
-            Text = "Show password"
+            Font = PharmaTheme.SmallFont,
+            ForeColor = PharmaTheme.MutedText,
+            Margin = new Padding(0, 0, 0, 8),
+            Text = "إظهار كلمة المرور"
         };
         loginStack.Controls.Add(showPasswordCheckBox, 0, 7);
 
@@ -211,22 +191,22 @@ public partial class LoginForm
         {
             AutoSize = false,
             Dock = DockStyle.Top,
-            Font = new Font("Segoe UI", 9.25F),
-            ForeColor = Color.FromArgb(176, 42, 42),
-            Height = 44,
-            Margin = new Padding(0, 0, 0, 12),
-            TextAlign = ContentAlignment.TopLeft,
+            Font = PharmaTheme.SmallFont,
+            ForeColor = PharmaTheme.Danger,
+            Height = 40,
+            Margin = new Padding(0, 0, 0, 10),
+            TextAlign = ContentAlignment.TopCenter,
             Visible = false
         };
         loginStack.Controls.Add(errorLabel, 0, 8);
 
         loginButton = new RoundedButton
         {
-            BorderRadius = 18,
+            BorderRadius = 16,
             Dock = DockStyle.Top,
             Font = new Font("Segoe UI", 11F, FontStyle.Bold),
-            Height = 50,
-            Text = "Login",
+            Height = 48,
+            Text = "تسجيل الدخول",
             UseVisualStyleBackColor = false
         };
         loginStack.Controls.Add(loginButton, 0, 9);
@@ -236,10 +216,10 @@ public partial class LoginForm
     {
         AutoSize = false,
         Dock = DockStyle.Top,
-        Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
-        ForeColor = Color.FromArgb(34, 64, 51),
+        Font = PharmaTheme.SectionFont,
+        ForeColor = PharmaTheme.TextDark,
         Height = 22,
         Text = text,
-        TextAlign = ContentAlignment.BottomLeft
+        TextAlign = ContentAlignment.BottomCenter
     };
 }
