@@ -10,7 +10,7 @@ public sealed class SalesChartPlaceholderControl : Control
     {
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
         DoubleBuffered = true;
-        BackColor = PharmaTheme.SurfaceContainerLow;
+        BackColor = PharmaTheme.Surface;
         MinimumSize = new Size(200, 160);
         RightToLeft = RightToLeft.Yes;
     }

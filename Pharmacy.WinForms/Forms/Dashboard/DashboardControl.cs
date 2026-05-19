@@ -62,7 +62,7 @@ public sealed partial class DashboardControl : UserControl
             }
 
             var back = e.ItemIndex % 2 == 0
-                ? PharmaTheme.SurfaceContainerLowest
+                ? PharmaTheme.Surface
                 : PharmaTheme.SurfaceContainerLow;
             using var brush = new SolidBrush(back);
             e.Graphics.FillRectangle(brush, e.Bounds);
@@ -317,9 +317,9 @@ public sealed partial class DashboardControl : UserControl
     {
         public RoundedAlertPanel(DashboardStockAlert alert)
         {
-            Height = 84;
-            Margin = new Padding(0, 0, 0, 10);
-            Padding = new Padding(14, 10, 14, 10);
+            Height = 92;
+            Margin = new Padding(0, 0, 0, 12);
+            Padding = new Padding(16, 12, 16, 12);
             RightToLeft = RightToLeft.Yes;
             var fill = alert.IsExpiryAlert ? PharmaTheme.WarningSurface : PharmaTheme.SurfaceContainerLow;
             BackColor = fill;
@@ -331,7 +331,7 @@ public sealed partial class DashboardControl : UserControl
                 Dock = DockStyle.Top,
                 Font = PharmaTheme.ArabicFont(9f, FontStyle.Bold),
                 ForeColor = alert.IsExpiryAlert ? PharmaTheme.WarningStrong : PharmaTheme.PrimaryGreen,
-                Height = 18,
+                Height = 22,
                 Text = string.IsNullOrWhiteSpace(alert.AlertKind)
                     ? (alert.IsExpiryAlert ? "قريب الانتهاء" : "مخزون منخفض")
                     : alert.AlertKind,
@@ -345,7 +345,7 @@ public sealed partial class DashboardControl : UserControl
                 Dock = DockStyle.Top,
                 Font = PharmaTheme.ArabicFont(10.5f, FontStyle.Bold),
                 ForeColor = PharmaTheme.TextDark,
-                Height = 22,
+                Height = 26,
                 Text = alert.Title,
                 TextAlign = ContentAlignment.MiddleRight
             };
@@ -363,7 +363,7 @@ public sealed partial class DashboardControl : UserControl
                 Dock = DockStyle.Top,
                 Font = PharmaTheme.SmallFont,
                 ForeColor = PharmaTheme.OnSurfaceVariant,
-                Height = 20,
+                Height = 24,
                 Text = detailText,
                 TextAlign = ContentAlignment.MiddleRight
             };
@@ -376,11 +376,11 @@ public sealed partial class DashboardControl : UserControl
             {
                 var bounds = ClientRectangle;
                 bounds.Inflate(-1, -1);
-                RoundedDrawing.FillRounded(e.Graphics, bounds, 12, fill);
+                RoundedDrawing.FillRounded(e.Graphics, bounds, PharmaTheme.DashboardQuickActionRadius, fill);
                 RoundedDrawing.DrawRoundedBorder(
                     e.Graphics,
                     bounds,
-                    12,
+                    PharmaTheme.DashboardQuickActionRadius,
                     alert.IsExpiryAlert ? Color.FromArgb(70, PharmaTheme.Warning) : PharmaTheme.BorderSoft);
             };
         }

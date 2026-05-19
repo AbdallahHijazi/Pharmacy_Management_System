@@ -10,11 +10,16 @@ public sealed class PharmaCardPanel : Panel
 
     public PharmaCardPanel()
     {
-        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+        SetStyle(
+            ControlStyles.AllPaintingInWmPaint
+                | ControlStyles.OptimizedDoubleBuffer
+                | ControlStyles.ResizeRedraw
+                | ControlStyles.UserPaint,
+            true);
         DoubleBuffered = true;
-        BackColor = PharmaTheme.SurfaceContainerLowest;
+        BackColor = PharmaTheme.Surface;
         BorderStyle = BorderStyle.None;
-        Padding = new Padding(20);
+        Padding = new Padding(22, 20, 22, 20);
     }
 
     [Browsable(false)]
@@ -24,25 +29,50 @@ public sealed class PharmaCardPanel : Panel
         get => _cornerRadius;
         set
         {
-            _cornerRadius = Math.Max(4, value);
+            _cornerRadius = Math.Max(8, value);
+            ApplyRoundedRegion();
             Invalidate();
         }
+    }
+
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        ApplyRoundedRegion();
+    }
+
+    protected override void OnResize(EventArgs e)
+    {
+        base.OnResize(e);
+        ApplyRoundedRegion();
+    }
+
+    protected override void OnPaintBackground(PaintEventArgs e)
+    {
+        var parentBack = Parent?.BackColor ?? PharmaTheme.Background;
+        using var outer = new SolidBrush(parentBack);
+        e.Graphics.FillRectangle(outer, ClientRectangle);
     }
 
     protected override void OnPaint(PaintEventArgs e)
     {
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
         var bounds = ClientRectangle;
         bounds.Inflate(-2, -2);
         if (bounds.Width <= 2 || bounds.Height <= 2)
         {
-            base.OnPaint(e);
             return;
         }
 
         RoundedDrawing.DrawSoftShadow(g, bounds, _cornerRadius, PharmaTheme.DashboardCardShadow);
         RoundedDrawing.FillRounded(g, bounds, _cornerRadius, BackColor);
         RoundedDrawing.DrawRoundedBorder(g, bounds, _cornerRadius, PharmaTheme.BorderSoft);
+    }
+
+    private void ApplyRoundedRegion()
+    {
+        RoundedDrawing.ApplyRoundedRegion(this, _cornerRadius);
     }
 }

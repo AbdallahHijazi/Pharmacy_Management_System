@@ -16,9 +16,9 @@ public sealed class GradientRoundedButton : Control
         Cursor = Cursors.Hand;
         Font = PharmaTheme.ArabicFont(10.5f, FontStyle.Bold);
         ForeColor = Color.White;
-        Height = 44;
-        MinimumSize = new Size(120, 40);
-        Padding = new Padding(16, 0, 16, 0);
+        Height = 46;
+        MinimumSize = new Size(120, 42);
+        Padding = new Padding(18, 4, 18, 4);
         RightToLeft = RightToLeft.Yes;
     }
 
@@ -93,8 +93,8 @@ public sealed class GradientRoundedButton : Control
             g,
             Text,
             Font,
-            textRect,
+            TextLayoutHelper.DeflateVertical(textRect, 2),
             ForeColor,
-            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
     }
 }

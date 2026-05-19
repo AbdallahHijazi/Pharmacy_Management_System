@@ -1,4 +1,5 @@
 using System.Drawing.Drawing2D;
+using System.Windows.Forms;
 
 namespace Pharmacy.WinForms.Ui;
 
@@ -45,5 +46,26 @@ internal static class RoundedDrawing
         using var path = CreateRoundedRect(bounds, radius);
         using var pen = new Pen(border, width);
         g.DrawPath(pen, path);
+    }
+
+    public static void ApplyRoundedRegion(Control control, int radius)
+    {
+        if (control.IsDisposed)
+        {
+            return;
+        }
+
+        var bounds = control.ClientRectangle;
+        bounds.Inflate(-1, -1);
+        if (bounds.Width <= 2 || bounds.Height <= 2)
+        {
+            control.Region = null;
+            return;
+        }
+
+        using var path = CreateRoundedRect(bounds, radius);
+        var previous = control.Region;
+        control.Region = new Region(path);
+        previous?.Dispose();
     }
 }

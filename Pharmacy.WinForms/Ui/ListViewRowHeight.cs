@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace Pharmacy.WinForms.Ui;
 
@@ -7,8 +8,8 @@ namespace Pharmacy.WinForms.Ui;
 /// </summary>
 internal static class ListViewRowHeight
 {
-    public const int DashboardSalesRowHeight = 44;
-    private const int SpacerWidth = 8;
+    public const int DashboardSalesRowHeight = 46;
+    private const int SpacerWidth = 16;
 
     public static void Apply(ListView listView, int height = DashboardSalesRowHeight)
     {
@@ -19,6 +20,7 @@ internal static class ListViewRowHeight
 
         if (height <= 0)
         {
+            listView.SmallImageList?.Dispose();
             listView.SmallImageList = null;
             return;
         }
@@ -28,18 +30,26 @@ internal static class ListViewRowHeight
         var imageList = new ImageList
         {
             ColorDepth = ColorDepth.Depth32Bit,
-            ImageSize = new Size(SpacerWidth, height)
+            ImageSize = new Size(SpacerWidth, height),
+            TransparentColor = Color.FromArgb(1, 2, 3)
         };
 
-        using var source = CreateSpacerBitmap(SpacerWidth, height);
+        var source = CreateSpacerBitmap(SpacerWidth, height);
         if (source is null)
         {
             imageList.Dispose();
             return;
         }
 
-        using var ownedCopy = new Bitmap(source);
-        imageList.Images.Add("row-height", ownedCopy);
+        try
+        {
+            imageList.Images.Add("row-height", source);
+        }
+        finally
+        {
+            source.Dispose();
+        }
+
         listView.SmallImageList = imageList;
     }
 
@@ -50,9 +60,9 @@ internal static class ListViewRowHeight
             return null;
         }
 
-        var bitmap = new Bitmap(width, height);
+        var bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
         using var graphics = Graphics.FromImage(bitmap);
-        graphics.Clear(Color.White);
+        graphics.Clear(Color.FromArgb(255, 255, 255, 255));
         return bitmap;
     }
 }

@@ -23,12 +23,24 @@ public sealed class StatCardControl : Control
     {
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
         DoubleBuffered = true;
-        MinimumSize = new Size(150, 124);
-        Height = 124;
+        MinimumSize = new Size(150, 132);
+        Height = 136;
         Margin = new Padding(8, 6, 8, 6);
-        Padding = new Padding(18, 16, 18, 16);
+        Padding = new Padding(20, 18, 20, 18);
         RightToLeft = RightToLeft.Yes;
         BackColor = PharmaTheme.Background;
+    }
+
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        RoundedDrawing.ApplyRoundedRegion(this, PharmaTheme.DashboardStatCornerRadius);
+    }
+
+    protected override void OnResize(EventArgs e)
+    {
+        base.OnResize(e);
+        RoundedDrawing.ApplyRoundedRegion(this, PharmaTheme.DashboardStatCornerRadius);
     }
 
     protected override void OnPaintBackground(PaintEventArgs pevent)
@@ -106,7 +118,7 @@ public sealed class StatCardControl : Control
         var card = ClientRectangle;
         card.Inflate(-2, -2);
         RoundedDrawing.DrawSoftShadow(g, card, PharmaTheme.DashboardStatCornerRadius, PharmaTheme.DashboardCardShadow);
-        RoundedDrawing.FillRounded(g, card, PharmaTheme.DashboardStatCornerRadius, PharmaTheme.SurfaceContainerLowest);
+        RoundedDrawing.FillRounded(g, card, PharmaTheme.DashboardStatCornerRadius, PharmaTheme.Surface);
 
         if (_tone == StatCardVisualTone.Warning)
         {
@@ -128,8 +140,8 @@ public sealed class StatCardControl : Control
             _ => (PharmaTheme.SurfaceContainerLow, PharmaTheme.PrimaryGreen)
         };
 
-        var iconRect = new Rectangle(card.Right - 48, card.Y + 14, 40, 40);
-        RoundedDrawing.FillRounded(g, iconRect, 10, iconBack);
+        var iconRect = new Rectangle(card.Right - 52, card.Y + 16, 42, 42);
+        RoundedDrawing.FillRounded(g, iconRect, 12, iconBack);
         TextRenderer.DrawText(
             g,
             _iconGlyph,
@@ -138,40 +150,47 @@ public sealed class StatCardControl : Control
             iconFore,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
-        var textW = card.Width - Padding.Horizontal - 52;
-        var titleRect = new Rectangle(card.X + Padding.Left, card.Y + 14, textW, 22);
+        var textW = card.Width - Padding.Horizontal - 56;
+        var titleHeight = TextLayoutHelper.LineHeight(PharmaTheme.StatTitleFont, 6);
+        var valueHeight = TextLayoutHelper.LineHeight(PharmaTheme.StatValueFont, 10);
+
+        var titleRect = TextLayoutHelper.DeflateVertical(
+            new Rectangle(card.X + Padding.Left, card.Y + 16, textW, titleHeight),
+            2);
         TextRenderer.DrawText(
             g,
             _title,
             PharmaTheme.StatTitleFont,
             titleRect,
             PharmaTheme.OnSurfaceVariant,
-            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
 
         var valueColor = _tone == StatCardVisualTone.Danger ? PharmaTheme.Danger
             : _tone == StatCardVisualTone.Warning ? PharmaTheme.WarningStrong
             : PharmaTheme.TextDark;
-        var valueRect = new Rectangle(card.X + Padding.Left, titleRect.Bottom + 4, textW, 36);
+        var valueRect = TextLayoutHelper.DeflateVertical(
+            new Rectangle(card.X + Padding.Left, titleRect.Bottom + 6, textW, valueHeight),
+            2);
         TextRenderer.DrawText(
             g,
             _value,
             PharmaTheme.StatValueFont,
             valueRect,
             valueColor,
-            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
 
         if (!string.IsNullOrWhiteSpace(_badge))
         {
             var badgeSize = TextRenderer.MeasureText(_badge, PharmaTheme.StatBadgeFont);
-            var badgeRect = new Rectangle(card.Right - badgeSize.Width - 20, card.Bottom - 30, badgeSize.Width + 14, 22);
-            RoundedDrawing.FillRounded(g, badgeRect, 11, Color.FromArgb(28, PharmaTheme.Success));
+            var badgeRect = new Rectangle(card.Right - badgeSize.Width - 22, card.Bottom - 32, badgeSize.Width + 14, 24);
+            RoundedDrawing.FillRounded(g, badgeRect, 12, Color.FromArgb(28, PharmaTheme.Success));
             TextRenderer.DrawText(
                 g,
                 _badge,
                 PharmaTheme.StatBadgeFont,
-                badgeRect,
+                TextLayoutHelper.DeflateVertical(badgeRect, 2),
                 PharmaTheme.Success,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }
     }
 }

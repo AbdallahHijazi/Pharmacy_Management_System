@@ -39,12 +39,13 @@ internal static class PharmaTheme
     public static readonly Color DashboardCardShadow = Color.FromArgb(10, 7, 100, 67);
     public static readonly Color PrimaryFixed = Color.FromArgb(163, 243, 200);
 
-    public const int DashboardCardCornerRadius = 18;
-    public const int DashboardStatCornerRadius = 18;
-    public const int DashboardSectionCornerRadius = 18;
+    public const int DashboardCardCornerRadius = 20;
+    public const int DashboardStatCornerRadius = 20;
+    public const int DashboardSectionCornerRadius = 22;
     public const int DashboardButtonCornerRadius = 14;
-    public const int DashboardSearchCornerRadius = 16;
-    public const int DashboardSidebarItemRadius = 12;
+    public const int DashboardSearchCornerRadius = 18;
+    public const int DashboardSidebarItemRadius = 14;
+    public const int DashboardQuickActionRadius = 14;
 
     private static readonly string[] ArabicFontCandidates = ["Cairo", "Segoe UI", "Tahoma"];
     private static readonly string[] NumberFontCandidates = ["Inter", "Segoe UI", "Tahoma"];
@@ -60,11 +61,15 @@ internal static class PharmaTheme
     public static Font TitleFont => ArabicFont(14f, FontStyle.Bold);
     public static Font DashboardHeadlineFont => ArabicFont(22f, FontStyle.Bold);
     public static Font DashboardSubtitleFont => ArabicFont(10.5f);
+    public static Font SidebarBrandFont => ArabicFont(20f, FontStyle.Bold);
+    public static Font SidebarSubtitleFont => ArabicFont(10f);
+    public static Font SidebarNavFont => ArabicFont(11.5f, FontStyle.Bold);
+    public static Font SidebarLogoutFont => ArabicFont(11.5f, FontStyle.Bold);
     public static Font SectionFont => ArabicFont(12f, FontStyle.Bold);
     public static Font BodyFont => ArabicFont(10.25f);
     public static Font SmallFont => ArabicFont(9.25f);
     public static Font StatTitleFont => ArabicFont(10f, FontStyle.Bold);
-    public static Font StatValueFont => NumberFont(24f, FontStyle.Bold);
+    public static Font StatValueFont => NumberFont(22f, FontStyle.Bold);
     public static Font StatBadgeFont => NumberFont(9f, FontStyle.Bold);
     public static Font TableHeaderFont => ArabicFont(9.5f, FontStyle.Bold);
     public static Font TableCellFont => ArabicFont(10f);

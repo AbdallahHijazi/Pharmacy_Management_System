@@ -51,7 +51,7 @@ partial class DashboardControl
         {
             ColumnCount = 2,
             Dock = DockStyle.Top,
-            Height = 82,
+            Height = 90,
             Margin = new Padding(0, 0, 0, 12),
             Padding = new Padding(0, 4, 0, 4),
             RightToLeft = RightToLeft.Yes,
@@ -68,9 +68,10 @@ partial class DashboardControl
             Dock = DockStyle.Top,
             Font = PharmaTheme.DashboardHeadlineFont,
             ForeColor = PharmaTheme.PrimaryGreen,
-            Height = 38,
+            Height = 42,
             Text = "نظرة عامة على الصيدلية",
-            TextAlign = ContentAlignment.MiddleRight
+            TextAlign = ContentAlignment.MiddleRight,
+            UseCompatibleTextRendering = true
         };
 
         subtitleLabel = new Label
@@ -79,9 +80,10 @@ partial class DashboardControl
             Dock = DockStyle.Top,
             Font = PharmaTheme.DashboardSubtitleFont,
             ForeColor = PharmaTheme.OnSurfaceVariant,
-            Height = 28,
+            Height = 30,
             Text = "مرحباً بك مجدداً، إليك ملخص أداء اليوم.",
-            TextAlign = ContentAlignment.MiddleRight
+            TextAlign = ContentAlignment.MiddleRight,
+            UseCompatibleTextRendering = true
         };
 
         titleStack.Controls.Add(subtitleLabel);
@@ -117,7 +119,7 @@ partial class DashboardControl
             BackColor = PharmaTheme.Background,
             ColumnCount = 3,
             Dock = DockStyle.Top,
-            Height = 268,
+            Height = 292,
             Margin = new Padding(0, 0, 0, 16),
             RightToLeft = RightToLeft.Yes,
             RowCount = 2
@@ -125,8 +127,8 @@ partial class DashboardControl
         statsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
         statsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
         statsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34F));
-        statsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 128F));
-        statsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 128F));
+        statsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 140F));
+        statsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 140F));
 
         todaySalesCard = CreateStatCard("إجمالي مبيعات اليوم", "0", SegoeMdl2Icons.Payments);
         todayInvoicesCard = CreateStatCard("عدد الفواتير اليوم", "0", SegoeMdl2Icons.Receipt);
@@ -167,10 +169,11 @@ partial class DashboardControl
             Dock = DockStyle.Top,
             Font = PharmaTheme.SectionFont,
             ForeColor = PharmaTheme.TextDark,
-            Height = 32,
-            Margin = new Padding(0, 0, 0, 8),
+            Height = 36,
+            Margin = new Padding(0, 0, 0, 10),
             Text = "المبيعات خلال 30 يوم",
-            TextAlign = ContentAlignment.MiddleRight
+            TextAlign = ContentAlignment.MiddleRight,
+            UseCompatibleTextRendering = true
         };
 
         salesChartPlaceholder = new SalesChartPlaceholderControl { Dock = DockStyle.Fill };
@@ -221,7 +224,7 @@ partial class DashboardControl
         };
         rootTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         rootTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        rootTable.RowStyles.Add(new RowStyle(SizeType.Absolute, 268F));
+        rootTable.RowStyles.Add(new RowStyle(SizeType.Absolute, 292F));
         rootTable.RowStyles.Add(new RowStyle(SizeType.Absolute, 228F));
         rootTable.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
@@ -268,8 +271,8 @@ partial class DashboardControl
         {
             ColumnCount = 2,
             Dock = DockStyle.Top,
-            Height = 36,
-            Margin = new Padding(0, 0, 0, 10),
+            Height = 40,
+            Margin = new Padding(0, 0, 0, 12),
             RightToLeft = RightToLeft.Yes,
             RowCount = 1
         };
@@ -283,7 +286,8 @@ partial class DashboardControl
             Font = PharmaTheme.SectionFont,
             ForeColor = PharmaTheme.TextDark,
             Text = "أحدث الفواتير",
-            TextAlign = ContentAlignment.MiddleRight
+            TextAlign = ContentAlignment.MiddleRight,
+            UseCompatibleTextRendering = true
         };
 
         var viewAll = new LinkLabel
@@ -307,7 +311,7 @@ partial class DashboardControl
 
         latestSalesList = new ListView
         {
-            BackColor = PharmaTheme.SurfaceContainerLowest,
+            BackColor = PharmaTheme.Surface,
             BorderStyle = BorderStyle.None,
             Dock = DockStyle.Fill,
             Font = PharmaTheme.TableCellFont,
@@ -363,16 +367,17 @@ partial class DashboardControl
             Dock = DockStyle.Top,
             Font = PharmaTheme.SectionFont,
             ForeColor = PharmaTheme.TextDark,
-            Height = 32,
-            Margin = new Padding(0, 0, 0, 10),
+            Height = 36,
+            Margin = new Padding(0, 0, 0, 12),
             Text = "تنبيهات المخزون والصلاحية",
-            TextAlign = ContentAlignment.MiddleRight
+            TextAlign = ContentAlignment.MiddleRight,
+            UseCompatibleTextRendering = true
         };
 
         stockAlertsFlow = new FlowLayoutPanel
         {
             AutoScroll = true,
-            BackColor = PharmaTheme.SurfaceContainerLowest,
+            BackColor = PharmaTheme.Surface,
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false
@@ -399,16 +404,17 @@ partial class DashboardControl
             Dock = DockStyle.Top,
             Font = PharmaTheme.SectionFont,
             ForeColor = PharmaTheme.TextDark,
-            Height = 32,
-            Margin = new Padding(0, 0, 0, 10),
+            Height = 36,
+            Margin = new Padding(0, 0, 0, 12),
             Text = "اختصارات سريعة",
-            TextAlign = ContentAlignment.MiddleRight
+            TextAlign = ContentAlignment.MiddleRight,
+            UseCompatibleTextRendering = true
         };
 
         quickActionsFlow = new FlowLayoutPanel
         {
             AutoScroll = true,
-            BackColor = PharmaTheme.SurfaceContainerLowest,
+            BackColor = PharmaTheme.Surface,
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false

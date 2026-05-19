@@ -38,20 +38,22 @@ public sealed class SidebarControl : Panel
         var title = new Label
         {
             AutoSize = false,
-            Font = PharmaTheme.ArabicFont(16f, FontStyle.Bold),
+            Font = PharmaTheme.SidebarBrandFont,
             ForeColor = PharmaTheme.PrimaryGreen,
-            Size = new Size(220, 28),
+            Size = new Size(220, 32),
             Text = "PharmaCare",
-            TextAlign = ContentAlignment.MiddleCenter
+            TextAlign = ContentAlignment.MiddleCenter,
+            UseCompatibleTextRendering = true
         };
         var subtitle = new Label
         {
             AutoSize = false,
-            Font = PharmaTheme.ArabicFont(9.5f),
+            Font = PharmaTheme.SidebarSubtitleFont,
             ForeColor = PharmaTheme.OnSurfaceVariant,
-            Size = new Size(220, 22),
+            Size = new Size(220, 24),
             Text = "صيدلية الشفاء",
-            TextAlign = ContentAlignment.MiddleCenter
+            TextAlign = ContentAlignment.MiddleCenter,
+            UseCompatibleTextRendering = true
         };
         brandPanel.Controls.Add(badge);
         brandPanel.Controls.Add(title);
@@ -101,7 +103,7 @@ public sealed class SidebarControl : Panel
         };
         var logout = CreateButton("تسجيل الخروج", SegoeMdl2Icons.SignOut, isLogout: true);
         logout.Dock = DockStyle.Top;
-        logout.Height = 46;
+        logout.Height = 48;
         logout.Click += (_, _) => LogoutRequested?.Invoke(this, EventArgs.Empty);
         logoutRow.Controls.Add(logout);
 
@@ -160,9 +162,9 @@ public sealed class SidebarControl : Panel
         {
             ButtonText = text,
             IconGlyph = iconGlyph,
-            Height = 46,
+            Height = 48,
             IsLogoutStyle = isLogout,
-            Margin = new Padding(0, 0, 0, 8)
+            Margin = new Padding(0, 0, 0, 10)
         };
     }
 
@@ -251,7 +253,7 @@ public sealed class SidebarControl : Panel
             Color iconColor;
             if (_isActive)
             {
-                back = PharmaTheme.PrimaryContainer;
+                back = PharmaTheme.PrimaryGreen;
                 textColor = Color.White;
                 iconColor = Color.White;
             }
@@ -270,23 +272,26 @@ public sealed class SidebarControl : Panel
 
             RoundedDrawing.FillRounded(g, bounds, PharmaTheme.DashboardSidebarItemRadius, back);
 
-            var iconRect = new Rectangle(bounds.Right - 42, bounds.Y + (bounds.Height - 28) / 2, 28, 28);
+            var iconRect = new Rectangle(bounds.Right - 46, bounds.Y + (bounds.Height - 30) / 2, 30, 30);
             TextRenderer.DrawText(
                 g,
                 IconGlyph,
-                PharmaTheme.IconFont(14f),
+                PharmaTheme.IconFont(15f),
                 iconRect,
                 iconColor,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
-            var textRect = new Rectangle(bounds.X + 12, bounds.Y, bounds.Width - 54, bounds.Height);
+            var navFont = IsLogoutStyle ? PharmaTheme.SidebarLogoutFont : PharmaTheme.SidebarNavFont;
+            var textRect = TextLayoutHelper.DeflateVertical(
+                new Rectangle(bounds.X + 14, bounds.Y, bounds.Width - 60, bounds.Height),
+                3);
             TextRenderer.DrawText(
                 g,
                 ButtonText,
-                PharmaTheme.ArabicFont(10.5f, _isActive ? FontStyle.Bold : FontStyle.Regular),
+                navFont,
                 textRect,
                 textColor,
-                TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
         }
     }
 }

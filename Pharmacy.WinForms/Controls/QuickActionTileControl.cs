@@ -15,12 +15,12 @@ public sealed class QuickActionTileControl : Control
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
         DoubleBuffered = true;
         Cursor = Cursors.Hand;
-        Font = PharmaTheme.BodyFont;
+        Font = PharmaTheme.ArabicFont(10.5f, FontStyle.Bold);
         ForeColor = PharmaTheme.TextDark;
-        Height = 58;
-        Margin = new Padding(0, 0, 0, 10);
+        Height = 64;
+        Margin = new Padding(0, 0, 0, 12);
         RightToLeft = RightToLeft.Yes;
-        BackColor = PharmaTheme.SurfaceContainerLowest;
+        BackColor = PharmaTheme.Surface;
     }
 
     [Browsable(false)]
@@ -62,8 +62,8 @@ public sealed class QuickActionTileControl : Control
         var bounds = ClientRectangle;
         bounds.Inflate(-1, -1);
         var fill = _isHover ? PharmaTheme.SurfaceContainer : PharmaTheme.SurfaceContainerLow;
-        RoundedDrawing.FillRounded(g, bounds, 12, fill);
-        RoundedDrawing.DrawRoundedBorder(g, bounds, 12, PharmaTheme.BorderSoft);
+        RoundedDrawing.FillRounded(g, bounds, PharmaTheme.DashboardQuickActionRadius, fill);
+        RoundedDrawing.DrawRoundedBorder(g, bounds, PharmaTheme.DashboardQuickActionRadius, PharmaTheme.BorderSoft);
 
         var iconRect = new Rectangle(bounds.Right - 46, bounds.Y + (bounds.Height - 32) / 2, 32, 32);
         RoundedDrawing.FillRounded(g, iconRect, 10, PharmaTheme.SurfaceContainerHighest);
@@ -75,13 +75,15 @@ public sealed class QuickActionTileControl : Control
             PharmaTheme.PrimaryGreen,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
-        var textRect = new Rectangle(bounds.X + 12, bounds.Y + 8, bounds.Width - 58, bounds.Height - 16);
+        var textRect = TextLayoutHelper.DeflateVertical(
+            new Rectangle(bounds.X + 14, bounds.Y + 6, bounds.Width - 62, bounds.Height - 12),
+            4);
         TextRenderer.DrawText(
             g,
             Title + "\n" + Description,
             Font,
             textRect,
             ForeColor,
-            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak);
+            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding);
     }
 }

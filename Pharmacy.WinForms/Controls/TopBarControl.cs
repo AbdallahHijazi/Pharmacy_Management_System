@@ -30,13 +30,17 @@ public sealed class TopBarControl : Panel
         _searchShell = new Panel
         {
             BackColor = PharmaTheme.SurfaceContainerHighest,
-            Height = 48
+            Height = 50
         };
         _searchShell.Paint += (_, e) =>
         {
-            RoundedDrawing.FillRounded(e.Graphics, _searchShell.ClientRectangle, PharmaTheme.DashboardSearchCornerRadius, PharmaTheme.SurfaceContainerHighest);
-            RoundedDrawing.DrawRoundedBorder(e.Graphics, _searchShell.ClientRectangle, PharmaTheme.DashboardSearchCornerRadius, Color.FromArgb(40, PharmaTheme.OutlineVariant));
+            var shell = _searchShell.ClientRectangle;
+            shell.Inflate(-1, -1);
+            RoundedDrawing.FillRounded(e.Graphics, shell, PharmaTheme.DashboardSearchCornerRadius, PharmaTheme.SurfaceContainerHighest);
+            RoundedDrawing.DrawRoundedBorder(e.Graphics, shell, PharmaTheme.DashboardSearchCornerRadius, Color.FromArgb(40, PharmaTheme.OutlineVariant));
         };
+        _searchShell.HandleCreated += (_, _) => RoundedDrawing.ApplyRoundedRegion(_searchShell, PharmaTheme.DashboardSearchCornerRadius);
+        _searchShell.Resize += (_, _) => RoundedDrawing.ApplyRoundedRegion(_searchShell, PharmaTheme.DashboardSearchCornerRadius);
 
         _searchIconLabel = new Label
         {
@@ -44,7 +48,7 @@ public sealed class TopBarControl : Panel
             BackColor = PharmaTheme.SurfaceContainerHighest,
             Font = PharmaTheme.IconFont(14f),
             ForeColor = PharmaTheme.OnSurfaceVariant,
-            Size = new Size(36, 48),
+            Size = new Size(40, 50),
             Text = SegoeMdl2Icons.Search,
             TextAlign = ContentAlignment.MiddleCenter
         };
@@ -56,10 +60,10 @@ public sealed class TopBarControl : Panel
             BorderStyle = BorderStyle.None,
             Font = PharmaTheme.BodyFont,
             ForeColor = PharmaTheme.TextDark,
-            Location = new Point(8, 12),
+            Location = new Point(8, 13),
             PlaceholderText = "ابحث عن دواء، مريض، أو فاتورة...",
             RightToLeft = RightToLeft.Yes,
-            Size = new Size(280, 26)
+            Size = new Size(280, 28)
         };
         _searchShell.Controls.Add(_searchBox);
         _searchShell.Controls.Add(_searchIconLabel);
@@ -103,8 +107,9 @@ public sealed class TopBarControl : Panel
             Font = PharmaTheme.ArabicFont(10.5f, FontStyle.Bold),
             ForeColor = PharmaTheme.TextDark,
             Margin = new Padding(6, 2, 0, 0),
-            Size = new Size(160, 22),
-            TextAlign = ContentAlignment.MiddleRight
+            Size = new Size(160, 26),
+            TextAlign = ContentAlignment.MiddleRight,
+            UseCompatibleTextRendering = true
         };
 
         _roleLabel = new Label
@@ -113,8 +118,9 @@ public sealed class TopBarControl : Panel
             Font = PharmaTheme.SmallFont,
             ForeColor = PharmaTheme.MutedText,
             Margin = new Padding(6, 0, 0, 0),
-            Size = new Size(160, 18),
-            TextAlign = ContentAlignment.MiddleRight
+            Size = new Size(160, 22),
+            TextAlign = ContentAlignment.MiddleRight,
+            UseCompatibleTextRendering = true
         };
 
         var userStack = new FlowLayoutPanel
@@ -244,7 +250,7 @@ public sealed class TopBarControl : Panel
             var bounds = ClientRectangle;
             bounds.Inflate(-2, -2);
             var fill = _isHover ? Color.FromArgb(36, PharmaTheme.PrimaryContainer) : Color.FromArgb(18, PharmaTheme.PrimaryContainer);
-            RoundedDrawing.FillRounded(g, bounds, bounds.Height / 2, fill);
+            RoundedDrawing.FillRounded(g, bounds, PharmaTheme.DashboardButtonCornerRadius, fill);
             TextRenderer.DrawText(
                 g,
                 _glyph,
