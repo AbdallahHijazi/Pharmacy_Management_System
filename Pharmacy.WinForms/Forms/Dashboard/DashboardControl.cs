@@ -1,3 +1,4 @@
+using System.Drawing;
 using Pharmacy.WinForms.Controls;
 using Pharmacy.WinForms.Models;
 using Pharmacy.WinForms.Services;
@@ -21,6 +22,7 @@ public sealed partial class DashboardControl : UserControl
         _dashboardService = dashboardService;
         InitializeComponent();
         newInvoiceButton.Click += (_, _) => QuickActionRequested?.Invoke(this, "فاتورة جديدة");
+        WireSalesListDrawing();
         BuildQuickActions();
         loadingOverlay.Resize += (_, _) => CenterLoadingLabel();
         SizeChanged += (_, _) => OnChromeSizeChanged();
@@ -28,6 +30,98 @@ public sealed partial class DashboardControl : UserControl
         quickActionsFlow.Resize += (_, _) => LayoutQuickActionWidths();
         latestSalesList.Resize += (_, _) => ResizeLatestSalesColumns();
         OnChromeSizeChanged();
+    }
+
+    private void WireSalesListDrawing()
+    {
+        latestSalesList.DrawColumnHeader += (_, e) =>
+        {
+            if (e.ColumnIndex < 0)
+            {
+                return;
+            }
+
+            e.DrawBackground();
+            var headerText = latestSalesList.Columns[e.ColumnIndex].Text;
+            TextRenderer.DrawText(
+                e.Graphics,
+                headerText,
+                PharmaTheme.TableHeaderFont,
+                e.Bounds,
+                PharmaTheme.MutedText,
+                TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+        };
+
+        latestSalesList.DrawItem += (_, e) =>
+        {
+            e.DrawDefault = false;
+            if (e.ItemIndex < 0)
+            {
+                return;
+            }
+
+            var back = e.ItemIndex % 2 == 0
+                ? PharmaTheme.SurfaceContainerLowest
+                : PharmaTheme.SurfaceContainerLow;
+            using var brush = new SolidBrush(back);
+            e.Graphics.FillRectangle(brush, e.Bounds);
+        };
+
+        latestSalesList.DrawSubItem += (_, e) =>
+        {
+            if (e.ItemIndex < 0)
+            {
+                return;
+            }
+
+            e.DrawDefault = false;
+            if (e.ColumnIndex == 4)
+            {
+                DrawStatusBadge(e);
+                return;
+            }
+
+            var font = e.ColumnIndex == 2 ? PharmaTheme.TableAmountFont : PharmaTheme.TableCellFont;
+            var color = e.ColumnIndex == 2 ? PharmaTheme.PrimaryGreen : PharmaTheme.TextDark;
+            TextRenderer.DrawText(
+                e.Graphics,
+                e.SubItem?.Text ?? string.Empty,
+                font,
+                Rectangle.Inflate(e.Bounds, -8, 0),
+                color,
+                TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+        };
+    }
+
+    private static void DrawStatusBadge(DrawListViewSubItemEventArgs e)
+    {
+        var raw = e.Item?.Tag as string;
+        var localized = e.SubItem?.Text ?? "—";
+        var kind = StatusBadgeControl.FromStatus(raw ?? localized);
+        var (back, fore) = kind switch
+        {
+            InvoiceStatusBadgeKind.Completed => (PharmaTheme.PrimaryFixed, PharmaTheme.PrimaryGreen),
+            InvoiceStatusBadgeKind.Returned => (PharmaTheme.ErrorContainer, PharmaTheme.Danger),
+            InvoiceStatusBadgeKind.Pending => (PharmaTheme.WarningSurface, PharmaTheme.WarningStrong),
+            _ => (PharmaTheme.SurfaceContainerLow, PharmaTheme.OnSurfaceVariant)
+        };
+
+        var textSize = TextRenderer.MeasureText(localized, PharmaTheme.ArabicFont(9f, FontStyle.Bold));
+        var badgeW = Math.Min(e.Bounds.Width - 8, textSize.Width + 16);
+        var badgeH = 22;
+        var badgeRect = new Rectangle(
+            e.Bounds.Right - badgeW - 6,
+            e.Bounds.Y + (e.Bounds.Height - badgeH) / 2,
+            badgeW,
+            badgeH);
+        RoundedDrawing.FillRounded(e.Graphics, badgeRect, badgeH / 2, back);
+        TextRenderer.DrawText(
+            e.Graphics,
+            localized,
+            PharmaTheme.ArabicFont(9f, FontStyle.Bold),
+            badgeRect,
+            fore,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
     }
 
     protected override void OnLoad(EventArgs e)
@@ -79,16 +173,16 @@ public sealed partial class DashboardControl : UserControl
         }
 
         var inner = Math.Max(80, latestSalesList.ClientSize.Width - SystemInformation.VerticalScrollBarWidth - 4);
-        latestSalesList.Columns[0].Width = Math.Max(72, (int)(inner * 0.18));
-        latestSalesList.Columns[1].Width = Math.Max(88, (int)(inner * 0.28));
-        latestSalesList.Columns[2].Width = Math.Max(72, (int)(inner * 0.16));
-        latestSalesList.Columns[3].Width = Math.Max(96, (int)(inner * 0.22));
-        latestSalesList.Columns[4].Width = Math.Max(72, inner - latestSalesList.Columns[0].Width - latestSalesList.Columns[1].Width - latestSalesList.Columns[2].Width - latestSalesList.Columns[3].Width);
+        latestSalesList.Columns[0].Width = Math.Max(80, (int)(inner * 0.18));
+        latestSalesList.Columns[1].Width = Math.Max(96, (int)(inner * 0.28));
+        latestSalesList.Columns[2].Width = Math.Max(80, (int)(inner * 0.16));
+        latestSalesList.Columns[3].Width = Math.Max(100, (int)(inner * 0.22));
+        latestSalesList.Columns[4].Width = Math.Max(80, inner - latestSalesList.Columns[0].Width - latestSalesList.Columns[1].Width - latestSalesList.Columns[2].Width - latestSalesList.Columns[3].Width);
     }
 
     private void LayoutStockAlertWidths()
     {
-        var inner = Math.Max(120, stockAlertsFlow.ClientSize.Width - stockAlertsFlow.Padding.Horizontal - 4);
+        var inner = Math.Max(140, stockAlertsFlow.ClientSize.Width - stockAlertsFlow.Padding.Horizontal - 4);
         foreach (Control c in stockAlertsFlow.Controls)
         {
             c.Width = inner;
@@ -97,13 +191,10 @@ public sealed partial class DashboardControl : UserControl
 
     private void LayoutQuickActionWidths()
     {
-        var inner = Math.Max(120, quickActionsFlow.ClientSize.Width - quickActionsFlow.Padding.Horizontal);
+        var inner = Math.Max(140, quickActionsFlow.ClientSize.Width - quickActionsFlow.Padding.Horizontal);
         foreach (Control c in quickActionsFlow.Controls)
         {
-            if (c is Button b)
-            {
-                b.Width = inner;
-            }
+            c.Width = inner;
         }
     }
 
@@ -111,18 +202,18 @@ public sealed partial class DashboardControl : UserControl
     {
         var summary = result.Summary;
 
-        totalProductsCard.CardValue = summary.TotalProducts.ToString("N0");
         todaySalesCard.CardValue = FormatCurrency(summary.TodaySales);
-        todayProfitCard.CardValue = FormatCurrency(summary.TodayProfit);
-        lowStockCard.CardValue = summary.LowStockProductsCount.ToString("N0");
-        expiringCard.CardValue = summary.ExpiringSoonBatchesCount.ToString("N0");
         todayInvoicesCard.CardValue = summary.TodayInvoicesCount.ToString("N0");
+        expiringCard.CardValue = summary.ExpiringSoonBatchesCount.ToString("N0");
+        lowStockCard.CardValue = summary.LowStockProductsCount.ToString("N0");
+        todayProfitCard.CardValue = FormatCurrency(summary.TodayProfit);
+        totalProductsCard.CardValue = summary.TotalProducts.ToString("N0");
 
         latestSalesList.BeginUpdate();
         latestSalesList.Items.Clear();
         foreach (var sale in summary.LatestSales)
         {
-            var item = new ListViewItem(sale.InvoiceNumber);
+            var item = new ListViewItem(sale.InvoiceNumber) { Tag = sale.Status };
             item.SubItems.Add(sale.CustomerName);
             item.SubItems.Add(FormatCurrency(sale.GrandTotal));
             item.SubItems.Add(sale.CreatedAt.ToLocalTime().ToString("g"));
@@ -140,7 +231,7 @@ public sealed partial class DashboardControl : UserControl
         stockAlertsFlow.Controls.Clear();
         if (summary.StockAlerts.Count == 0)
         {
-            stockAlertsFlow.Controls.Add(CreateMutedLabel("لا توجد تنبيهات حالياً."));
+            stockAlertsFlow.Controls.Add(CreateEmptyAlertsState());
         }
         else
         {
@@ -170,113 +261,126 @@ public sealed partial class DashboardControl : UserControl
     private void BuildQuickActions()
     {
         quickActionsFlow.Controls.Clear();
-        AddQuickAction("بيع جديد", "فتح نقطة البيع", "₪");
-        AddQuickAction("فاتورة شراء", "تسجيل مشتريات جديدة", "↧");
-        AddQuickAction("إضافة منتج", "إضافة منتج للمخزون", "＋");
-        AddQuickAction("تقرير اليوم", "عرض التقرير المالي اليومي", "📊");
+        AddQuickAction("بيع جديد", "فتح نقطة البيع", SegoeMdl2Icons.PointOfSale, "بيع جديد");
+        AddQuickAction("فاتورة شراء", "تسجيل مشتريات جديدة", SegoeMdl2Icons.Purchases, "فاتورة شراء");
+        AddQuickAction("إضافة منتج", "إضافة منتج للمخزون", SegoeMdl2Icons.Product, "إضافة منتج");
+        AddQuickAction("تقرير اليوم", "عرض التقرير المالي اليومي", SegoeMdl2Icons.Reports, "تقرير اليوم");
         LayoutQuickActionWidths();
     }
 
-    private void AddQuickAction(string title, string description, string icon)
+    private void AddQuickAction(string title, string description, string iconGlyph, string actionKey)
     {
-        var button = new Button
+        var tile = new QuickActionTileControl
         {
-            AutoSize = false,
-            BackColor = PharmaTheme.SurfaceContainerLow,
-            Cursor = Cursors.Hand,
-            FlatStyle = FlatStyle.Flat,
-            Font = PharmaTheme.BodyFont,
-            Height = 54,
-            Margin = new Padding(0, 0, 0, 10),
-            RightToLeft = RightToLeft.Yes,
-            Text = $"{icon}  {title}\r\n{description}",
-            TextAlign = ContentAlignment.MiddleRight,
-            UseVisualStyleBackColor = false,
+            Title = title,
+            Description = description,
+            IconGlyph = iconGlyph,
             Width = 220
         };
-        button.FlatAppearance.BorderColor = PharmaTheme.OutlineVariant;
-        button.FlatAppearance.BorderSize = 1;
-        button.Click += (_, _) => QuickActionRequested?.Invoke(this, title);
-        quickActionsFlow.Controls.Add(button);
+        tile.TileClicked += (_, _) => QuickActionRequested?.Invoke(this, actionKey);
+        quickActionsFlow.Controls.Add(tile);
     }
 
     private Control CreateAlertCard(DashboardStockAlert alert)
     {
-        var panel = new Panel
-        {
-            BackColor = alert.IsExpiryAlert ? PharmaTheme.WarningSurface : PharmaTheme.SurfaceContainerLow,
-            Height = 78,
-            Margin = new Padding(0, 0, 0, 10),
-            Padding = new Padding(12, 8, 12, 8),
-            RightToLeft = RightToLeft.Yes
-        };
-
-        panel.Paint += (_, e) =>
-        {
-            using var pen = new Pen(alert.IsExpiryAlert ? PharmaTheme.Warning : PharmaTheme.PrimaryContainer, 3);
-            var y1 = 6;
-            var y2 = panel.Height - 6;
-            e.Graphics.DrawLine(pen, panel.Width - 4, y1, panel.Width - 4, y2);
-        };
-
-        var kind = new Label
-        {
-            AutoSize = false,
-            Dock = DockStyle.Top,
-            Font = new Font(PharmaTheme.SmallFont, FontStyle.Bold),
-            ForeColor = alert.IsExpiryAlert ? PharmaTheme.WarningStrong : PharmaTheme.PrimaryGreen,
-            Height = 18,
-            Text = string.IsNullOrWhiteSpace(alert.AlertKind)
-                ? (alert.IsExpiryAlert ? "قريب الانتهاء" : "مخزون منخفض")
-                : alert.AlertKind,
-            TextAlign = ContentAlignment.MiddleRight
-        };
-
-        var title = new Label
-        {
-            AutoSize = false,
-            Dock = DockStyle.Top,
-            Font = new Font(PharmaTheme.BodyFont, FontStyle.Bold),
-            ForeColor = PharmaTheme.TextDark,
-            Height = 22,
-            Text = alert.Title,
-            TextAlign = ContentAlignment.MiddleRight
-        };
-
-        var detailText = alert.Detail;
-        if (!string.IsNullOrWhiteSpace(alert.BatchNumber))
-        {
-            detailText = $"رقم التشغيلة: {alert.BatchNumber} — {detailText}";
-        }
-
-        var detail = new Label
-        {
-            AutoSize = false,
-            Dock = DockStyle.Top,
-            Font = PharmaTheme.SmallFont,
-            ForeColor = PharmaTheme.OnSurfaceVariant,
-            Height = 20,
-            Text = detailText,
-            TextAlign = ContentAlignment.MiddleRight
-        };
-
-        panel.Controls.Add(detail);
-        panel.Controls.Add(title);
-        panel.Controls.Add(kind);
+        var panel = new RoundedAlertPanel(alert);
+        panel.Width = 260;
         return panel;
     }
 
-    private static Label CreateMutedLabel(string text) => new()
+    private static Control CreateEmptyAlertsState()
     {
-        AutoSize = false,
-        Font = PharmaTheme.SmallFont,
-        ForeColor = PharmaTheme.MutedText,
-        Height = 32,
-        Margin = new Padding(0, 8, 0, 0),
-        Text = text,
-        TextAlign = ContentAlignment.MiddleRight,
-        Width = 200
-    };
+        var panel = new Panel
+        {
+            Height = 88,
+            Margin = new Padding(0, 6, 0, 0),
+            Padding = new Padding(12, 10, 12, 10)
+        };
+        panel.Paint += (_, e) =>
+        {
+            var bounds = panel.ClientRectangle;
+            bounds.Inflate(-1, -1);
+            RoundedDrawing.FillRounded(e.Graphics, bounds, 14, PharmaTheme.SurfaceContainerLow);
+            TextRenderer.DrawText(
+                e.Graphics,
+                $"{SegoeMdl2Icons.Warning}  لا توجد تنبيهات حالياً",
+                PharmaTheme.BodyFont,
+                bounds,
+                PharmaTheme.MutedText,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        };
+        return panel;
+    }
+
+    private sealed class RoundedAlertPanel : Panel
+    {
+        public RoundedAlertPanel(DashboardStockAlert alert)
+        {
+            Height = 84;
+            Margin = new Padding(0, 0, 0, 10);
+            Padding = new Padding(14, 10, 14, 10);
+            RightToLeft = RightToLeft.Yes;
+            BackColor = Color.Transparent;
+
+            var kind = new Label
+            {
+                AutoSize = false,
+                Dock = DockStyle.Top,
+                Font = PharmaTheme.ArabicFont(9f, FontStyle.Bold),
+                ForeColor = alert.IsExpiryAlert ? PharmaTheme.WarningStrong : PharmaTheme.PrimaryGreen,
+                Height = 18,
+                Text = string.IsNullOrWhiteSpace(alert.AlertKind)
+                    ? (alert.IsExpiryAlert ? "قريب الانتهاء" : "مخزون منخفض")
+                    : alert.AlertKind,
+                TextAlign = ContentAlignment.MiddleRight
+            };
+
+            var title = new Label
+            {
+                AutoSize = false,
+                Dock = DockStyle.Top,
+                Font = PharmaTheme.ArabicFont(10.5f, FontStyle.Bold),
+                ForeColor = PharmaTheme.TextDark,
+                Height = 22,
+                Text = alert.Title,
+                TextAlign = ContentAlignment.MiddleRight
+            };
+
+            var detailText = alert.Detail;
+            if (!string.IsNullOrWhiteSpace(alert.BatchNumber))
+            {
+                detailText = $"رقم التشغيلة: {alert.BatchNumber} — {detailText}";
+            }
+
+            var detail = new Label
+            {
+                AutoSize = false,
+                Dock = DockStyle.Top,
+                Font = PharmaTheme.SmallFont,
+                ForeColor = PharmaTheme.OnSurfaceVariant,
+                Height = 20,
+                Text = detailText,
+                TextAlign = ContentAlignment.MiddleRight
+            };
+
+            Controls.Add(detail);
+            Controls.Add(title);
+            Controls.Add(kind);
+
+            Paint += (_, e) =>
+            {
+                var bounds = ClientRectangle;
+                bounds.Inflate(-1, -1);
+                var fill = alert.IsExpiryAlert ? PharmaTheme.WarningSurface : PharmaTheme.SurfaceContainerLow;
+                RoundedDrawing.FillRounded(e.Graphics, bounds, 12, fill);
+                RoundedDrawing.DrawRoundedBorder(
+                    e.Graphics,
+                    bounds,
+                    12,
+                    alert.IsExpiryAlert ? Color.FromArgb(70, PharmaTheme.Warning) : PharmaTheme.BorderSoft);
+            };
+        }
+    }
 
     private static string LocalizeInvoiceStatus(string? status)
     {
@@ -312,7 +416,7 @@ public sealed partial class DashboardControl : UserControl
         loadingLabel.Top = (loadingOverlay.ClientSize.Height - loadingLabel.Height) / 2;
     }
 
-    private static string FormatCurrency(decimal value) => $"{value:N2}";
+    private static string FormatCurrency(decimal value) => $"{value:N2} ل.س";
 
     protected override void Dispose(bool disposing)
     {

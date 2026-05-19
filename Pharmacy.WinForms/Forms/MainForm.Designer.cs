@@ -39,7 +39,7 @@ partial class MainForm
             RightToLeft = RightToLeft.Yes,
             RowCount = 1
         };
-        shellLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 260F));
+        shellLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 268F));
         shellLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
         sidebar = new SidebarControl

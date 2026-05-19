@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Drawing.Drawing2D;
 using Pharmacy.WinForms.Models;
 using Pharmacy.WinForms.Ui;
 
@@ -8,15 +7,14 @@ namespace Pharmacy.WinForms.Controls;
 public sealed class SidebarControl : Panel
 {
     private readonly Dictionary<AppNavigation, SidebarButton> _buttons = new();
-    private AppNavigation _active = AppNavigation.Dashboard;
 
     public event EventHandler<AppNavigation>? NavigationRequested;
     public event EventHandler? LogoutRequested;
 
     public SidebarControl()
     {
-        Width = 260;
-        MinimumSize = new Size(240, 0);
+        Width = 268;
+        MinimumSize = new Size(248, 0);
         BackColor = PharmaTheme.SidebarLightBackground;
         Padding = new Padding(0);
         RightToLeft = RightToLeft.Yes;
@@ -27,25 +25,20 @@ public sealed class SidebarControl : Panel
             ColumnCount = 1,
             Dock = DockStyle.Fill,
             Margin = new Padding(0),
-            Padding = new Padding(14, 18, 14, 12),
+            Padding = new Padding(16, 20, 16, 14),
             RightToLeft = RightToLeft.Yes,
             RowCount = 3
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 112F));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 118F));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64F));
 
-        var brandPanel = new Panel
-        {
-            Dock = DockStyle.Fill,
-            Margin = new Padding(0, 0, 0, 8),
-            Padding = new Padding(0, 0, 0, 0)
-        };
-        var badge = new LogoBadgeControl { Size = new Size(56, 56) };
+        var brandPanel = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 10) };
+        var badge = new LogoBadgeControl { Size = new Size(60, 60) };
         var title = new Label
         {
             AutoSize = false,
-            Font = new Font("Segoe UI", 15F, FontStyle.Bold),
+            Font = PharmaTheme.ArabicFont(16f, FontStyle.Bold),
             ForeColor = PharmaTheme.PrimaryGreen,
             Size = new Size(220, 28),
             Text = "PharmaCare",
@@ -54,7 +47,7 @@ public sealed class SidebarControl : Panel
         var subtitle = new Label
         {
             AutoSize = false,
-            Font = PharmaTheme.SmallFont,
+            Font = PharmaTheme.ArabicFont(9.5f),
             ForeColor = PharmaTheme.OnSurfaceVariant,
             Size = new Size(220, 22),
             Text = "صيدلية الشفاء",
@@ -72,20 +65,20 @@ public sealed class SidebarControl : Panel
             BackColor = PharmaTheme.SidebarLightBackground,
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
-            Margin = new Padding(0, 4, 0, 0),
+            Margin = new Padding(0, 6, 0, 0),
             Padding = new Padding(0, 4, 0, 8),
             WrapContents = false
         };
 
-        AddNavItem(navHost, AppNavigation.Dashboard, "لوحة التحكم", "⌂");
-        AddNavItem(navHost, AppNavigation.Inventory, "المخزون", "▦");
-        AddNavItem(navHost, AppNavigation.PointOfSale, "نقطة البيع", "₪");
-        AddNavItem(navHost, AppNavigation.Purchases, "المشتريات", "↧");
-        AddNavItem(navHost, AppNavigation.Customers, "الزبائن", "👤");
-        AddNavItem(navHost, AppNavigation.Suppliers, "الموردين", "🏭");
-        AddNavItem(navHost, AppNavigation.Reports, "التقارير", "📊");
-        AddNavItem(navHost, AppNavigation.Users, "المستخدمين", "👥");
-        AddNavItem(navHost, AppNavigation.Settings, "الإعدادات", "⚙");
+        AddNavItem(navHost, AppNavigation.Dashboard, "لوحة التحكم", SegoeMdl2Icons.Dashboard);
+        AddNavItem(navHost, AppNavigation.Inventory, "المخزون", SegoeMdl2Icons.Inventory);
+        AddNavItem(navHost, AppNavigation.PointOfSale, "نقطة البيع", SegoeMdl2Icons.PointOfSale);
+        AddNavItem(navHost, AppNavigation.Purchases, "المشتريات", SegoeMdl2Icons.Purchases);
+        AddNavItem(navHost, AppNavigation.Customers, "الزبائن", SegoeMdl2Icons.Customers);
+        AddNavItem(navHost, AppNavigation.Suppliers, "الموردين", SegoeMdl2Icons.Suppliers);
+        AddNavItem(navHost, AppNavigation.Reports, "التقارير", SegoeMdl2Icons.Reports);
+        AddNavItem(navHost, AppNavigation.Users, "المستخدمين", SegoeMdl2Icons.Users);
+        AddNavItem(navHost, AppNavigation.Settings, "الإعدادات", SegoeMdl2Icons.Settings);
 
         navHost.Resize += (_, _) =>
         {
@@ -98,24 +91,23 @@ public sealed class SidebarControl : Panel
         var logoutRow = new Panel
         {
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 4, 0, 0),
-            Padding = new Padding(0, 10, 0, 0)
+            Margin = new Padding(0, 6, 0, 0),
+            Padding = new Padding(0, 12, 0, 0)
         };
         logoutRow.Paint += (_, e) =>
         {
-            using var pen = new Pen(Color.FromArgb(60, PharmaTheme.SidebarDivider));
+            using var pen = new Pen(Color.FromArgb(50, PharmaTheme.SidebarDivider));
             e.Graphics.DrawLine(pen, 0, 0, logoutRow.ClientSize.Width, 0);
         };
-        var logout = CreateButton("تسجيل الخروج", "⎋", isLogout: true);
+        var logout = CreateButton("تسجيل الخروج", SegoeMdl2Icons.SignOut, isLogout: true);
         logout.Dock = DockStyle.Top;
-        logout.Height = 44;
+        logout.Height = 46;
         logout.Click += (_, _) => LogoutRequested?.Invoke(this, EventArgs.Empty);
         logoutRow.Controls.Add(logout);
 
         root.Controls.Add(brandPanel, 0, 0);
         root.Controls.Add(navHost, 0, 1);
         root.Controls.Add(logoutRow, 0, 2);
-
         Controls.Add(root);
 
         SetActive(AppNavigation.Dashboard);
@@ -124,7 +116,7 @@ public sealed class SidebarControl : Panel
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
-        using var edge = new Pen(Color.FromArgb(26, PharmaTheme.PrimaryGreen));
+        using var edge = new Pen(Color.FromArgb(22, PharmaTheme.PrimaryGreen));
         e.Graphics.DrawLine(edge, 0, 0, 0, Height);
     }
 
@@ -132,27 +124,26 @@ public sealed class SidebarControl : Panel
     {
         var w = Math.Max(1, brand.ClientSize.Width);
         badge.Left = (w - badge.Width) / 2;
-        badge.Top = 2;
+        badge.Top = 0;
         title.Width = Math.Min(220, w);
         subtitle.Width = title.Width;
         title.Left = (w - title.Width) / 2;
-        title.Top = badge.Bottom + 6;
+        title.Top = badge.Bottom + 8;
         subtitle.Left = (w - subtitle.Width) / 2;
         subtitle.Top = title.Bottom + 2;
     }
 
     public void SetActive(AppNavigation navigation)
     {
-        _active = navigation;
         foreach (var pair in _buttons)
         {
             pair.Value.IsActive = pair.Key == navigation;
         }
     }
 
-    private void AddNavItem(FlowLayoutPanel host, AppNavigation navigation, string text, string icon)
+    private void AddNavItem(FlowLayoutPanel host, AppNavigation navigation, string text, string iconGlyph)
     {
-        var button = CreateButton(text, icon);
+        var button = CreateButton(text, iconGlyph);
         button.Width = host.ClientSize.Width - host.Padding.Horizontal;
         button.Click += (_, _) =>
         {
@@ -163,15 +154,15 @@ public sealed class SidebarControl : Panel
         host.Controls.Add(button);
     }
 
-    private static SidebarButton CreateButton(string text, string icon, bool isLogout = false)
+    private static SidebarButton CreateButton(string text, string iconGlyph, bool isLogout = false)
     {
         return new SidebarButton
         {
             ButtonText = text,
-            IconText = icon,
-            Height = 44,
+            IconGlyph = iconGlyph,
+            Height = 46,
             IsLogoutStyle = isLogout,
-            Margin = new Padding(0, 0, 0, 6)
+            Margin = new Padding(0, 0, 0, 8)
         };
     }
 
@@ -184,19 +175,15 @@ public sealed class SidebarControl : Panel
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            base.OnPaint(e);
-            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            var pad = 2;
-            var rect = new Rectangle(pad, pad, Width - pad * 2, Height - pad * 2);
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            var rect = new Rectangle(2, 2, Width - 4, Height - 4);
+            RoundedDrawing.DrawSoftShadow(e.Graphics, rect, rect.Width / 2, PharmaTheme.DashboardCardShadow, 2);
             using var fill = new SolidBrush(PharmaTheme.PrimaryContainer);
-            e.Graphics.FillEllipse(fill, rect);
-            using var sh = new SolidBrush(Color.FromArgb(28, 0, 0, 0));
-            e.Graphics.FillEllipse(sh, rect.X, rect.Y + 2, rect.Width, rect.Height);
             e.Graphics.FillEllipse(fill, rect);
             TextRenderer.DrawText(
                 e.Graphics,
-                "💊",
-                new Font("Segoe UI", 20F),
+                SegoeMdl2Icons.Pharmacy,
+                PharmaTheme.IconFont(22f),
                 rect,
                 Color.White,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
@@ -214,7 +201,7 @@ public sealed class SidebarControl : Panel
 
         [Browsable(false)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        internal string IconText { get; set; } = "●";
+        internal string IconGlyph { get; set; } = SegoeMdl2Icons.Dashboard;
 
         [Browsable(false)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
@@ -255,11 +242,10 @@ public sealed class SidebarControl : Panel
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            base.OnPaint(e);
             var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
             var bounds = ClientRectangle;
             bounds.Inflate(-1, -1);
+
             Color back;
             Color textColor;
             Color iconColor;
@@ -269,7 +255,7 @@ public sealed class SidebarControl : Panel
                 textColor = Color.White;
                 iconColor = Color.White;
             }
-            else if (_isHover || (IsLogoutStyle && _isHover))
+            else if (_isHover)
             {
                 back = PharmaTheme.SidebarNavHoverFill;
                 textColor = PharmaTheme.TextDark;
@@ -282,41 +268,25 @@ public sealed class SidebarControl : Panel
                 iconColor = PharmaTheme.PrimaryGreen;
             }
 
-            using (var path = RoundedRect(bounds, 10))
-            using (var brush = new SolidBrush(back))
-            {
-                g.FillPath(brush, path);
-            }
+            RoundedDrawing.FillRounded(g, bounds, PharmaTheme.DashboardSidebarItemRadius, back);
 
-            var iconRect = new Rectangle(Width - 40, 8, 28, 28);
+            var iconRect = new Rectangle(bounds.Right - 42, bounds.Y + (bounds.Height - 28) / 2, 28, 28);
             TextRenderer.DrawText(
                 g,
-                IconText,
-                PharmaTheme.BodyFont,
+                IconGlyph,
+                PharmaTheme.IconFont(14f),
                 iconRect,
                 iconColor,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
-            var textRect = new Rectangle(12, 0, Width - 52, Height);
+            var textRect = new Rectangle(bounds.X + 12, bounds.Y, bounds.Width - 54, bounds.Height);
             TextRenderer.DrawText(
                 g,
                 ButtonText,
-                new Font("Segoe UI", 10.25F, _isActive ? FontStyle.Bold : FontStyle.Regular),
+                PharmaTheme.ArabicFont(10.5f, _isActive ? FontStyle.Bold : FontStyle.Regular),
                 textRect,
                 textColor,
                 TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
-        }
-
-        private static GraphicsPath RoundedRect(Rectangle bounds, int radius)
-        {
-            var path = new GraphicsPath();
-            var d = Math.Min(radius * 2, Math.Min(bounds.Width, bounds.Height));
-            path.AddArc(bounds.X, bounds.Y, d, d, 180, 90);
-            path.AddArc(bounds.Right - d, bounds.Y, d, d, 270, 90);
-            path.AddArc(bounds.Right - d, bounds.Bottom - d, d, d, 0, 90);
-            path.AddArc(bounds.X, bounds.Bottom - d, d, d, 90, 90);
-            path.CloseFigure();
-            return path;
         }
     }
 }

@@ -12,15 +12,18 @@ partial class DashboardControl
     private Panel titleStack = null!;
     private Label titleLabel = null!;
     private Label subtitleLabel = null!;
-    private Button newInvoiceButton = null!;
+    private GradientRoundedButton newInvoiceButton = null!;
     private Label errorBannerLabel = null!;
     private TableLayoutPanel statsGrid = null!;
-    private StatCardControl totalProductsCard = null!;
     private StatCardControl todaySalesCard = null!;
-    private StatCardControl todayProfitCard = null!;
-    private StatCardControl lowStockCard = null!;
-    private StatCardControl expiringCard = null!;
     private StatCardControl todayInvoicesCard = null!;
+    private StatCardControl expiringCard = null!;
+    private StatCardControl lowStockCard = null!;
+    private StatCardControl todayProfitCard = null!;
+    private StatCardControl totalProductsCard = null!;
+    private TableLayoutPanel chartsRow = null!;
+    private PharmaCardPanel salesChartCard = null!;
+    private SalesChartPlaceholderControl salesChartPlaceholder = null!;
     private TableLayoutPanel lowerOuter = null!;
     private PharmaCardPanel latestSalesCard = null!;
     private ListView latestSalesList = null!;
@@ -41,27 +44,23 @@ partial class DashboardControl
         AutoScroll = true;
         BackColor = PharmaTheme.SoftGreenBackground;
         Font = PharmaTheme.BodyFont;
-        Padding = new Padding(20, 8, 24, 16);
+        Padding = new Padding(28, 12, 28, 20);
         RightToLeft = RightToLeft.Yes;
 
         headerLayout = new TableLayoutPanel
         {
             ColumnCount = 2,
             Dock = DockStyle.Top,
-            Height = 78,
-            Margin = new Padding(0, 0, 0, 8),
-            Padding = new Padding(0, 4, 0, 8),
+            Height = 82,
+            Margin = new Padding(0, 0, 0, 12),
+            Padding = new Padding(0, 4, 0, 4),
             RightToLeft = RightToLeft.Yes,
             RowCount = 1
         };
         headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 148F));
+        headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 156F));
 
-        titleStack = new Panel
-        {
-            Dock = DockStyle.Fill,
-            Margin = new Padding(0, 0, 12, 0)
-        };
+        titleStack = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 16, 0) };
 
         titleLabel = new Label
         {
@@ -69,7 +68,7 @@ partial class DashboardControl
             Dock = DockStyle.Top,
             Font = PharmaTheme.DashboardHeadlineFont,
             ForeColor = PharmaTheme.PrimaryGreen,
-            Height = 34,
+            Height = 38,
             Text = "نظرة عامة على الصيدلية",
             TextAlign = ContentAlignment.MiddleRight
         };
@@ -88,24 +87,14 @@ partial class DashboardControl
         titleStack.Controls.Add(subtitleLabel);
         titleStack.Controls.Add(titleLabel);
 
-        newInvoiceButton = new Button
+        newInvoiceButton = new GradientRoundedButton
         {
             Anchor = AnchorStyles.Left | AnchorStyles.Top,
-            AutoSize = false,
-            BackColor = PharmaTheme.PrimaryContainer,
-            Cursor = Cursors.Hand,
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-            ForeColor = Color.White,
-            Height = 42,
-            Margin = new Padding(0, 16, 0, 0),
-            RightToLeft = RightToLeft.Yes,
-            Text = "＋  فاتورة جديدة",
-            TextAlign = ContentAlignment.MiddleCenter,
-            UseVisualStyleBackColor = false,
-            Width = 136
+            Margin = new Padding(0, 18, 0, 0),
+            Text = "فاتورة جديدة",
+            Width = 148
         };
-        newInvoiceButton.FlatAppearance.BorderSize = 0;
+        newInvoiceButton.IconGlyph = SegoeMdl2Icons.Add;
 
         headerLayout.Controls.Add(titleStack, 0, 0);
         headerLayout.Controls.Add(newInvoiceButton, 1, 0);
@@ -116,8 +105,8 @@ partial class DashboardControl
             Dock = DockStyle.Top,
             Font = PharmaTheme.SmallFont,
             ForeColor = PharmaTheme.Danger,
-            Margin = new Padding(0, 0, 0, 8),
-            MaximumSize = new Size(920, 0),
+            Margin = new Padding(0, 0, 0, 10),
+            MaximumSize = new Size(1100, 0),
             Padding = new Padding(14, 10, 14, 10),
             TextAlign = ContentAlignment.TopRight,
             Visible = false
@@ -128,39 +117,73 @@ partial class DashboardControl
             BackColor = Color.Transparent,
             ColumnCount = 3,
             Dock = DockStyle.Top,
-            Height = 248,
-            Margin = new Padding(0, 0, 0, 12),
-            Padding = new Padding(0),
+            Height = 268,
+            Margin = new Padding(0, 0, 0, 16),
             RightToLeft = RightToLeft.Yes,
             RowCount = 2
         };
         statsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
         statsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
         statsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34F));
-        statsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 120F));
-        statsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 120F));
+        statsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 128F));
+        statsGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 128F));
 
-        totalProductsCard = CreateStatCard("إجمالي المنتجات", "0", "📦");
-        todaySalesCard = CreateStatCard("مبيعات اليوم", "0", "💰");
-        todayProfitCard = CreateStatCard("أرباح اليوم", "0", "📈");
-        lowStockCard = CreateStatCard("منخفض المخزون", "0", "⚠", StatCardVisualTone.Warning);
-        expiringCard = CreateStatCard("قريب الانتهاء", "0", "⏳", StatCardVisualTone.Warning);
-        todayInvoicesCard = CreateStatCard("فواتير اليوم", "0", "🧾");
+        todaySalesCard = CreateStatCard("إجمالي مبيعات اليوم", "0", SegoeMdl2Icons.Payments);
+        todayInvoicesCard = CreateStatCard("عدد الفواتير اليوم", "0", SegoeMdl2Icons.Receipt);
+        expiringCard = CreateStatCard("أدوية تنتهي قريباً", "0", SegoeMdl2Icons.Expiry, StatCardVisualTone.Warning);
+        lowStockCard = CreateStatCard("منخفض المخزون", "0", SegoeMdl2Icons.Warning, StatCardVisualTone.Danger);
+        todayProfitCard = CreateStatCard("أرباح اليوم", "0", SegoeMdl2Icons.Chart);
+        totalProductsCard = CreateStatCard("إجمالي المنتجات", "0", SegoeMdl2Icons.Product);
 
-        statsGrid.Controls.Add(totalProductsCard, 0, 0);
-        statsGrid.Controls.Add(todaySalesCard, 1, 0);
-        statsGrid.Controls.Add(todayProfitCard, 2, 0);
+        statsGrid.Controls.Add(todaySalesCard, 0, 0);
+        statsGrid.Controls.Add(todayInvoicesCard, 1, 0);
+        statsGrid.Controls.Add(expiringCard, 2, 0);
         statsGrid.Controls.Add(lowStockCard, 0, 1);
-        statsGrid.Controls.Add(expiringCard, 1, 1);
-        statsGrid.Controls.Add(todayInvoicesCard, 2, 1);
+        statsGrid.Controls.Add(todayProfitCard, 1, 1);
+        statsGrid.Controls.Add(totalProductsCard, 2, 1);
+
+        chartsRow = new TableLayoutPanel
+        {
+            ColumnCount = 1,
+            Dock = DockStyle.Top,
+            Height = 228,
+            Margin = new Padding(0, 0, 0, 16),
+            RightToLeft = RightToLeft.Yes,
+            RowCount = 1
+        };
+        chartsRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        chartsRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
+        salesChartCard = new PharmaCardPanel
+        {
+            CornerRadius = PharmaTheme.DashboardSectionCornerRadius,
+            Dock = DockStyle.Fill,
+            Padding = new Padding(20, 16, 20, 16)
+        };
+
+        var chartHeader = new Label
+        {
+            AutoSize = false,
+            Dock = DockStyle.Top,
+            Font = PharmaTheme.SectionFont,
+            ForeColor = PharmaTheme.TextDark,
+            Height = 32,
+            Margin = new Padding(0, 0, 0, 8),
+            Text = "المبيعات خلال 30 يوم",
+            TextAlign = ContentAlignment.MiddleRight
+        };
+
+        salesChartPlaceholder = new SalesChartPlaceholderControl { Dock = DockStyle.Fill };
+
+        salesChartCard.Controls.Add(salesChartPlaceholder);
+        salesChartCard.Controls.Add(chartHeader);
+        chartsRow.Controls.Add(salesChartCard, 0, 0);
 
         lowerOuter = new TableLayoutPanel
         {
             ColumnCount = 2,
             Dock = DockStyle.Fill,
-            Margin = new Padding(0),
-            MinimumSize = new Size(0, 320),
-            Padding = new Padding(0),
+            MinimumSize = new Size(0, 340),
             RightToLeft = RightToLeft.Yes,
             RowCount = 1
         };
@@ -176,14 +199,12 @@ partial class DashboardControl
         {
             ColumnCount = 1,
             Dock = DockStyle.Fill,
-            Margin = new Padding(8, 0, 0, 0),
-            Padding = new Padding(0),
+            Margin = new Padding(10, 0, 0, 0),
             RightToLeft = RightToLeft.Yes,
             RowCount = 2
         };
-        rightColumn.RowStyles.Add(new RowStyle(SizeType.Percent, 56F));
-        rightColumn.RowStyles.Add(new RowStyle(SizeType.Percent, 44F));
-
+        rightColumn.RowStyles.Add(new RowStyle(SizeType.Percent, 58F));
+        rightColumn.RowStyles.Add(new RowStyle(SizeType.Percent, 42F));
         rightColumn.Controls.Add(stockAlertsCard, 0, 0);
         rightColumn.Controls.Add(quickActionsCard, 0, 1);
 
@@ -195,26 +216,26 @@ partial class DashboardControl
             BackColor = Color.Transparent,
             ColumnCount = 1,
             Dock = DockStyle.Fill,
-            Margin = new Padding(0),
-            Padding = new Padding(0),
             RightToLeft = RightToLeft.Yes,
-            RowCount = 4
+            RowCount = 5
         };
         rootTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         rootTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        rootTable.RowStyles.Add(new RowStyle(SizeType.Absolute, 248F));
+        rootTable.RowStyles.Add(new RowStyle(SizeType.Absolute, 268F));
+        rootTable.RowStyles.Add(new RowStyle(SizeType.Absolute, 228F));
         rootTable.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         rootTable.Controls.Add(headerLayout, 0, 0);
         rootTable.Controls.Add(errorBannerLabel, 0, 1);
         rootTable.Controls.Add(statsGrid, 0, 2);
-        rootTable.Controls.Add(lowerOuter, 0, 3);
+        rootTable.Controls.Add(chartsRow, 0, 3);
+        rootTable.Controls.Add(lowerOuter, 0, 4);
 
         Controls.Add(rootTable);
 
         loadingOverlay = new Panel
         {
-            BackColor = Color.FromArgb(140, PharmaTheme.SoftGreenBackground),
+            BackColor = Color.FromArgb(150, PharmaTheme.SoftGreenBackground),
             Dock = DockStyle.Fill,
             Visible = false
         };
@@ -238,8 +259,9 @@ partial class DashboardControl
         {
             CornerRadius = PharmaTheme.DashboardSectionCornerRadius,
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 0, 8, 0),
-            MinimumSize = new Size(260, 260)
+            Margin = new Padding(0, 0, 10, 0),
+            MinimumSize = new Size(280, 280),
+            Padding = new Padding(20, 16, 20, 16)
         };
 
         var header = new TableLayoutPanel
@@ -247,7 +269,7 @@ partial class DashboardControl
             ColumnCount = 2,
             Dock = DockStyle.Top,
             Height = 36,
-            Margin = new Padding(0, 0, 0, 8),
+            Margin = new Padding(0, 0, 0, 10),
             RightToLeft = RightToLeft.Yes,
             RowCount = 1
         };
@@ -268,7 +290,6 @@ partial class DashboardControl
         {
             ActiveLinkColor = PharmaTheme.PrimaryGreen,
             AutoSize = true,
-            DisabledLinkColor = PharmaTheme.MutedText,
             Dock = DockStyle.Fill,
             Font = PharmaTheme.SmallFont,
             LinkBehavior = LinkBehavior.HoverUnderline,
@@ -282,33 +303,38 @@ partial class DashboardControl
         header.Controls.Add(title, 0, 0);
         header.Controls.Add(viewAll, 1, 0);
 
-        var listHost = new Panel
-        {
-            Dock = DockStyle.Fill,
-            Padding = new Padding(0)
-        };
+        var listHost = new Panel { Dock = DockStyle.Fill };
 
         latestSalesList = new ListView
         {
+            BackColor = PharmaTheme.SurfaceContainerLowest,
             BorderStyle = BorderStyle.None,
             Dock = DockStyle.Fill,
-            Font = PharmaTheme.BodyFont,
+            Font = PharmaTheme.TableCellFont,
+            ForeColor = PharmaTheme.TextDark,
             FullRowSelect = true,
             GridLines = false,
             HeaderStyle = ColumnHeaderStyle.Nonclickable,
             HideSelection = false,
+            OwnerDraw = true,
             RightToLeft = RightToLeft.Yes,
             RightToLeftLayout = true,
             View = View.Details,
-            UseCompatibleStateImageBehavior = false,
-            BackColor = PharmaTheme.SurfaceContainerLow,
-            ForeColor = PharmaTheme.TextDark
+            UseCompatibleStateImageBehavior = false
         };
         latestSalesList.Columns.Add("رقم الفاتورة", 110);
-        latestSalesList.Columns.Add("الزبون", 140);
-        latestSalesList.Columns.Add("القيمة", 90);
-        latestSalesList.Columns.Add("الوقت", 120);
-        latestSalesList.Columns.Add("الحالة", 90);
+        latestSalesList.Columns.Add("الزبون", 130);
+        latestSalesList.Columns.Add("القيمة", 96);
+        latestSalesList.Columns.Add("الوقت", 118);
+        latestSalesList.Columns.Add("الحالة", 96);
+
+        var rowHeight = new ImageList { ImageSize = new Size(1, 44), ColorDepth = ColorDepth.Depth32Bit };
+        using (var spacer = new Bitmap(1, 44))
+        {
+            rowHeight.Images.Add(spacer, Color.Transparent);
+        }
+
+        latestSalesList.SmallImageList = rowHeight;
 
         latestSalesEmptyLabel = new Label
         {
@@ -334,8 +360,9 @@ partial class DashboardControl
         {
             CornerRadius = PharmaTheme.DashboardSectionCornerRadius,
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 0, 0, 8),
-            MinimumSize = new Size(220, 160)
+            Margin = new Padding(0, 0, 0, 10),
+            MinimumSize = new Size(220, 170),
+            Padding = new Padding(18, 16, 18, 16)
         };
 
         var header = new Label
@@ -345,7 +372,7 @@ partial class DashboardControl
             Font = PharmaTheme.SectionFont,
             ForeColor = PharmaTheme.TextDark,
             Height = 32,
-            Margin = new Padding(0, 0, 0, 8),
+            Margin = new Padding(0, 0, 0, 10),
             Text = "تنبيهات المخزون والصلاحية",
             TextAlign = ContentAlignment.MiddleRight
         };
@@ -356,7 +383,6 @@ partial class DashboardControl
             BackColor = Color.Transparent,
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
-            Padding = new Padding(0, 0, 4, 0),
             WrapContents = false
         };
 
@@ -371,8 +397,8 @@ partial class DashboardControl
         {
             CornerRadius = PharmaTheme.DashboardSectionCornerRadius,
             Dock = DockStyle.Fill,
-            Margin = new Padding(0),
-            MinimumSize = new Size(220, 120)
+            MinimumSize = new Size(220, 140),
+            Padding = new Padding(18, 16, 18, 16)
         };
 
         var header = new Label
@@ -382,7 +408,7 @@ partial class DashboardControl
             Font = PharmaTheme.SectionFont,
             ForeColor = PharmaTheme.TextDark,
             Height = 32,
-            Margin = new Padding(0, 0, 0, 8),
+            Margin = new Padding(0, 0, 0, 10),
             Text = "اختصارات سريعة",
             TextAlign = ContentAlignment.MiddleRight
         };
@@ -393,7 +419,6 @@ partial class DashboardControl
             BackColor = Color.Transparent,
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
-            Padding = new Padding(0),
             WrapContents = false
         };
 
@@ -402,14 +427,14 @@ partial class DashboardControl
         return card;
     }
 
-    private static StatCardControl CreateStatCard(string title, string value, string icon, StatCardVisualTone tone = StatCardVisualTone.Normal)
+    private static StatCardControl CreateStatCard(string title, string value, string iconGlyph, StatCardVisualTone tone = StatCardVisualTone.Normal)
     {
         return new StatCardControl
         {
             CardTitle = title,
             CardValue = value,
             Dock = DockStyle.Fill,
-            IconText = icon,
+            IconText = iconGlyph,
             VisualTone = tone
         };
     }

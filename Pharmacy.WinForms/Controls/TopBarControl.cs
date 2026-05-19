@@ -12,6 +12,7 @@ public sealed class TopBarControl : Panel
     private readonly Label _roleLabel;
     private readonly TextBox _searchBox;
     private readonly Panel _searchShell;
+    private readonly Label _searchIconLabel;
     private readonly FlowLayoutPanel _actionsFlow;
     private readonly Label _dateLabel;
 
@@ -21,18 +22,32 @@ public sealed class TopBarControl : Panel
     public TopBarControl()
     {
         Dock = DockStyle.Top;
-        Height = 80;
+        Height = 84;
         RightToLeft = RightToLeft.Yes;
-        Padding = new Padding(20, 12, 24, 12);
+        Padding = new Padding(24, 14, 28, 14);
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
 
         _searchShell = new Panel
         {
             BackColor = PharmaTheme.SurfaceContainerHighest,
-            Height = 44,
-            Width = 320
+            Height = 48
         };
-        _searchShell.Paint += (_, e) => DrawRoundedBorder(e.Graphics, _searchShell.ClientRectangle, 12, PharmaTheme.OutlineVariant);
+        _searchShell.Paint += (_, e) =>
+        {
+            RoundedDrawing.FillRounded(e.Graphics, _searchShell.ClientRectangle, PharmaTheme.DashboardSearchCornerRadius, PharmaTheme.SurfaceContainerHighest);
+            RoundedDrawing.DrawRoundedBorder(e.Graphics, _searchShell.ClientRectangle, PharmaTheme.DashboardSearchCornerRadius, Color.FromArgb(40, PharmaTheme.OutlineVariant));
+        };
+
+        _searchIconLabel = new Label
+        {
+            AutoSize = false,
+            BackColor = Color.Transparent,
+            Font = PharmaTheme.IconFont(14f),
+            ForeColor = PharmaTheme.OnSurfaceVariant,
+            Size = new Size(36, 48),
+            Text = SegoeMdl2Icons.Search,
+            TextAlign = ContentAlignment.MiddleCenter
+        };
 
         _searchBox = new TextBox
         {
@@ -41,17 +56,14 @@ public sealed class TopBarControl : Panel
             BorderStyle = BorderStyle.None,
             Font = PharmaTheme.BodyFont,
             ForeColor = PharmaTheme.TextDark,
-            Location = new Point(14, 10),
+            Location = new Point(8, 12),
             PlaceholderText = "ابحث عن دواء، مريض، أو فاتورة...",
             RightToLeft = RightToLeft.Yes,
-            Size = new Size(292, 24)
+            Size = new Size(280, 26)
         };
         _searchShell.Controls.Add(_searchBox);
-        _searchShell.Resize += (_, _) =>
-        {
-            _searchBox.Width = Math.Max(80, _searchShell.ClientSize.Width - 28);
-            _searchBox.Top = (_searchShell.ClientSize.Height - _searchBox.Height) / 2;
-        };
+        _searchShell.Controls.Add(_searchIconLabel);
+        _searchShell.Resize += (_, _) => LayoutSearch();
 
         _searchBox.KeyDown += (_, e) =>
         {
@@ -75,22 +87,23 @@ public sealed class TopBarControl : Panel
             AutoSize = true,
             Font = PharmaTheme.SmallFont,
             ForeColor = PharmaTheme.OnSurfaceVariant,
-            Margin = new Padding(8, 10, 12, 0),
+            Margin = new Padding(8, 12, 10, 0),
             Text = FormatTodayArabic(),
             TextAlign = ContentAlignment.MiddleRight
         };
 
-        var notificationsButton = CreateIconButton("🔔", "الإشعارات");
-        var logoutButton = CreateIconButton("⎋", "تسجيل الخروج");
+        var notificationsButton = new TopBarIconButton(SegoeMdl2Icons.Notification, "الإشعارات");
+        var themeButton = new TopBarIconButton("\uE708", "المظهر");
+        var logoutButton = new TopBarIconButton(SegoeMdl2Icons.SignOut, "تسجيل الخروج");
         logoutButton.Click += (_, _) => LogoutRequested?.Invoke(this, EventArgs.Empty);
 
         _userNameLabel = new Label
         {
             AutoSize = false,
-            Font = PharmaTheme.SectionFont,
+            Font = PharmaTheme.ArabicFont(10.5f, FontStyle.Bold),
             ForeColor = PharmaTheme.TextDark,
             Margin = new Padding(6, 2, 0, 0),
-            Size = new Size(180, 22),
+            Size = new Size(160, 22),
             TextAlign = ContentAlignment.MiddleRight
         };
 
@@ -100,7 +113,7 @@ public sealed class TopBarControl : Panel
             Font = PharmaTheme.SmallFont,
             ForeColor = PharmaTheme.MutedText,
             Margin = new Padding(6, 0, 0, 0),
-            Size = new Size(180, 18),
+            Size = new Size(160, 18),
             TextAlign = ContentAlignment.MiddleRight
         };
 
@@ -111,7 +124,6 @@ public sealed class TopBarControl : Panel
             BackColor = Color.Transparent,
             FlowDirection = FlowDirection.TopDown,
             Margin = new Padding(4, 0, 0, 0),
-            Padding = new Padding(0),
             WrapContents = false
         };
         userStack.Controls.Add(_userNameLabel);
@@ -119,6 +131,7 @@ public sealed class TopBarControl : Panel
 
         _actionsFlow.Controls.Add(userStack);
         _actionsFlow.Controls.Add(logoutButton);
+        _actionsFlow.Controls.Add(themeButton);
         _actionsFlow.Controls.Add(notificationsButton);
         _actionsFlow.Controls.Add(_dateLabel);
 
@@ -128,6 +141,14 @@ public sealed class TopBarControl : Panel
         BindUser();
         Resize += (_, _) => LayoutChrome();
         LayoutChrome();
+    }
+
+    private void LayoutSearch()
+    {
+        _searchIconLabel.Left = _searchShell.ClientSize.Width - _searchIconLabel.Width - 4;
+        _searchIconLabel.Top = 0;
+        _searchBox.Width = Math.Max(100, _searchShell.ClientSize.Width - _searchIconLabel.Width - 12);
+        _searchBox.Top = (_searchShell.ClientSize.Height - _searchBox.Height) / 2;
     }
 
     protected override void OnPaintBackground(PaintEventArgs e)
@@ -152,35 +173,17 @@ public sealed class TopBarControl : Panel
         var pad = Padding;
         var innerW = ClientSize.Width - pad.Horizontal;
         var innerH = ClientSize.Height - pad.Vertical;
-        var searchW = Math.Clamp((int)(innerW * 0.36), 220, 420);
+        var searchW = Math.Clamp((int)(innerW * 0.38), 260, 460);
         _searchShell.SetBounds(pad.Left + innerW - searchW, pad.Top + (innerH - _searchShell.Height) / 2, searchW, _searchShell.Height);
-        _searchShell.PerformLayout();
+        LayoutSearch();
 
         _actionsFlow.PerformLayout();
-        var flowW = Math.Min(_actionsFlow.PreferredSize.Width + 8, Math.Max(120, innerW - searchW - 24));
+        var flowW = Math.Min(_actionsFlow.PreferredSize.Width + 8, Math.Max(140, innerW - searchW - 28));
         _actionsFlow.SetBounds(
             pad.Left,
-            pad.Top + (innerH - Math.Max(_actionsFlow.PreferredSize.Height, 44)) / 2,
+            pad.Top + (innerH - Math.Max(_actionsFlow.PreferredSize.Height, 48)) / 2,
             flowW,
-            Math.Max(_actionsFlow.PreferredSize.Height, 44));
-    }
-
-    private Button CreateIconButton(string icon, string tooltip)
-    {
-        var button = new Button
-        {
-            BackColor = Color.FromArgb(24, 45, 125, 90),
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 12F),
-            Margin = new Padding(4, 2, 4, 2),
-            Size = new Size(44, 40),
-            Text = icon,
-            UseVisualStyleBackColor = false,
-            Cursor = Cursors.Hand
-        };
-        button.FlatAppearance.BorderSize = 0;
-        _toolTips.SetToolTip(button, tooltip);
-        return button;
+            Math.Max(_actionsFlow.PreferredSize.Height, 48));
     }
 
     private static string FormatTodayArabic()
@@ -195,32 +198,6 @@ public sealed class TopBarControl : Panel
         }
     }
 
-    private static void DrawRoundedBorder(Graphics g, Rectangle bounds, int radius, Color color)
-    {
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        bounds.Inflate(-1, -1);
-        if (bounds.Width < 4 || bounds.Height < 4)
-        {
-            return;
-        }
-
-        using var path = RoundedRect(bounds, radius);
-        using var pen = new Pen(Color.FromArgb(40, color));
-        g.DrawPath(pen, path);
-    }
-
-    private static GraphicsPath RoundedRect(Rectangle bounds, int radius)
-    {
-        var path = new GraphicsPath();
-        var d = Math.Min(radius * 2, Math.Min(bounds.Width, bounds.Height));
-        path.AddArc(bounds.X, bounds.Y, d, d, 180, 90);
-        path.AddArc(bounds.Right - d, bounds.Y, d, d, 270, 90);
-        path.AddArc(bounds.Right - d, bounds.Bottom - d, d, d, 0, 90);
-        path.AddArc(bounds.X, bounds.Bottom - d, d, d, 90, 90);
-        path.CloseFigure();
-        return path;
-    }
-
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -229,5 +206,52 @@ public sealed class TopBarControl : Panel
         }
 
         base.Dispose(disposing);
+    }
+
+    private sealed class TopBarIconButton : Control
+    {
+        private bool _isHover;
+        private readonly string _glyph;
+
+        public TopBarIconButton(string glyph, string tooltip)
+        {
+            _glyph = glyph;
+            Size = new Size(44, 44);
+            Cursor = Cursors.Hand;
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
+            var tip = new ToolTip();
+            tip.SetToolTip(this, tooltip);
+        }
+
+        protected override void OnMouseEnter(EventArgs e)
+        {
+            base.OnMouseEnter(e);
+            _isHover = true;
+            Invalidate();
+        }
+
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            base.OnMouseLeave(e);
+            _isHover = false;
+            Invalidate();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            var bounds = ClientRectangle;
+            bounds.Inflate(-2, -2);
+            var fill = _isHover ? Color.FromArgb(36, PharmaTheme.PrimaryContainer) : Color.FromArgb(18, PharmaTheme.PrimaryContainer);
+            RoundedDrawing.FillRounded(g, bounds, bounds.Height / 2, fill);
+            TextRenderer.DrawText(
+                g,
+                _glyph,
+                PharmaTheme.IconFont(14f),
+                bounds,
+                PharmaTheme.PrimaryGreen,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        }
     }
 }
