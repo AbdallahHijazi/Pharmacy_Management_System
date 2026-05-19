@@ -1,7 +1,9 @@
 using Pharmacy.WinForms.Controls;
 using Pharmacy.WinForms.Forms.Dashboard;
+using Pharmacy.WinForms.Forms.Settings;
 using Pharmacy.WinForms.Models;
 using Pharmacy.WinForms.Services;
+using Pharmacy.WinForms.Ui;
 
 namespace Pharmacy.WinForms.Forms;
 
@@ -34,13 +36,12 @@ public sealed partial class MainForm : Form
                 return;
             }
 
-            MessageBox.Show(
-                this,
-                $"البحث عن \"{query}\" سيتوفر عند ربط الوحدات.",
-                "بحث",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+            UiFeedback.ShowFeatureNotAvailable(this, "البحث العام في النظام");
         };
+
+        topBar.NotificationsClicked += (_, _) => UiFeedback.ShowFeatureNotAvailable(this, "التنبيهات");
+        topBar.ThemeToggleRequested += (_, _) => UiFeedback.ShowFeatureNotAvailable(this, "تبديل المظهر في التطبيق");
+        topBar.AccountClicked += (_, _) => UiFeedback.ShowFeatureNotAvailable(this, "صفحة الحساب");
 
         FormClosed += (_, _) => _authService.Logout();
     }
@@ -86,14 +87,14 @@ public sealed partial class MainForm : Form
         Control page = navigation switch
         {
             AppNavigation.Dashboard => CreateDashboard(),
-            AppNavigation.Inventory => new PlaceholderPageControl("المخزون"),
-            AppNavigation.PointOfSale => new PlaceholderPageControl("نقطة البيع"),
-            AppNavigation.Purchases => new PlaceholderPageControl("المشتريات"),
-            AppNavigation.Customers => new PlaceholderPageControl("الزبائن"),
-            AppNavigation.Suppliers => new PlaceholderPageControl("الموردين"),
-            AppNavigation.Reports => new PlaceholderPageControl("التقارير"),
-            AppNavigation.Users => new PlaceholderPageControl("المستخدمين"),
-            AppNavigation.Settings => new PlaceholderPageControl("الإعدادات"),
+            AppNavigation.Inventory => new PlaceholderPageControl(NavigationLabels.Get(AppNavigation.Inventory)),
+            AppNavigation.PointOfSale => new PlaceholderPageControl(NavigationLabels.Get(AppNavigation.PointOfSale)),
+            AppNavigation.Purchases => new PlaceholderPageControl(NavigationLabels.Get(AppNavigation.Purchases)),
+            AppNavigation.Customers => new PlaceholderPageControl(NavigationLabels.Get(AppNavigation.Customers)),
+            AppNavigation.Suppliers => new PlaceholderPageControl(NavigationLabels.Get(AppNavigation.Suppliers)),
+            AppNavigation.Reports => new PlaceholderPageControl(NavigationLabels.Get(AppNavigation.Reports)),
+            AppNavigation.Users => new PlaceholderPageControl(NavigationLabels.Get(AppNavigation.Users)),
+            AppNavigation.Settings => new SettingsControl(),
             _ => new PlaceholderPageControl("الصفحة")
         };
 
@@ -105,14 +106,7 @@ public sealed partial class MainForm : Form
     {
         _dashboard = new DashboardControl();
         _dashboard.QuickActionRequested += (_, action) =>
-        {
-            MessageBox.Show(
-                this,
-                $"الاختصار \"{action}\" سيتوفر عند ربط الوحدة.",
-                "اختصار سريع",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
-        };
+            UiFeedback.ShowFeatureNotAvailable(this, action);
         return _dashboard;
     }
 
@@ -128,6 +122,7 @@ public sealed partial class MainForm : Form
 
         if (confirm == DialogResult.Yes)
         {
+            _authService.Logout();
             Close();
         }
     }

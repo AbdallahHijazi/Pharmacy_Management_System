@@ -18,6 +18,9 @@ public sealed class TopBarControl : Panel
 
     public event EventHandler? LogoutRequested;
     public event EventHandler<string>? SearchSubmitted;
+    public event EventHandler? NotificationsClicked;
+    public event EventHandler? ThemeToggleRequested;
+    public event EventHandler? AccountClicked;
 
     public TopBarControl()
     {
@@ -97,7 +100,11 @@ public sealed class TopBarControl : Panel
         };
 
         var notificationsButton = new TopBarIconButton(SegoeMdl2Icons.Notification, "الإشعارات");
+        notificationsButton.Click += (_, _) => NotificationsClicked?.Invoke(this, EventArgs.Empty);
+
         var themeButton = new TopBarIconButton("\uE708", "المظهر");
+        themeButton.Click += (_, _) => ThemeToggleRequested?.Invoke(this, EventArgs.Empty);
+
         var logoutButton = new TopBarIconButton(SegoeMdl2Icons.SignOut, "تسجيل الخروج");
         logoutButton.Click += (_, _) => LogoutRequested?.Invoke(this, EventArgs.Empty);
 
@@ -134,6 +141,12 @@ public sealed class TopBarControl : Panel
         };
         userStack.Controls.Add(_userNameLabel);
         userStack.Controls.Add(_roleLabel);
+        userStack.Cursor = Cursors.Hand;
+        userStack.Click += (_, _) => AccountClicked?.Invoke(this, EventArgs.Empty);
+        _userNameLabel.Cursor = Cursors.Hand;
+        _roleLabel.Cursor = Cursors.Hand;
+        _userNameLabel.Click += (_, _) => AccountClicked?.Invoke(this, EventArgs.Empty);
+        _roleLabel.Click += (_, _) => AccountClicked?.Invoke(this, EventArgs.Empty);
 
         _actionsFlow.Controls.Add(userStack);
         _actionsFlow.Controls.Add(logoutButton);
@@ -179,7 +192,7 @@ public sealed class TopBarControl : Panel
         var pad = Padding;
         var innerW = ClientSize.Width - pad.Horizontal;
         var innerH = ClientSize.Height - pad.Vertical;
-        var searchW = Math.Clamp((int)(innerW * 0.38), 260, 460);
+        var searchW = Math.Clamp((int)(innerW * 0.28), 220, 380);
         _searchShell.SetBounds(pad.Left + innerW - searchW, pad.Top + (innerH - _searchShell.Height) / 2, searchW, _searchShell.Height);
         LayoutSearch();
 
@@ -224,7 +237,13 @@ public sealed class TopBarControl : Panel
             _glyph = glyph;
             Size = new Size(44, 44);
             Cursor = Cursors.Hand;
-            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
+            SetStyle(
+                ControlStyles.AllPaintingInWmPaint
+                    | ControlStyles.OptimizedDoubleBuffer
+                    | ControlStyles.UserPaint
+                    | ControlStyles.StandardClick
+                    | ControlStyles.StandardDoubleClick,
+                true);
             var tip = new ToolTip();
             tip.SetToolTip(this, tooltip);
         }

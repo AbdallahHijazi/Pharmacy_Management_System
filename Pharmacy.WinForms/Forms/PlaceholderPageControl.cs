@@ -32,7 +32,7 @@ public sealed class PlaceholderPageControl : UserControl
             Font = PharmaTheme.BodyFont,
             ForeColor = PharmaTheme.MutedText,
             Margin = new Padding(0, 12, 0, 0),
-            Text = "هذا القسم قيد التطوير وسيتم ربطه قريباً.",
+            Text = $"صفحة {pageTitle} غير مفعلة بعد.",
             TextAlign = ContentAlignment.MiddleCenter
         };
 

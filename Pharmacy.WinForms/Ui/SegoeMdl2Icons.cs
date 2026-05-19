@@ -26,4 +26,10 @@ internal static class SegoeMdl2Icons
     public const string Expiry = "\uE787";
     public const string Chart = "\uE9D2";
     public const string Product = "\uE7B8";
+    public const string Save = "\uE74E";
+    public const string Store = Pharmacy;
+    public const string Currency = "\uE8C7";
+    public const string Palette = "\uE790";
+    public const string Backup = "\uE895";
+    public const string Folder = "\uE838";
 }
