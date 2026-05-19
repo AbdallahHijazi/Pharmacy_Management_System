@@ -41,7 +41,7 @@ public sealed class TopBarControl : Panel
         _searchIconLabel = new Label
         {
             AutoSize = false,
-            BackColor = Color.Transparent,
+            BackColor = PharmaTheme.SurfaceContainerHighest,
             Font = PharmaTheme.IconFont(14f),
             ForeColor = PharmaTheme.OnSurfaceVariant,
             Size = new Size(36, 48),
@@ -77,7 +77,7 @@ public sealed class TopBarControl : Panel
         {
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            BackColor = Color.Transparent,
+            BackColor = PharmaTheme.SoftGreenBackground,
             FlowDirection = FlowDirection.RightToLeft,
             WrapContents = false
         };
@@ -121,7 +121,7 @@ public sealed class TopBarControl : Panel
         {
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            BackColor = Color.Transparent,
+            BackColor = PharmaTheme.SoftGreenBackground,
             FlowDirection = FlowDirection.TopDown,
             Margin = new Padding(4, 0, 0, 0),
             WrapContents = false

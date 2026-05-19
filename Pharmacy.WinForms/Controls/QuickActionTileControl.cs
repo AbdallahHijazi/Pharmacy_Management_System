@@ -20,6 +20,7 @@ public sealed class QuickActionTileControl : Control
         Height = 58;
         Margin = new Padding(0, 0, 0, 10);
         RightToLeft = RightToLeft.Yes;
+        BackColor = PharmaTheme.SurfaceContainerLowest;
     }
 
     [Browsable(false)]

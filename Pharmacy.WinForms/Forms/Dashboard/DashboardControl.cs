@@ -320,11 +320,13 @@ public sealed partial class DashboardControl : UserControl
             Margin = new Padding(0, 0, 0, 10);
             Padding = new Padding(14, 10, 14, 10);
             RightToLeft = RightToLeft.Yes;
-            BackColor = Color.Transparent;
+            var fill = alert.IsExpiryAlert ? PharmaTheme.WarningSurface : PharmaTheme.SurfaceContainerLow;
+            BackColor = fill;
 
             var kind = new Label
             {
                 AutoSize = false,
+                BackColor = fill,
                 Dock = DockStyle.Top,
                 Font = PharmaTheme.ArabicFont(9f, FontStyle.Bold),
                 ForeColor = alert.IsExpiryAlert ? PharmaTheme.WarningStrong : PharmaTheme.PrimaryGreen,
@@ -338,6 +340,7 @@ public sealed partial class DashboardControl : UserControl
             var title = new Label
             {
                 AutoSize = false,
+                BackColor = fill,
                 Dock = DockStyle.Top,
                 Font = PharmaTheme.ArabicFont(10.5f, FontStyle.Bold),
                 ForeColor = PharmaTheme.TextDark,
@@ -355,6 +358,7 @@ public sealed partial class DashboardControl : UserControl
             var detail = new Label
             {
                 AutoSize = false,
+                BackColor = fill,
                 Dock = DockStyle.Top,
                 Font = PharmaTheme.SmallFont,
                 ForeColor = PharmaTheme.OnSurfaceVariant,
@@ -371,7 +375,6 @@ public sealed partial class DashboardControl : UserControl
             {
                 var bounds = ClientRectangle;
                 bounds.Inflate(-1, -1);
-                var fill = alert.IsExpiryAlert ? PharmaTheme.WarningSurface : PharmaTheme.SurfaceContainerLow;
                 RoundedDrawing.FillRounded(e.Graphics, bounds, 12, fill);
                 RoundedDrawing.DrawRoundedBorder(
                     e.Graphics,

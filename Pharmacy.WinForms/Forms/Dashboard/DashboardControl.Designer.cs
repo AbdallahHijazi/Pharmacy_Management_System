@@ -114,7 +114,7 @@ partial class DashboardControl
 
         statsGrid = new TableLayoutPanel
         {
-            BackColor = Color.Transparent,
+            BackColor = PharmaTheme.Background,
             ColumnCount = 3,
             Dock = DockStyle.Top,
             Height = 268,
@@ -213,7 +213,7 @@ partial class DashboardControl
 
         rootTable = new TableLayoutPanel
         {
-            BackColor = Color.Transparent,
+            BackColor = PharmaTheme.Background,
             ColumnCount = 1,
             Dock = DockStyle.Fill,
             RightToLeft = RightToLeft.Yes,
@@ -331,7 +331,7 @@ partial class DashboardControl
         var rowHeight = new ImageList { ImageSize = new Size(1, 44), ColorDepth = ColorDepth.Depth32Bit };
         using (var spacer = new Bitmap(1, 44))
         {
-            rowHeight.Images.Add(spacer, Color.Transparent);
+            rowHeight.Images.Add(spacer, PharmaTheme.SurfaceContainerLowest);
         }
 
         latestSalesList.SmallImageList = rowHeight;
@@ -380,7 +380,7 @@ partial class DashboardControl
         stockAlertsFlow = new FlowLayoutPanel
         {
             AutoScroll = true,
-            BackColor = Color.Transparent,
+            BackColor = PharmaTheme.SurfaceContainerLowest,
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false
@@ -416,7 +416,7 @@ partial class DashboardControl
         quickActionsFlow = new FlowLayoutPanel
         {
             AutoScroll = true,
-            BackColor = Color.Transparent,
+            BackColor = PharmaTheme.SurfaceContainerLowest,
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false

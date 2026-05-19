@@ -28,7 +28,13 @@ public sealed class StatCardControl : Control
         Margin = new Padding(8, 6, 8, 6);
         Padding = new Padding(18, 16, 18, 16);
         RightToLeft = RightToLeft.Yes;
-        BackColor = Color.Transparent;
+        BackColor = PharmaTheme.Background;
+    }
+
+    protected override void OnPaintBackground(PaintEventArgs pevent)
+    {
+        using var brush = new SolidBrush(PharmaTheme.Background);
+        pevent.Graphics.FillRectangle(brush, ClientRectangle);
     }
 
     [Browsable(false)]
