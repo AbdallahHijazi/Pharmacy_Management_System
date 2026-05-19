@@ -23,12 +23,7 @@ public sealed class RoundedTextInput : UserControl
 
     public RoundedTextInput()
     {
-        DoubleBuffered = true;
-        BackColor = PharmaTheme.LoginCardFill;
-        Height = PharmaTheme.LoginInputHeight;
-        MinimumSize = new Size(200, PharmaTheme.LoginInputHeight);
-        Padding = new Padding(0);
-        RightToLeft = RightToLeft.No;
+        SuspendLayout();
 
         iconPanel = new Panel
         {
@@ -44,7 +39,6 @@ public sealed class RoundedTextInput : UserControl
             Dock = DockStyle.Fill,
             Padding = new Padding(12, 10, 12, 10)
         };
-        inputHost.Controls.Add(textBox);
 
         textBox.BorderStyle = BorderStyle.None;
         textBox.BackColor = PharmaTheme.InputSurface;
@@ -55,6 +49,7 @@ public sealed class RoundedTextInput : UserControl
         textBox.RightToLeft = RightToLeft.No;
         textBox.GotFocus += (_, _) => { focused = true; Invalidate(); };
         textBox.LostFocus += (_, _) => { focused = false; Invalidate(); };
+        inputHost.Controls.Add(textBox);
 
         revealPanel = new Panel
         {
@@ -72,6 +67,16 @@ public sealed class RoundedTextInput : UserControl
         Controls.Add(revealPanel);
         Controls.Add(inputHost);
         Controls.Add(iconPanel);
+
+        DoubleBuffered = true;
+        BackColor = PharmaTheme.LoginCardFill;
+        Padding = new Padding(0);
+        RightToLeft = RightToLeft.No;
+        MinimumSize = new Size(200, PharmaTheme.LoginInputHeight);
+        Height = PharmaTheme.LoginInputHeight;
+
+        ResumeLayout(false);
+        PerformLayout();
     }
 
     [Browsable(false)]
@@ -82,8 +87,12 @@ public sealed class RoundedTextInput : UserControl
         set
         {
             _fieldKind = value;
-            revealPanel.Visible = value == LoginInputFieldKind.Password;
+            if (revealPanel is null || iconPanel is null)
+            {
+                return;
+            }
 
+            revealPanel.Visible = value == LoginInputFieldKind.Password;
             iconPanel.Invalidate();
         }
     }
@@ -109,8 +118,8 @@ public sealed class RoundedTextInput : UserControl
         set
         {
             textBox.UseSystemPasswordChar = value;
-            revealPanel.Invalidate();
-            iconPanel.Invalidate();
+            revealPanel?.Invalidate();
+            iconPanel?.Invalidate();
         }
     }
 
@@ -222,16 +231,23 @@ public sealed class RoundedTextInput : UserControl
     protected override void OnLayout(LayoutEventArgs levent)
     {
         base.OnLayout(levent);
+
+        if (inputHost is null || textBox is null || Disposing || IsDisposed)
+        {
+            return;
+        }
+
         var innerH = inputHost.ClientSize.Height - inputHost.Padding.Vertical;
         if (innerH <= 0)
         {
             return;
         }
 
-        var textH = Math.Max(TextRenderer.MeasureText("أgy", textBox.Font).Height + 6, textBox.Font.Height + 10);
-        textH = Math.Min(textH, innerH);
+        var measured = TextRenderer.MeasureText("أgy", textBox.Font).Height;
+        var textH = Math.Min(Math.Max(measured, textBox.MinimumSize.Height), innerH);
+
         textBox.Height = textH;
-        textBox.Width = inputHost.ClientSize.Width - inputHost.Padding.Horizontal;
+        textBox.Width = Math.Max(0, inputHost.ClientSize.Width - inputHost.Padding.Horizontal);
         textBox.Left = inputHost.Padding.Left;
         textBox.Top = inputHost.Padding.Top + (innerH - textH) / 2;
     }
