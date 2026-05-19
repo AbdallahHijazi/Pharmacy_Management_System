@@ -44,23 +44,28 @@ partial class DashboardControl
         AutoScroll = true;
         BackColor = PharmaTheme.SoftGreenBackground;
         Font = PharmaTheme.BodyFont;
-        Padding = new Padding(28, 12, 28, 20);
+        Padding = new Padding(28, 20, 28, 24);
         RightToLeft = RightToLeft.Yes;
 
         headerLayout = new TableLayoutPanel
         {
             ColumnCount = 2,
             Dock = DockStyle.Top,
-            Height = 90,
-            Margin = new Padding(0, 0, 0, 12),
-            Padding = new Padding(0, 4, 0, 4),
+            Height = 100,
+            Margin = new Padding(0, 4, 0, 12),
+            Padding = new Padding(0, 8, 0, 6),
             RightToLeft = RightToLeft.Yes,
             RowCount = 1
         };
         headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         headerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 156F));
 
-        titleStack = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 16, 0) };
+        titleStack = new Panel
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 0, 16, 0),
+            Padding = new Padding(0, 6, 0, 0)
+        };
 
         titleLabel = new Label
         {
@@ -68,7 +73,7 @@ partial class DashboardControl
             Dock = DockStyle.Top,
             Font = PharmaTheme.DashboardHeadlineFont,
             ForeColor = PharmaTheme.PrimaryGreen,
-            Height = 42,
+            Height = TextLayoutHelper.LineHeight(PharmaTheme.DashboardHeadlineFont, 12),
             Text = "نظرة عامة على الصيدلية",
             TextAlign = ContentAlignment.MiddleRight,
             UseCompatibleTextRendering = true
@@ -80,7 +85,7 @@ partial class DashboardControl
             Dock = DockStyle.Top,
             Font = PharmaTheme.DashboardSubtitleFont,
             ForeColor = PharmaTheme.OnSurfaceVariant,
-            Height = 30,
+            Height = TextLayoutHelper.LineHeight(PharmaTheme.DashboardSubtitleFont, 8),
             Text = "مرحباً بك مجدداً، إليك ملخص أداء اليوم.",
             TextAlign = ContentAlignment.MiddleRight,
             UseCompatibleTextRendering = true
@@ -104,13 +109,15 @@ partial class DashboardControl
         errorBannerLabel = new Label
         {
             AutoSize = true,
+            BackColor = PharmaTheme.LoginErrorSurface,
             Dock = DockStyle.Top,
             Font = PharmaTheme.SmallFont,
             ForeColor = PharmaTheme.Danger,
-            Margin = new Padding(0, 0, 0, 10),
+            Margin = new Padding(0, 0, 0, 12),
             MaximumSize = new Size(1100, 0),
-            Padding = new Padding(14, 10, 14, 10),
+            Padding = new Padding(16, 12, 16, 12),
             TextAlign = ContentAlignment.TopRight,
+            UseCompatibleTextRendering = true,
             Visible = false
         };
 

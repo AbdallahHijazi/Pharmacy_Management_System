@@ -21,7 +21,7 @@ public sealed partial class DashboardControl : UserControl
     {
         _dashboardService = dashboardService;
         InitializeComponent();
-        ListViewRowHeight.Apply(latestSalesList);
+        ConfigureLatestSalesList();
         newInvoiceButton.Click += (_, _) => QuickActionRequested?.Invoke(this, "فاتورة جديدة");
         WireSalesListDrawing();
         BuildQuickActions();
@@ -31,6 +31,16 @@ public sealed partial class DashboardControl : UserControl
         quickActionsFlow.Resize += (_, _) => LayoutQuickActionWidths();
         latestSalesList.Resize += (_, _) => ResizeLatestSalesColumns();
         OnChromeSizeChanged();
+    }
+
+    private void ConfigureLatestSalesList()
+    {
+        latestSalesList.SmallImageList = null;
+        latestSalesList.LargeImageList = null;
+        latestSalesList.StateImageList = null;
+
+        System.Diagnostics.Debug.WriteLine(
+            "[Dashboard] latestSalesList: ImageList removed (Small/Large/State = null). Row height uses default ListView metrics.");
     }
 
     private void WireSalesListDrawing()
@@ -428,8 +438,6 @@ public sealed partial class DashboardControl : UserControl
         {
             _loadCts?.Cancel();
             _loadCts?.Dispose();
-            latestSalesList.SmallImageList?.Dispose();
-            latestSalesList.SmallImageList = null;
             components?.Dispose();
         }
 
