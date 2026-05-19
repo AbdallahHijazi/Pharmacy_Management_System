@@ -16,6 +16,8 @@ public sealed partial class MainForm : Form
     {
         _authService = authService;
         InitializeComponent();
+        AppServices.ApiClient.EnsureSessionAuthorization();
+        topBar.BindUser();
         WireEvents();
         ShowPage(AppNavigation.Dashboard);
     }

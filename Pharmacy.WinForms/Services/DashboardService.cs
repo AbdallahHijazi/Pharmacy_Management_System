@@ -28,7 +28,7 @@ public sealed class DashboardService
             };
         }
 
-        _apiClient.SetBearerToken(SessionManager.Token);
+        _apiClient.EnsureSessionAuthorization();
 
         var today = DateTime.UtcNow.Date;
         var dateQuery = today.ToString("yyyy-MM-dd");
@@ -54,8 +54,10 @@ public sealed class DashboardService
             };
         }
 
-        if (stats.StatusCode == 401 || sales.StatusCode == 401)
+        if (IsUnauthorized(stats.StatusCode, sales.StatusCode, lowStock.StatusCode, expiring.StatusCode, profit.StatusCode))
         {
+            Debug.WriteLine(
+                $"[Dashboard] Unauthorized | stats={stats.StatusCode} sales={sales.StatusCode} lowStock={lowStock.StatusCode} expiring={expiring.StatusCode} profit={profit.StatusCode}");
             return new DashboardLoadResult
             {
                 Summary = CreateEmptySummary(),
@@ -203,4 +205,6 @@ public sealed class DashboardService
 
     private static DashboardSummary CreateEmptySummary() => new();
 
+    private static bool IsUnauthorized(params int?[] statusCodes) =>
+        statusCodes.Any(code => code == 401);
 }

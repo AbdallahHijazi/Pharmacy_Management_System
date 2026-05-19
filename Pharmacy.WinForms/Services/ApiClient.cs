@@ -36,10 +36,20 @@ public sealed class ApiClient : IDisposable
             : new AuthenticationHeaderValue("Bearer", token);
     }
 
+    /// <summary>Re-applies the session token before authenticated API calls.</summary>
+    public void EnsureSessionAuthorization()
+    {
+        SetBearerToken(SessionManager.Token);
+    }
+
     public async Task<(bool Success, LoginResponse? Data, string? ErrorMessage, bool IsConnectionError)> PostLoginAsync(
         LoginRequest request,
         CancellationToken cancellationToken = default)
     {
+        SetBearerToken(null);
+        var requestUri = BuildRequestUri("api/Auth/login");
+        Debug.WriteLine($"[API/login] POST {requestUri} | BaseUrl={_httpClient.BaseAddress} | HasToken=false");
+
         try
         {
             using var response = await _httpClient.PostAsJsonAsync(
@@ -47,6 +57,8 @@ public sealed class ApiClient : IDisposable
                 request,
                 JsonOptions,
                 cancellationToken);
+
+            Debug.WriteLine($"[API/login] status={(int)response.StatusCode}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -82,7 +94,14 @@ public sealed class ApiClient : IDisposable
         CancellationToken cancellationToken = default)
         where T : class
     {
+        EnsureSessionAuthorization();
+
         var requestUri = BuildRequestUri(relativeUrl);
+        var hasAuth = _httpClient.DefaultRequestHeaders.Authorization is not null;
+        var hasToken = SessionManager.IsAuthenticated;
+        Debug.WriteLine(
+            $"[API/{logContext ?? "GET"}] {requestUri} | BaseUrl={_httpClient.BaseAddress} | HasToken={hasToken} | HasAuthHeader={hasAuth}");
+
         try
         {
             using var response = await _httpClient.GetAsync(relativeUrl, cancellationToken);
@@ -102,7 +121,7 @@ public sealed class ApiClient : IDisposable
             }
 
             var body = await SafeReadBodyAsync(response, cancellationToken);
-            var message = await TryReadErrorMessageAsync(response, cancellationToken);
+            var message = await TryReadApiErrorMessageAsync(response, cancellationToken);
             LogApi(logContext, requestUri, statusCode, $"{message} | body: {Truncate(body, 300)}");
             return new ApiGetResult<T>(false, null, message, false, statusCode);
         }
@@ -155,6 +174,19 @@ public sealed class ApiClient : IDisposable
         HttpResponseMessage response,
         CancellationToken cancellationToken)
     {
+        var apiMessage = await TryReadApiErrorMessageAsync(response, cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            return "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
+        }
+
+        return apiMessage;
+    }
+
+    private static async Task<string> TryReadApiErrorMessageAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
         try
         {
             var error = await response.Content.ReadFromJsonAsync<ApiErrorBody>(JsonOptions, cancellationToken);
@@ -170,11 +202,12 @@ public sealed class ApiClient : IDisposable
 
         return response.StatusCode switch
         {
-            System.Net.HttpStatusCode.Unauthorized =>
-                "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
-            System.Net.HttpStatusCode.BadRequest =>
-                "بيانات تسجيل الدخول غير صالحة.",
-            _ => "تعذر تسجيل الدخول. حاول مرة أخرى."
+            System.Net.HttpStatusCode.Unauthorized => "غير مصرح (401).",
+            System.Net.HttpStatusCode.Forbidden => "غير مسموح (403).",
+            System.Net.HttpStatusCode.BadRequest => "طلب غير صالح (400).",
+            System.Net.HttpStatusCode.NotFound => "غير موجود (404).",
+            System.Net.HttpStatusCode.InternalServerError => "خطأ في الخادم (500).",
+            _ => "تعذر إكمال الطلب."
         };
     }
 
