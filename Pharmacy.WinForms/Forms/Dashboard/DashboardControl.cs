@@ -21,6 +21,7 @@ public sealed partial class DashboardControl : UserControl
     {
         _dashboardService = dashboardService;
         InitializeComponent();
+        ListViewRowHeight.Apply(latestSalesList);
         newInvoiceButton.Click += (_, _) => QuickActionRequested?.Invoke(this, "فاتورة جديدة");
         WireSalesListDrawing();
         BuildQuickActions();
@@ -427,6 +428,8 @@ public sealed partial class DashboardControl : UserControl
         {
             _loadCts?.Cancel();
             _loadCts?.Dispose();
+            latestSalesList.SmallImageList?.Dispose();
+            latestSalesList.SmallImageList = null;
             components?.Dispose();
         }
 

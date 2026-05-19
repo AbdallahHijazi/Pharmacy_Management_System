@@ -328,14 +328,6 @@ partial class DashboardControl
         latestSalesList.Columns.Add("الوقت", 118);
         latestSalesList.Columns.Add("الحالة", 96);
 
-        var rowHeight = new ImageList { ImageSize = new Size(1, 44), ColorDepth = ColorDepth.Depth32Bit };
-        using (var spacer = new Bitmap(1, 44))
-        {
-            rowHeight.Images.Add(spacer, PharmaTheme.SurfaceContainerLowest);
-        }
-
-        latestSalesList.SmallImageList = rowHeight;
-
         latestSalesEmptyLabel = new Label
         {
             Dock = DockStyle.Fill,
