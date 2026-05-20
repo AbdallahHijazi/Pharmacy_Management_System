@@ -9,10 +9,16 @@ namespace Pharmacy.WinForms.Controls;
 internal sealed class RoundedFieldBox : UserControl
 {
     private readonly TextBox _box;
+    private bool _isConstructing = true;
+    private bool _childrenCreated;
     private const int CornerRadius = 12;
 
     public RoundedFieldBox()
     {
+        SuspendLayout();
+        _isConstructing = true;
+        _childrenCreated = false;
+
         SetStyle(
             ControlStyles.AllPaintingInWmPaint
                 | ControlStyles.UserPaint
@@ -20,11 +26,10 @@ internal sealed class RoundedFieldBox : UserControl
                 | ControlStyles.ResizeRedraw,
             true);
         DoubleBuffered = true;
-        Height = 44;
-        Padding = new Padding(14, 0, 14, 0);
         BackColor = PharmaTheme.SurfaceContainerHighest;
         Margin = Padding.Empty;
 
+        // Children first — Height/Padding/Size trigger layout; _box must exist before any of that.
         _box = new TextBox
         {
             BorderStyle = BorderStyle.None,
@@ -32,14 +37,27 @@ internal sealed class RoundedFieldBox : UserControl
             BackColor = PharmaTheme.SurfaceContainerHighest,
             ForeColor = PharmaTheme.TextDark
         };
-        _box.HandleCreated += (_, _) => ClipInnerCorners();
-        _box.SizeChanged += (_, _) => ClipInnerCorners();
+        _box.HandleCreated += (_, _) => ClipInnerCornersSafely();
+        _box.SizeChanged += (_, _) => ClipInnerCornersSafely();
         Controls.Add(_box);
+        _childrenCreated = true;
+
+        Padding = new Padding(14, 0, 14, 0);
+        MinimumSize = new Size(120, 44);
+        Height = 44;
+
+        _isConstructing = false;
+        ResumeLayout(performLayout: false);
     }
 
-    private void ClipInnerCorners()
+    private void ClipInnerCornersSafely()
     {
-        if (!_box.IsHandleCreated)
+        if (_isConstructing || !_childrenCreated || Disposing || IsDisposed)
+        {
+            return;
+        }
+
+        if (_box.IsDisposed || !_box.IsHandleCreated)
         {
             return;
         }
@@ -89,6 +107,11 @@ internal sealed class RoundedFieldBox : UserControl
 
     public void ApplyThemeVisuals()
     {
+        if (!_childrenCreated || _box.IsDisposed)
+        {
+            return;
+        }
+
         BackColor = PharmaTheme.SurfaceContainerHighest;
         _box.BackColor = PharmaTheme.SurfaceContainerHighest;
         _box.ForeColor = PharmaTheme.TextDark;
@@ -99,14 +122,41 @@ internal sealed class RoundedFieldBox : UserControl
     protected override void OnLayout(LayoutEventArgs levent)
     {
         base.OnLayout(levent);
+
+        if (_isConstructing || !_childrenCreated || Disposing || IsDisposed)
+        {
+            return;
+        }
+
+        if (_box.IsDisposed)
+        {
+            return;
+        }
+
+        if (ClientSize.Width <= 0 || ClientSize.Height <= 0)
+        {
+            return;
+        }
+
+        LayoutChildrenSafely();
+        ClipInnerCornersSafely();
+    }
+
+    private void LayoutChildrenSafely()
+    {
         var innerH = Math.Max(24, ClientSize.Height - 10);
         var top = (ClientSize.Height - innerH) / 2;
-        _box.SetBounds(Padding.Left, top, Math.Max(20, ClientSize.Width - Padding.Horizontal), innerH);
-        ClipInnerCorners();
+        var w = Math.Max(20, ClientSize.Width - Padding.Horizontal);
+        _box.SetBounds(Padding.Left, top, w, innerH);
     }
 
     protected override void OnPaint(PaintEventArgs e)
     {
+        if (!_childrenCreated || Disposing || IsDisposed)
+        {
+            return;
+        }
+
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         var r = ClientRectangle;
@@ -125,10 +175,16 @@ internal sealed class RoundedFieldBox : UserControl
 internal sealed class RoundedComboInput : UserControl
 {
     private readonly ComboBox _combo;
+    private bool _isConstructing = true;
+    private bool _childrenCreated;
     private const int CornerRadius = 12;
 
     public RoundedComboInput()
     {
+        SuspendLayout();
+        _isConstructing = true;
+        _childrenCreated = false;
+
         SetStyle(
             ControlStyles.AllPaintingInWmPaint
                 | ControlStyles.UserPaint
@@ -136,8 +192,6 @@ internal sealed class RoundedComboInput : UserControl
                 | ControlStyles.ResizeRedraw,
             true);
         DoubleBuffered = true;
-        Height = 44;
-        Padding = new Padding(10, 0, 6, 0);
         BackColor = PharmaTheme.SurfaceContainerHighest;
 
         _combo = new ComboBox
@@ -149,14 +203,27 @@ internal sealed class RoundedComboInput : UserControl
             ForeColor = PharmaTheme.TextDark,
             IntegralHeight = false
         };
-        _combo.HandleCreated += (_, _) => ClipComboCorners();
-        _combo.SizeChanged += (_, _) => ClipComboCorners();
+        _combo.HandleCreated += (_, _) => ClipComboCornersSafely();
+        _combo.SizeChanged += (_, _) => ClipComboCornersSafely();
         Controls.Add(_combo);
+        _childrenCreated = true;
+
+        Padding = new Padding(10, 0, 6, 0);
+        MinimumSize = new Size(120, 44);
+        Height = 44;
+
+        _isConstructing = false;
+        ResumeLayout(performLayout: false);
     }
 
-    private void ClipComboCorners()
+    private void ClipComboCornersSafely()
     {
-        if (!_combo.IsHandleCreated)
+        if (_isConstructing || !_childrenCreated || Disposing || IsDisposed)
+        {
+            return;
+        }
+
+        if (_combo.IsDisposed || !_combo.IsHandleCreated)
         {
             return;
         }
@@ -181,6 +248,11 @@ internal sealed class RoundedComboInput : UserControl
 
     public void SyncTheme()
     {
+        if (!_childrenCreated || _combo.IsDisposed)
+        {
+            return;
+        }
+
         BackColor = PharmaTheme.SurfaceContainerHighest;
         _combo.BackColor = PharmaTheme.SurfaceContainerHighest;
         _combo.ForeColor = PharmaTheme.TextDark;
@@ -190,6 +262,11 @@ internal sealed class RoundedComboInput : UserControl
 
     protected override void OnPaint(PaintEventArgs e)
     {
+        if (!_childrenCreated || Disposing || IsDisposed)
+        {
+            return;
+        }
+
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         var r = ClientRectangle;
@@ -206,14 +283,35 @@ internal sealed class RoundedComboInput : UserControl
     protected override void OnLayout(LayoutEventArgs levent)
     {
         base.OnLayout(levent);
+
+        if (_isConstructing || !_childrenCreated || Disposing || IsDisposed)
+        {
+            return;
+        }
+
+        if (_combo.IsDisposed)
+        {
+            return;
+        }
+
+        if (ClientSize.Width <= 0 || ClientSize.Height <= 0)
+        {
+            return;
+        }
+
         const int m = 6;
         _combo.SetBounds(m, m, Math.Max(20, ClientSize.Width - 2 * m), Math.Max(24, ClientSize.Height - 2 * m));
-        ClipComboCorners();
+        ClipComboCornersSafely();
     }
 
     protected override void OnResize(EventArgs e)
     {
         base.OnResize(e);
+        if (_isConstructing || !_childrenCreated || Disposing || IsDisposed)
+        {
+            return;
+        }
+
         Invalidate();
     }
 }
