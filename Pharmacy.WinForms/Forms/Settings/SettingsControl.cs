@@ -9,28 +9,33 @@ using Pharmacy.WinForms.Ui;
 namespace Pharmacy.WinForms.Forms.Settings;
 
 /// <summary>
-/// Settings page content only. Layout is manual/responsive via <see cref="LayoutSettingsContent"/>.
-/// Sidebar / TopBar are owned by MainForm and are not modified here.
+/// Settings content for MainForm host only. Manual responsive layout; no shell changes here.
 /// </summary>
 internal sealed class SettingsControl : UserControl
 {
+    private static Font SettingsIconFont(float size) =>
+        PharmaTheme.IconFont(size);
+
     private const int ContentPadding = 32;
     private const int CardGap = 24;
     private const int MinCardWidth = 320;
-    private const int TwoColumnBreakpoint = 1100;
+
+    /// <remarks>Wide: two-column (38/62).</remarks>
+    private const int TwoColumnBreakpoint = 1050;
+
     private const int SingleColumnBreakpoint = 700;
 
-    private const int HeaderHeight = 120;
-    private const int StatusExtraHeight = 36;
-    private const int FieldHeight = 42;
+    private const int HeaderHeight = 124;
+    private const int StatusExtraHeight = 40;
+    private const int FieldHeight = 44;
     private const int LabelHeight = 24;
-    private const int SectionHeaderHeight = 40;
+    private const int SectionTitleHeightInCard = 40;
 
-    private const int PharmacyCardHeight = 280;
-    private const int CurrencyCardHeight = 210;
-    private const int AppearanceCardHeight = 340;
-    private const int AlertsCardHeight = 240;
-    private const int BackupCardHeight = 280;
+    private const int PharmacyCardHeight = 290;
+    private const int CurrencyCardHeight = 220;
+    private const int AppearanceCardHeight = 360;
+    private const int AlertsCardHeight = 250;
+    private const int BackupCardHeight = 290;
 
     private static readonly (string Name, Color Color)[] ThemeOptions =
     [
@@ -43,42 +48,46 @@ internal sealed class SettingsControl : UserControl
     ];
 
     private readonly SettingsService _settingsService;
+
+    private bool _uiBuilt;
+    private bool _layoutReady;
+
     private SettingsFormState _loadedState = new();
     private IReadOnlyDictionary<string, SystemSettingApiModel> _settingsByKey =
         new Dictionary<string, SystemSettingApiModel>();
     private bool _isLoading;
     private bool _isSaving;
 
-    private readonly Panel _scrollPanel;
-    private readonly Panel _contentCanvas;
+    private Panel _scrollPanel = null!;
+    private Panel _contentCanvas = null!;
 
-    private readonly Label _titleLabel;
-    private readonly Label _subtitleLabel;
-    private readonly Label _statusLabel;
-    private readonly GradientRoundedButton _saveButton;
-    private readonly Button _cancelButton;
+    private Label _titleLabel = null!;
+    private Label _subtitleLabel = null!;
+    private Label _statusLabel = null!;
+    private GradientRoundedButton _saveButton = null!;
+    private Button _cancelButton = null!;
 
-    private readonly SettingsCardPanel _cardPharmacy;
-    private readonly SettingsCardPanel _cardCurrency;
-    private readonly SettingsCardPanel _cardAppearance;
-    private readonly SettingsCardPanel _cardAlerts;
-    private readonly SettingsCardPanel _cardBackup;
+    private SettingsCardPanel _pharmacyInfoCard = null!;
+    private SettingsCardPanel _currencyCard = null!;
+    private SettingsCardPanel _appearanceCard = null!;
+    private SettingsCardPanel _alertsCard = null!;
+    private SettingsCardPanel _backupCard = null!;
 
-    private readonly TextBox _pharmacyNameInput;
-    private readonly TextBox _addressInput;
-    private readonly TextBox _phoneInput;
-    private readonly SettingsToggleButton _currencySypButton;
-    private readonly SettingsToggleButton _currencyUsdButton;
-    private readonly TextBox _exchangeRateInput;
-    private readonly ThemeOptionButton[] _themeButtons;
-    private readonly TrackBar _fontSizeTrack;
-    private readonly Label _fontSizeHintLabel;
-    private readonly TextBox _expiryDaysInput;
-    private readonly TextBox _lowStockInput;
-    private readonly TextBox _backupPathInput;
-    private readonly ComboBox _autoBackupCombo;
-    private readonly Button _browseFolderButton;
-    private readonly Button _backupNowButton;
+    private TextBox _pharmacyNameInput = null!;
+    private TextBox _addressInput = null!;
+    private TextBox _phoneInput = null!;
+    private SettingsToggleButton _currencySypButton = null!;
+    private SettingsToggleButton _currencyUsdButton = null!;
+    private TextBox _exchangeRateInput = null!;
+    private ThemeOptionButton[] _themeButtons = null!;
+    private TrackBar _fontSizeTrack = null!;
+    private Label _fontSizeHintLabel = null!;
+    private TextBox _expiryDaysInput = null!;
+    private TextBox _lowStockInput = null!;
+    private TextBox _backupPathInput = null!;
+    private ComboBox _autoBackupCombo = null!;
+    private Button _browseFolderButton = null!;
+    private Button _backupNowButton = null!;
 
     public SettingsControl() : this(AppServices.SettingsService)
     {
@@ -88,24 +97,55 @@ internal sealed class SettingsControl : UserControl
     {
         _settingsService = settingsService;
 
+        SuspendLayout();
+
+        SetStyle(
+            ControlStyles.AllPaintingInWmPaint
+                | ControlStyles.UserPaint
+                | ControlStyles.OptimizedDoubleBuffer
+                | ControlStyles.ResizeRedraw,
+            true);
+
         Dock = DockStyle.Fill;
         BackColor = PharmaTheme.Background;
-        RightToLeft = RightToLeft.Yes;
         AutoScroll = false;
         Padding = Padding.Empty;
 
+        // Do NOT set RightToLeft yet — it fires layout before child fields exist.
+
+        BuildUiControls();
+        WireEvents();
+
+        _uiBuilt = true;
+        _layoutReady = true;
+
+        RightToLeft = RightToLeft.Yes;
+
+        ResumeLayout(performLayout: false);
+
+        Load += async (_, _) => await LoadSettingsFromServiceAsync();
+
+        PerformLayout();
+    }
+
+    private void BuildUiControls()
+    {
         _scrollPanel = new Panel
         {
             AutoScroll = true,
             BackColor = PharmaTheme.Background,
-            Dock = DockStyle.Fill
+            Dock = DockStyle.Fill,
+            Padding = Padding.Empty
         };
 
         _contentCanvas = new Panel
         {
+            AutoSizeMode = AutoSizeMode.GrowOnly,
             BackColor = PharmaTheme.Background,
             Location = Point.Empty,
-            Size = new Size(400, 1200)
+            Margin = Padding.Empty,
+            Padding = Padding.Empty,
+            Size = new Size(800, 2000)
         };
 
         _titleLabel = new Label
@@ -113,7 +153,8 @@ internal sealed class SettingsControl : UserControl
             AutoSize = false,
             Font = PharmaTheme.ArabicFont(18f, FontStyle.Bold),
             ForeColor = PharmaTheme.PrimaryGreen,
-            Height = 36,
+            Height = 44,
+            RightToLeft = RightToLeft.Yes,
             Text = "الإعدادات",
             TextAlign = ContentAlignment.MiddleRight,
             UseCompatibleTextRendering = true
@@ -124,7 +165,8 @@ internal sealed class SettingsControl : UserControl
             AutoSize = false,
             Font = PharmaTheme.SmallFont,
             ForeColor = PharmaTheme.OnSurfaceVariant,
-            Height = LabelHeight,
+            Height = 28,
+            RightToLeft = RightToLeft.Yes,
             Text = "تكوين النظام وتفضيلات الصيدلية.",
             TextAlign = ContentAlignment.MiddleRight,
             UseCompatibleTextRendering = true
@@ -136,6 +178,7 @@ internal sealed class SettingsControl : UserControl
             Font = PharmaTheme.SmallFont,
             ForeColor = PharmaTheme.MutedText,
             Height = StatusExtraHeight,
+            RightToLeft = RightToLeft.Yes,
             TextAlign = ContentAlignment.TopRight,
             UseCompatibleTextRendering = true,
             Visible = false
@@ -144,10 +187,10 @@ internal sealed class SettingsControl : UserControl
         _saveButton = new GradientRoundedButton
         {
             IconGlyph = SegoeMdl2Icons.Save,
-            Size = new Size(160, 44),
+            MinimumSize = new Size(170, 44),
+            Size = new Size(170, 44),
             Text = "حفظ التغييرات"
         };
-        _saveButton.Click += async (_, _) => await SaveAsync();
 
         _cancelButton = new Button
         {
@@ -155,12 +198,11 @@ internal sealed class SettingsControl : UserControl
             FlatStyle = FlatStyle.Flat,
             Font = PharmaTheme.BodyFont,
             ForeColor = PharmaTheme.TextDark,
-            Size = new Size(100, 44),
+            Size = new Size(110, 44),
             Text = "إلغاء",
             UseCompatibleTextRendering = true
         };
         _cancelButton.FlatAppearance.BorderSize = 0;
-        _cancelButton.Click += (_, _) => ApplyState(_loadedState.Clone());
 
         _pharmacyNameInput = CreateTextInput("صيدلية الشفاء");
         _addressInput = CreateTextInput("شارع الاستقلال, البناء 4");
@@ -169,17 +211,15 @@ internal sealed class SettingsControl : UserControl
 
         _currencySypButton = new SettingsToggleButton("SYP", selected: true);
         _currencyUsdButton = new SettingsToggleButton("USD", selected: false);
-        _currencySypButton.Click += (_, _) => SetCurrency("SYP");
-        _currencyUsdButton.Click += (_, _) => SetCurrency("USD");
 
         _exchangeRateInput = CreateTextInput("14500");
         _exchangeRateInput.TextAlign = HorizontalAlignment.Left;
 
-        _cardPharmacy = CreateSettingsCard(SegoeMdl2Icons.Store, "معلومات الصيدلية", PharmacyCardHeight);
-        _cardCurrency = CreateSettingsCard(SegoeMdl2Icons.Currency, "العملة", CurrencyCardHeight);
-        _cardAppearance = CreateSettingsCard(SegoeMdl2Icons.Palette, "المظهر", AppearanceCardHeight);
-        _cardAlerts = CreateSettingsCard(SegoeMdl2Icons.Warning, "التنبيهات", AlertsCardHeight);
-        _cardBackup = CreateSettingsCard(SegoeMdl2Icons.Backup, "النسخ الاحتياطي", BackupCardHeight);
+        _pharmacyInfoCard = CreateSettingsCard(SegoeMdl2Icons.Store, "معلومات الصيدلية", PharmacyCardHeight);
+        _currencyCard = CreateSettingsCard(SegoeMdl2Icons.Currency, "العملة", CurrencyCardHeight);
+        _appearanceCard = CreateSettingsCard(SegoeMdl2Icons.Palette, "المظهر", AppearanceCardHeight);
+        _alertsCard = CreateSettingsCard(SegoeMdl2Icons.Warning, "التنبيهات", AlertsCardHeight);
+        _backupCard = CreateSettingsCard(SegoeMdl2Icons.Backup, "النسخ الاحتياطي", BackupCardHeight);
 
         _themeButtons = new ThemeOptionButton[ThemeOptions.Length];
         for (var i = 0; i < ThemeOptions.Length; i++)
@@ -187,14 +227,13 @@ internal sealed class SettingsControl : UserControl
             var index = i;
             var option = ThemeOptions[i];
             var button = new ThemeOptionButton(option.Name, option.Color, index == 0);
-            button.Click += (_, _) => SetTheme(index);
             _themeButtons[i] = button;
-            _cardAppearance.Controls.Add(button);
+            _appearanceCard.Controls.Add(button);
         }
 
         _fontSizeTrack = new TrackBar
         {
-            Height = 36,
+            Height = 40,
             LargeChange = 1,
             Maximum = 3,
             Minimum = 1,
@@ -203,7 +242,6 @@ internal sealed class SettingsControl : UserControl
             Value = 2,
             Width = 200
         };
-        _fontSizeTrack.ValueChanged += (_, _) => UpdateFontSizeHint();
 
         _fontSizeHintLabel = new Label
         {
@@ -227,14 +265,13 @@ internal sealed class SettingsControl : UserControl
         {
             BackColor = PharmaTheme.SurfaceContainerHighest,
             FlatStyle = FlatStyle.Flat,
-            Font = PharmaTheme.IconFont(13f),
+            Font = SettingsIconFont(14f),
             ForeColor = PharmaTheme.PrimaryGreen,
             Size = new Size(48, FieldHeight),
             Text = SegoeMdl2Icons.Folder,
             UseCompatibleTextRendering = true
         };
         _browseFolderButton.FlatAppearance.BorderSize = 0;
-        _browseFolderButton.Click += (_, _) => BrowseBackupFolder();
 
         _autoBackupCombo = new ComboBox
         {
@@ -258,33 +295,31 @@ internal sealed class SettingsControl : UserControl
         };
         _backupNowButton.FlatAppearance.BorderColor = PharmaTheme.PrimaryGreen;
         _backupNowButton.FlatAppearance.BorderSize = 1;
-        _backupNowButton.Click += (_, _) =>
-            UiFeedback.ShowFeatureNotAvailable(FindForm(), "ميزة النسخ الاحتياطي");
 
-        AddFieldToCard(_cardPharmacy, "اسم الصيدلية", _pharmacyNameInput, 0);
-        AddFieldToCard(_cardPharmacy, "العنوان", _addressInput, 1);
-        AddFieldToCard(_cardPharmacy, "رقم الهاتف", _phoneInput, 2);
+        AddFieldToCard(_pharmacyInfoCard, "اسم الصيدلية", _pharmacyNameInput);
+        AddFieldToCard(_pharmacyInfoCard, "العنوان", _addressInput);
+        AddFieldToCard(_pharmacyInfoCard, "رقم الهاتف", _phoneInput);
 
-        _cardCurrency.Controls.Add(_currencySypButton);
-        _cardCurrency.Controls.Add(_currencyUsdButton);
-        _cardCurrency.Controls.Add(_exchangeRateInput);
+        _currencyCard.Controls.Add(_currencySypButton);
+        _currencyCard.Controls.Add(_currencyUsdButton);
+        _currencyCard.Controls.Add(_exchangeRateInput);
 
-        _cardAppearance.Controls.Add(_fontSizeTrack);
-        _cardAppearance.Controls.Add(_fontSizeHintLabel);
+        _appearanceCard.Controls.Add(_fontSizeTrack);
+        _appearanceCard.Controls.Add(_fontSizeHintLabel);
 
-        _cardAlerts.Controls.Add(_expiryDaysInput);
-        _cardAlerts.Controls.Add(_lowStockInput);
+        _alertsCard.Controls.Add(_expiryDaysInput);
+        _alertsCard.Controls.Add(_lowStockInput);
 
-        _cardBackup.Controls.Add(_backupPathInput);
-        _cardBackup.Controls.Add(_browseFolderButton);
-        _cardBackup.Controls.Add(_autoBackupCombo);
-        _cardBackup.Controls.Add(_backupNowButton);
+        _backupCard.Controls.Add(_backupPathInput);
+        _backupCard.Controls.Add(_browseFolderButton);
+        _backupCard.Controls.Add(_autoBackupCombo);
+        _backupCard.Controls.Add(_backupNowButton);
 
-        _contentCanvas.Controls.Add(_cardBackup);
-        _contentCanvas.Controls.Add(_cardAlerts);
-        _contentCanvas.Controls.Add(_cardAppearance);
-        _contentCanvas.Controls.Add(_cardCurrency);
-        _contentCanvas.Controls.Add(_cardPharmacy);
+        _contentCanvas.Controls.Add(_backupCard);
+        _contentCanvas.Controls.Add(_alertsCard);
+        _contentCanvas.Controls.Add(_appearanceCard);
+        _contentCanvas.Controls.Add(_currencyCard);
+        _contentCanvas.Controls.Add(_pharmacyInfoCard);
         _contentCanvas.Controls.Add(_statusLabel);
         _contentCanvas.Controls.Add(_cancelButton);
         _contentCanvas.Controls.Add(_saveButton);
@@ -293,136 +328,217 @@ internal sealed class SettingsControl : UserControl
 
         _scrollPanel.Controls.Add(_contentCanvas);
         Controls.Add(_scrollPanel);
+    }
 
-        Load += async (_, _) => await LoadSettingsAsync();
-        _scrollPanel.Resize += (_, _) => LayoutSettingsContent();
-        Resize += (_, _) => LayoutSettingsContent();
+    private void WireEvents()
+    {
+        _saveButton.Click += async (_, _) => await SaveAsync();
+        _cancelButton.Click += (_, _) => ApplyState(_loadedState.Clone());
+        _currencySypButton.Click += (_, _) => SetCurrency("SYP");
+        _currencyUsdButton.Click += (_, _) => SetCurrency("USD");
+        _fontSizeTrack.ValueChanged += (_, _) => UpdateFontSizeHint();
+        _browseFolderButton.Click += (_, _) => BrowseBackupFolder();
+        _backupNowButton.Click += (_, _) =>
+            UiFeedback.ShowFeatureNotAvailable(FindForm(), "ميزة النسخ الاحتياطي");
+
+        for (var i = 0; i < _themeButtons.Length; i++)
+        {
+            var index = i;
+            _themeButtons[i].Click += (_, _) => SetTheme(index);
+        }
     }
 
     protected override void OnLayout(LayoutEventArgs levent)
     {
         base.OnLayout(levent);
+
+        if (!_uiBuilt || !_layoutReady || Disposing || IsDisposed)
+        {
+            return;
+        }
+
         LayoutSettingsContent();
     }
 
     private void LayoutSettingsContent()
     {
-        if (Disposing || IsDisposed || _scrollPanel.IsDisposed)
+        if (!_uiBuilt || !_layoutReady || Disposing || IsDisposed)
         {
             return;
         }
 
+        if (ClientSize.Width <= 0 || ClientSize.Height <= 0)
+        {
+            return;
+        }
+
+        if (_scrollPanel is null
+            || _contentCanvas is null
+            || _pharmacyInfoCard is null
+            || _currencyCard is null
+            || _appearanceCard is null
+            || _alertsCard is null
+            || _backupCard is null
+            || _saveButton is null
+            || _cancelButton is null
+            || _titleLabel is null
+            || _subtitleLabel is null
+            || _statusLabel is null
+            || _themeButtons is null)
+        {
+            System.Diagnostics.Debug.WriteLine("Settings layout skipped: controls not initialized.");
+            return;
+        }
+
         var viewportW = Math.Max(360, _scrollPanel.ClientSize.Width);
-        var availableW = Math.Max(MinCardWidth, viewportW - ContentPadding * 2);
-        var singleColumn = availableW < SingleColumnBreakpoint
-            || availableW < MinCardWidth * 2 + CardGap;
+        var contentWidth = Math.Max(MinCardWidth, viewportW - ContentPadding * 2);
 
-        var rightColW = singleColumn
-            ? availableW
-            : Math.Max(MinCardWidth, (int)(availableW * 0.38));
-        if (!singleColumn && viewportW >= TwoColumnBreakpoint)
-        {
-            rightColW = Math.Max(MinCardWidth, (int)(availableW * 0.38));
-        }
-        else if (!singleColumn)
-        {
-            rightColW = Math.Max(MinCardWidth, (availableW - CardGap) / 2);
-        }
-
-        var leftColW = singleColumn ? availableW : availableW - CardGap - rightColW;
-        if (!singleColumn && leftColW < 520)
-        {
-            singleColumn = true;
-            rightColW = availableW;
-            leftColW = availableW;
-        }
-
-        var contentRight = viewportW - ContentPadding;
         var contentLeft = ContentPadding;
+        var contentRight = contentLeft + contentWidth;
         var y = ContentPadding;
 
         var actionsW = _saveButton.Width + 12 + _cancelButton.Width;
-        var titleW = singleColumn ? availableW : Math.Max(240, availableW - actionsW - 16);
-        _titleLabel.SetBounds(contentRight - titleW, y, titleW, 36);
-        _subtitleLabel.SetBounds(contentRight - titleW, y + 38, titleW, LabelHeight);
+        var titleBlockW = Math.Max(200, contentWidth - actionsW - 16);
+        _titleLabel.SetBounds(contentRight - titleBlockW, y, titleBlockW, 44);
+        _subtitleLabel.SetBounds(contentRight - titleBlockW, y + 46, titleBlockW, 28);
 
-        _saveButton.SetBounds(contentRight - _saveButton.Width, y + 8, _saveButton.Width, 44);
-        _cancelButton.SetBounds(_saveButton.Left - 12 - _cancelButton.Width, y + 8, _cancelButton.Width, 44);
+        _saveButton.SetBounds(contentRight - _saveButton.Width, y + 10, _saveButton.Width, 44);
+        _cancelButton.SetBounds(_saveButton.Left - 12 - _cancelButton.Width, y + 10, _cancelButton.Width, 44);
 
         y += HeaderHeight;
 
         if (_statusLabel.Visible)
         {
-            _statusLabel.SetBounds(contentLeft, y, availableW, StatusExtraHeight);
+            _statusLabel.SetBounds(contentLeft, y, contentWidth, StatusExtraHeight);
             y += StatusExtraHeight;
         }
 
         var cardsTop = y;
 
-        if (singleColumn)
+        if (contentWidth < SingleColumnBreakpoint || contentWidth < MinCardWidth * 2 + CardGap)
         {
-            var cardW = availableW;
-            var x = contentLeft;
-
-            PlaceCard(_cardPharmacy, x, y, cardW, PharmacyCardHeight);
-            y += PharmacyCardHeight + CardGap;
-
-            PlaceCard(_cardCurrency, x, y, cardW, CurrencyCardHeight);
-            y += CurrencyCardHeight + CardGap;
-
-            PlaceCard(_cardAppearance, x, y, cardW, AppearanceCardHeight);
-            y += AppearanceCardHeight + CardGap;
-
-            PlaceCard(_cardAlerts, x, y, cardW, AlertsCardHeight);
-            y += AlertsCardHeight + CardGap;
-
-            PlaceCard(_cardBackup, x, y, cardW, BackupCardHeight);
-            y += BackupCardHeight;
+            LayoutSingleColumn(contentLeft, contentWidth, contentRight, ref y, cardsTop);
+        }
+        else if (contentWidth < TwoColumnBreakpoint)
+        {
+            LayoutMidWidth(contentLeft, contentWidth, contentRight, ref y, cardsTop);
         }
         else
         {
-            var rightX = contentRight - rightColW;
-            var leftX = contentLeft;
-            var rightY = cardsTop;
-            var leftY = cardsTop;
-
-            PlaceCard(_cardPharmacy, rightX, rightY, rightColW, PharmacyCardHeight);
-            rightY += PharmacyCardHeight + CardGap;
-
-            PlaceCard(_cardCurrency, rightX, rightY, rightColW, CurrencyCardHeight);
-            rightY += CurrencyCardHeight;
-
-            PlaceCard(_cardAppearance, leftX, leftY, leftColW, AppearanceCardHeight);
-            leftY += AppearanceCardHeight + CardGap;
-
-            var splitW = (leftColW - CardGap) / 2;
-            if (splitW >= MinCardWidth)
-            {
-                PlaceCard(_cardAlerts, leftX, leftY, splitW, AlertsCardHeight);
-                PlaceCard(_cardBackup, leftX + splitW + CardGap, leftY, splitW, BackupCardHeight);
-                leftY += Math.Max(AlertsCardHeight, BackupCardHeight);
-            }
-            else
-            {
-                PlaceCard(_cardAlerts, leftX, leftY, leftColW, AlertsCardHeight);
-                leftY += AlertsCardHeight + CardGap;
-                PlaceCard(_cardBackup, leftX, leftY, leftColW, BackupCardHeight);
-                leftY += BackupCardHeight;
-            }
-
-            y = Math.Max(rightY, leftY);
+            LayoutWideTwoColumn(contentLeft, contentWidth, contentRight, ref y, cardsTop);
         }
 
         var totalHeight = y + ContentPadding;
-        _contentCanvas.Size = new Size(viewportW, totalHeight);
-        _scrollPanel.AutoScrollMinSize = new Size(0, totalHeight);
+        _contentCanvas.SetBounds(0, 0, viewportW, totalHeight);
+        _scrollPanel.AutoScrollMinSize = new Size(0, totalHeight + ContentPadding);
 
         LayoutCardInternals();
     }
 
-    private void PlaceCard(SettingsCardPanel card, int x, int y, int width, int height)
+    private void LayoutSingleColumn(int contentLeft, int contentWidth, int contentRight, ref int y, int cardsTop)
     {
-        if (card.IsDisposed)
+        y = cardsTop;
+        var x = contentLeft;
+        var w = contentWidth;
+
+        PlaceCard(_pharmacyInfoCard, x, y, w, PharmacyCardHeight);
+        y += PharmacyCardHeight + CardGap;
+        PlaceCard(_currencyCard, x, y, w, CurrencyCardHeight);
+        y += CurrencyCardHeight + CardGap;
+        PlaceCard(_appearanceCard, x, y, w, AppearanceCardHeight);
+        y += AppearanceCardHeight + CardGap;
+        PlaceCard(_alertsCard, x, y, w, AlertsCardHeight);
+        y += AlertsCardHeight + CardGap;
+        PlaceCard(_backupCard, x, y, w, BackupCardHeight);
+        y += BackupCardHeight;
+    }
+
+    private void LayoutMidWidth(int contentLeft, int contentWidth, int contentRight, ref int y, int cardsTop)
+    {
+        y = cardsTop;
+        var half = (contentWidth - CardGap) / 2;
+        var canSplitTop = half >= MinCardWidth;
+
+        if (canSplitTop)
+        {
+            var rightX = contentRight - half;
+            PlaceCard(_pharmacyInfoCard, rightX, y, half, PharmacyCardHeight);
+            PlaceCard(_currencyCard, contentLeft, y, half, CurrencyCardHeight);
+            y += Math.Max(PharmacyCardHeight, CurrencyCardHeight) + CardGap;
+        }
+        else
+        {
+            PlaceCard(_pharmacyInfoCard, contentLeft, y, contentWidth, PharmacyCardHeight);
+            y += PharmacyCardHeight + CardGap;
+            PlaceCard(_currencyCard, contentLeft, y, contentWidth, CurrencyCardHeight);
+            y += CurrencyCardHeight + CardGap;
+        }
+
+        PlaceCard(_appearanceCard, contentLeft, y, contentWidth, AppearanceCardHeight);
+        y += AppearanceCardHeight + CardGap;
+
+        var splitW = (contentWidth - CardGap) / 2;
+        if (splitW >= MinCardWidth)
+        {
+            PlaceCard(_alertsCard, contentLeft, y, splitW, AlertsCardHeight);
+            PlaceCard(_backupCard, contentLeft + splitW + CardGap, y, splitW, BackupCardHeight);
+            y += Math.Max(AlertsCardHeight, BackupCardHeight);
+        }
+        else
+        {
+            PlaceCard(_alertsCard, contentLeft, y, contentWidth, AlertsCardHeight);
+            y += AlertsCardHeight + CardGap;
+            PlaceCard(_backupCard, contentLeft, y, contentWidth, BackupCardHeight);
+            y += BackupCardHeight;
+        }
+    }
+
+    private void LayoutWideTwoColumn(int contentLeft, int contentWidth, int contentRight, ref int y, int cardsTop)
+    {
+        var rightColW = Math.Max(MinCardWidth, (int)(contentWidth * 0.38));
+        var leftColW = contentWidth - CardGap - rightColW;
+        if (leftColW < MinCardWidth)
+        {
+            LayoutSingleColumn(contentLeft, contentWidth, contentRight, ref y, cardsTop);
+            return;
+        }
+
+        y = cardsTop;
+        var rightX = contentRight - rightColW;
+        var leftX = contentLeft;
+
+        var rightY = cardsTop;
+        var leftY = cardsTop;
+
+        PlaceCard(_pharmacyInfoCard, rightX, rightY, rightColW, PharmacyCardHeight);
+        rightY += PharmacyCardHeight + CardGap;
+        PlaceCard(_currencyCard, rightX, rightY, rightColW, CurrencyCardHeight);
+        rightY += CurrencyCardHeight;
+
+        PlaceCard(_appearanceCard, leftX, leftY, leftColW, AppearanceCardHeight);
+        leftY += AppearanceCardHeight + CardGap;
+
+        var splitW = (leftColW - CardGap) / 2;
+        if (splitW >= MinCardWidth)
+        {
+            PlaceCard(_alertsCard, leftX, leftY, splitW, AlertsCardHeight);
+            PlaceCard(_backupCard, leftX + splitW + CardGap, leftY, splitW, BackupCardHeight);
+            leftY += Math.Max(AlertsCardHeight, BackupCardHeight);
+        }
+        else
+        {
+            PlaceCard(_alertsCard, leftX, leftY, leftColW, AlertsCardHeight);
+            leftY += AlertsCardHeight + CardGap;
+            PlaceCard(_backupCard, leftX, leftY, leftColW, BackupCardHeight);
+            leftY += BackupCardHeight;
+        }
+
+        y = Math.Max(rightY, leftY);
+    }
+
+    private static void PlaceCard(SettingsCardPanel card, int x, int y, int width, int height)
+    {
+        if (card is null || card.IsDisposed)
         {
             return;
         }
@@ -446,16 +562,16 @@ internal sealed class SettingsControl : UserControl
 
     private void LayoutPharmacyCard()
     {
-        if (_cardPharmacy.IsDisposed)
+        if (_pharmacyInfoCard is null || _pharmacyInfoCard.IsDisposed)
         {
             return;
         }
 
-        var inner = _cardPharmacy.InnerBounds;
+        var inner = _pharmacyInfoCard.InnerBounds;
         var y = inner.Y;
-        LayoutFieldRow(_cardPharmacy, "اسم الصيدلية", _pharmacyNameInput, inner, ref y);
-        LayoutFieldRow(_cardPharmacy, "العنوان", _addressInput, inner, ref y);
-        LayoutFieldRow(_cardPharmacy, "رقم الهاتف", _phoneInput, inner, ref y);
+        LayoutFieldRow(_pharmacyInfoCard, "اسم الصيدلية", _pharmacyNameInput, inner, ref y);
+        LayoutFieldRow(_pharmacyInfoCard, "العنوان", _addressInput, inner, ref y);
+        LayoutFieldRow(_pharmacyInfoCard, "رقم الهاتف", _phoneInput, inner, ref y);
     }
 
     private static void LayoutFieldRow(
@@ -465,6 +581,11 @@ internal sealed class SettingsControl : UserControl
         Rectangle inner,
         ref int y)
     {
+        if (field is null || field.IsDisposed)
+        {
+            return;
+        }
+
         var caption = card.Controls.OfType<Label>().FirstOrDefault(l => ReferenceEquals(l.Tag, label));
         if (caption is null)
         {
@@ -472,56 +593,57 @@ internal sealed class SettingsControl : UserControl
         }
 
         caption.SetBounds(inner.X, y, inner.Width, LabelHeight);
-        y += LabelHeight + 4;
+        y += LabelHeight + 6;
         field.SetBounds(inner.X, y, inner.Width, FieldHeight);
         y += FieldHeight + 14;
     }
 
     private void LayoutCurrencyCard()
     {
-        if (_cardCurrency.IsDisposed)
+        if (_currencyCard is null || _currencyCard.IsDisposed)
         {
             return;
         }
 
-        var inner = _cardCurrency.InnerBounds;
+        var inner = _currencyCard.InnerBounds;
         var y = inner.Y;
 
-        var capCurrency = EnsureCaption(_cardCurrency, "العملة الافتراضية");
+        var capCurrency = EnsureCaption(_currencyCard, "العملة الافتراضية");
         capCurrency.SetBounds(inner.X, y, inner.Width, LabelHeight);
-        y += LabelHeight + 6;
+        y += LabelHeight + 8;
+
         var toggleW = 140;
         var toggleX = inner.Right - toggleW;
-        _currencyUsdButton.SetBounds(toggleX, y, 64, 36);
-        _currencySypButton.SetBounds(toggleX - 68, y, 64, 36);
-        y += 44;
+        _currencyUsdButton.SetBounds(toggleX, y, 64, FieldHeight - 6);
+        _currencySypButton.SetBounds(toggleX - 70, y, 64, FieldHeight - 6);
+        y += FieldHeight + 6;
 
-        var capRate = EnsureCaption(_cardCurrency, "سعر الصرف (SYP لـ 1 USD)");
+        var capRate = EnsureCaption(_currencyCard, "سعر الصرف (SYP لـ 1 USD)");
         capRate.SetBounds(inner.X, y, inner.Width, LabelHeight);
-        y += LabelHeight + 4;
+        y += LabelHeight + 6;
         _exchangeRateInput.SetBounds(inner.X, y, inner.Width, FieldHeight);
     }
 
     private void LayoutAppearanceCard()
     {
-        if (_cardAppearance.IsDisposed)
+        if (_appearanceCard is null || _appearanceCard.IsDisposed || _themeButtons is null)
         {
             return;
         }
 
-        var inner = _cardAppearance.InnerBounds;
+        var inner = _appearanceCard.InnerBounds;
         var y = inner.Y;
         var half = (inner.Width - CardGap) / 2;
         var leftW = Math.Max(280, half);
         var rightW = inner.Width - CardGap - leftW;
         var rightX = inner.X + leftW + CardGap;
 
-        var capTheme = EnsureCaption(_cardAppearance, "نسق الألوان");
+        var capTheme = EnsureCaption(_appearanceCard, "نسق الألوان");
         capTheme.SetBounds(inner.X, y, leftW, LabelHeight);
-        y += LabelHeight + 6;
+        y += LabelHeight + 8;
         var themeY = y;
-        var cellW = (leftW - 16) / 3;
-        var cellH = 82;
+        var cellW = Math.Max(72, (leftW - 24) / 3);
+        var cellH = 86;
         for (var i = 0; i < _themeButtons.Length; i++)
         {
             var col = i % 3;
@@ -533,50 +655,47 @@ internal sealed class SettingsControl : UserControl
                 cellH);
         }
 
-        var themeBlockH = cellH * 2 + 8 + 16;
         var fontY = inner.Y;
-        var capFont = EnsureCaption(_cardAppearance, "حجم الخط");
+        var capFont = EnsureCaption(_appearanceCard, "حجم الخط");
         capFont.SetBounds(rightX, fontY, rightW, LabelHeight);
-        fontY += LabelHeight + 6;
-        _fontSizeTrack.SetBounds(rightX, fontY, rightW, 36);
-        _fontSizeHintLabel.SetBounds(rightX, fontY + 40, rightW, LabelHeight);
-
-        _ = themeBlockH;
+        fontY += LabelHeight + 8;
+        _fontSizeTrack.SetBounds(rightX, fontY, rightW, 40);
+        _fontSizeHintLabel.SetBounds(rightX, fontY + 44, rightW, LabelHeight);
     }
 
     private void LayoutAlertsCard()
     {
-        if (_cardAlerts.IsDisposed)
+        if (_alertsCard is null || _alertsCard.IsDisposed)
         {
             return;
         }
 
-        var inner = _cardAlerts.InnerBounds;
+        var inner = _alertsCard.InnerBounds;
         LayoutAlertRow(inner, "تحذير انتهاء الصلاحية", "قبل كم يوم يتم التنبيه", _expiryDaysInput, "يوم", 0);
         LayoutAlertRow(inner, "حد النقص في المخزون", "التنبيه عند وصول الكمية إلى", _lowStockInput, "علبة", 1);
     }
 
     private void LayoutBackupCard()
     {
-        if (_cardBackup.IsDisposed)
+        if (_backupCard is null || _backupCard.IsDisposed)
         {
             return;
         }
 
-        var inner = _cardBackup.InnerBounds;
+        var inner = _backupCard.InnerBounds;
         var y = inner.Y;
 
-        var capPath = EnsureCaption(_cardBackup, "مسار الحفظ المحلي");
+        var capPath = EnsureCaption(_backupCard, "مسار الحفظ المحلي");
         capPath.SetBounds(inner.X, y, inner.Width, LabelHeight);
-        y += LabelHeight + 4;
+        y += LabelHeight + 6;
         _browseFolderButton.SetBounds(inner.Right - 48, y, 48, FieldHeight);
         _backupPathInput.SetBounds(inner.X, y, inner.Width - 56, FieldHeight);
-        y += FieldHeight + 14;
+        y += FieldHeight + 16;
 
-        var scheduleCaption = EnsureCaption(_cardBackup, "النسخ التلقائي", PharmaTheme.BodyFont, PharmaTheme.TextDark);
+        var scheduleCaption = EnsureCaption(_backupCard, "النسخ التلقائي", PharmaTheme.BodyFont, PharmaTheme.TextDark);
         scheduleCaption.SetBounds(inner.X, y, inner.Width - 150, LabelHeight);
         _autoBackupCombo.SetBounds(inner.Right - 140, y, 140, FieldHeight);
-        y += FieldHeight + 14;
+        y += FieldHeight + 16;
 
         _backupNowButton.SetBounds(inner.X, y, inner.Width, 44);
     }
@@ -610,14 +729,19 @@ internal sealed class SettingsControl : UserControl
 
     private void LayoutAlertRow(Rectangle inner, string title, string subtitle, TextBox input, string unit, int index)
     {
-        var rowH = 72;
-        var y = inner.Y + index * (rowH + 10);
-        var boxW = 52;
-        var unitLabelW = 36;
-        var valueX = inner.Right - boxW;
-        input.SetBounds(valueX, y + 20, boxW, FieldHeight);
+        if (_alertsCard is null || input is null || input.IsDisposed)
+        {
+            return;
+        }
 
-        var unitLabel = _cardAlerts.Controls.OfType<Label>()
+        var rowH = 78;
+        var y = inner.Y + index * (rowH + 10);
+        var boxW = 56;
+        var unitLabelW = 40;
+        var valueX = inner.Right - boxW;
+        input.SetBounds(valueX, y + 22, boxW, FieldHeight);
+
+        var unitLabel = _alertsCard.Controls.OfType<Label>()
             .FirstOrDefault(l => l.Tag as string == $"unit-{index}");
         if (unitLabel is null)
         {
@@ -631,12 +755,12 @@ internal sealed class SettingsControl : UserControl
                 TextAlign = ContentAlignment.MiddleRight,
                 UseCompatibleTextRendering = true
             };
-            _cardAlerts.Controls.Add(unitLabel);
+            _alertsCard.Controls.Add(unitLabel);
         }
 
-        unitLabel.SetBounds(valueX - unitLabelW - 4, y + 24, unitLabelW, LabelHeight);
+        unitLabel.SetBounds(valueX - unitLabelW - 4, y + 26, unitLabelW, LabelHeight);
 
-        var titleLabel = _cardAlerts.Controls.OfType<Label>()
+        var titleLabel = _alertsCard.Controls.OfType<Label>()
             .FirstOrDefault(l => l.Tag as string == $"title-{index}");
         if (titleLabel is null)
         {
@@ -648,13 +772,13 @@ internal sealed class SettingsControl : UserControl
                 Tag = $"title-{index}",
                 UseCompatibleTextRendering = true
             };
-            _cardAlerts.Controls.Add(titleLabel);
+            _alertsCard.Controls.Add(titleLabel);
         }
 
         titleLabel.Text = title;
-        titleLabel.SetBounds(inner.X + 8, y + 8, inner.Width - boxW - unitLabelW - 24, 22);
+        titleLabel.SetBounds(inner.X + 8, y + 8, inner.Width - boxW - unitLabelW - 28, 24);
 
-        var subLabel = _cardAlerts.Controls.OfType<Label>()
+        var subLabel = _alertsCard.Controls.OfType<Label>()
             .FirstOrDefault(l => l.Tag as string == $"sub-{index}");
         if (subLabel is null)
         {
@@ -666,24 +790,23 @@ internal sealed class SettingsControl : UserControl
                 Tag = $"sub-{index}",
                 UseCompatibleTextRendering = true
             };
-            _cardAlerts.Controls.Add(subLabel);
+            _alertsCard.Controls.Add(subLabel);
         }
 
         subLabel.Text = subtitle;
-        subLabel.SetBounds(inner.X + 8, y + 30, inner.Width - boxW - unitLabelW - 24, LabelHeight);
+        subLabel.SetBounds(inner.X + 8, y + 32, inner.Width - boxW - unitLabelW - 28, LabelHeight);
     }
 
     private static SettingsCardPanel CreateSettingsCard(string iconGlyph, string title, int height)
     {
-        var card = new SettingsCardPanel(iconGlyph, title)
+        return new SettingsCardPanel(iconGlyph, title)
         {
             MinimumSize = new Size(MinCardWidth, height),
             Size = new Size(MinCardWidth, height)
         };
-        return card;
     }
 
-    private static void AddFieldToCard(SettingsCardPanel card, string label, TextBox input, int index)
+    private static void AddFieldToCard(SettingsCardPanel card, string label, TextBox input)
     {
         var caption = new Label
         {
@@ -694,8 +817,7 @@ internal sealed class SettingsControl : UserControl
             Tag = label,
             Text = label,
             TextAlign = ContentAlignment.MiddleRight,
-            UseCompatibleTextRendering = true,
-            Top = index * 80
+            UseCompatibleTextRendering = true
         };
         card.Controls.Add(caption);
         card.Controls.Add(input);
@@ -708,6 +830,7 @@ internal sealed class SettingsControl : UserControl
         Font = PharmaTheme.BodyFont,
         ForeColor = PharmaTheme.TextDark,
         Height = FieldHeight,
+        MinimumSize = new Size(0, FieldHeight),
         Text = value
     };
 
@@ -718,7 +841,7 @@ internal sealed class SettingsControl : UserControl
         return box;
     }
 
-    private async Task LoadSettingsAsync()
+    private async Task LoadSettingsFromServiceAsync()
     {
         if (_isLoading)
         {
@@ -753,7 +876,10 @@ internal sealed class SettingsControl : UserControl
         {
             SetBusy(false);
             _isLoading = false;
-            LayoutSettingsContent();
+            if (_layoutReady)
+            {
+                PerformLayout();
+            }
         }
     }
 
@@ -821,7 +947,10 @@ internal sealed class SettingsControl : UserControl
         if (dialog.ShowDialog(FindForm()) == DialogResult.OK && !string.IsNullOrWhiteSpace(dialog.SelectedPath))
         {
             _backupPathInput.Text = dialog.SelectedPath;
-            LayoutSettingsContent();
+            if (_layoutReady)
+            {
+                PerformLayout();
+            }
         }
     }
 
@@ -842,6 +971,11 @@ internal sealed class SettingsControl : UserControl
 
     private void UpdateFontSizeHint()
     {
+        if (_fontSizeTrack is null || _fontSizeHintLabel is null)
+        {
+            return;
+        }
+
         var label = _fontSizeTrack.Value switch
         {
             1 => "صغير",
@@ -882,7 +1016,10 @@ internal sealed class SettingsControl : UserControl
 
         var scheduleIndex = Math.Max(0, _autoBackupCombo.Items.IndexOf(state.AutoBackupSchedule));
         _autoBackupCombo.SelectedIndex = scheduleIndex >= 0 ? scheduleIndex : 0;
-        LayoutSettingsContent();
+        if (_layoutReady)
+        {
+            PerformLayout();
+        }
     }
 
     private void SetBusy(bool busy)
@@ -896,15 +1033,17 @@ internal sealed class SettingsControl : UserControl
         _statusLabel.Text = text;
         _statusLabel.ForeColor = color;
         _statusLabel.Visible = true;
-        LayoutSettingsContent();
+        if (_layoutReady)
+        {
+            PerformLayout();
+        }
     }
 
     private sealed class SettingsCardPanel : Panel
     {
         private readonly Label _titleLabel;
         private readonly Label _iconLabel;
-        private readonly int _cornerRadius = PharmaTheme.DashboardSectionCornerRadius;
-        private const int HeaderH = SectionHeaderHeight;
+        private readonly int _cornerRadius = 20;
         private const int Pad = 22;
 
         public Rectangle InnerBounds
@@ -912,16 +1051,19 @@ internal sealed class SettingsControl : UserControl
             get
             {
                 var w = Math.Max(0, ClientSize.Width - Pad * 2);
-                return new Rectangle(Pad, Pad + HeaderH + 8, w, Math.Max(0, ClientSize.Height - Pad * 2 - HeaderH - 8));
+                return new Rectangle(
+                    Pad,
+                    Pad + SectionTitleHeightInCard + 10,
+                    w,
+                    Math.Max(0, ClientSize.Height - Pad * 2 - SectionTitleHeightInCard - 10));
             }
         }
 
         public SettingsCardPanel(string iconGlyph, string title)
         {
-            BackColor = PharmaTheme.CardBackground;
+            BackColor = PharmaTheme.Surface;
             DoubleBuffered = true;
             Padding = Padding.Empty;
-            RightToLeft = RightToLeft.Yes;
             SetStyle(
                 ControlStyles.AllPaintingInWmPaint
                     | ControlStyles.OptimizedDoubleBuffer
@@ -932,7 +1074,7 @@ internal sealed class SettingsControl : UserControl
             _iconLabel = new Label
             {
                 BackColor = PharmaTheme.SurfaceContainer,
-                Font = PharmaTheme.IconFont(15f),
+                Font = SettingsIconFont(15f),
                 ForeColor = PharmaTheme.PrimaryGreen,
                 Size = new Size(40, 40),
                 Text = iconGlyph,
@@ -945,7 +1087,7 @@ internal sealed class SettingsControl : UserControl
                 AutoSize = false,
                 Font = PharmaTheme.SectionFont,
                 ForeColor = PharmaTheme.TextDark,
-                Height = SectionHeaderHeight,
+                Height = SectionTitleHeightInCard,
                 Text = title,
                 TextAlign = ContentAlignment.MiddleRight,
                 UseCompatibleTextRendering = true
@@ -965,7 +1107,7 @@ internal sealed class SettingsControl : UserControl
 
             var headerTop = Pad;
             _iconLabel.SetBounds(Width - Pad - 40, headerTop, 40, 40);
-            _titleLabel.SetBounds(Pad, headerTop + 4, Math.Max(80, Width - Pad * 2 - 48), SectionHeaderHeight);
+            _titleLabel.SetBounds(Pad, headerTop + 2, Math.Max(80, Width - Pad * 2 - 48), SectionTitleHeightInCard);
         }
 
         protected override void OnPaintBackground(PaintEventArgs e)
@@ -986,7 +1128,7 @@ internal sealed class SettingsControl : UserControl
             }
 
             RoundedDrawing.DrawSoftShadow(g, bounds, _cornerRadius, PharmaTheme.DashboardCardShadow);
-            RoundedDrawing.FillRounded(g, bounds, _cornerRadius, PharmaTheme.CardBackground);
+            RoundedDrawing.FillRounded(g, bounds, _cornerRadius, PharmaTheme.Surface);
             RoundedDrawing.DrawRoundedBorder(g, bounds, _cornerRadius, PharmaTheme.BorderSoft);
         }
     }
@@ -1010,7 +1152,7 @@ internal sealed class SettingsControl : UserControl
         public SettingsToggleButton(string text, bool selected)
         {
             Text = text;
-            Size = new Size(64, 36);
+            Size = new Size(68, 38);
             _isSelected = selected;
             Cursor = Cursors.Hand;
             Font = PharmaTheme.BodyFont;
@@ -1062,7 +1204,7 @@ internal sealed class SettingsControl : UserControl
             _caption = caption;
             _swatchColor = swatchColor;
             _isSelected = selected;
-            MinimumSize = new Size(88, 76);
+            MinimumSize = new Size(88, 80);
             Cursor = Cursors.Hand;
             SetStyle(
                 ControlStyles.AllPaintingInWmPaint
@@ -1079,7 +1221,7 @@ internal sealed class SettingsControl : UserControl
             var bounds = ClientRectangle;
             bounds.Inflate(-2, -2);
 
-            var back = _isSelected ? PharmaTheme.SurfaceContainerLow : PharmaTheme.CardBackground;
+            var back = _isSelected ? PharmaTheme.SurfaceContainerLow : PharmaTheme.Surface;
             RoundedDrawing.FillRounded(g, bounds, 10, back);
             if (_isSelected)
             {
