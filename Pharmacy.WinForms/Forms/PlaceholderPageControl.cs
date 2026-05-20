@@ -53,4 +53,43 @@ public sealed class PlaceholderPageControl : UserControl
             panel.Top = (ClientSize.Height - panel.Height) / 2;
         };
     }
+
+    internal void ApplyThemeVisuals()
+    {
+        BackColor = PharmaTheme.SoftGreenBackground;
+        foreach (Control hosted in Controls)
+        {
+            if (hosted is not Panel panel)
+            {
+                continue;
+            }
+
+            panel.BackColor = PharmaTheme.CardBackground;
+            RefreshPlaceholderLabels(panel);
+        }
+
+        Invalidate(true);
+    }
+
+    private static void RefreshPlaceholderLabels(Control root)
+    {
+        foreach (Control c in root.Controls)
+        {
+            if (c is Label lab)
+            {
+                if ((lab.Font?.Style & FontStyle.Bold) == FontStyle.Bold)
+                {
+                    lab.Font = PharmaTheme.TitleFont;
+                    lab.ForeColor = PharmaTheme.TextDark;
+                }
+                else
+                {
+                    lab.Font = PharmaTheme.BodyFont;
+                    lab.ForeColor = PharmaTheme.MutedText;
+                }
+            }
+
+            RefreshPlaceholderLabels(c);
+        }
+    }
 }

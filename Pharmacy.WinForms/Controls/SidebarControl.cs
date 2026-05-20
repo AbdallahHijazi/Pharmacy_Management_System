@@ -7,6 +7,9 @@ namespace Pharmacy.WinForms.Controls;
 public sealed class SidebarControl : Panel
 {
     private readonly Dictionary<AppNavigation, SidebarButton> _buttons = new();
+    private FlowLayoutPanel _navHost = null!;
+    private Label _brandTitle = null!;
+    private Label _brandSubtitle = null!;
 
     public event EventHandler<AppNavigation>? NavigationRequested;
     public event EventHandler? LogoutRequested;
@@ -35,7 +38,7 @@ public sealed class SidebarControl : Panel
 
         var brandPanel = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 10) };
         var badge = new LogoBadgeControl { Size = new Size(60, 60) };
-        var title = new Label
+        _brandTitle = new Label
         {
             AutoSize = false,
             Font = PharmaTheme.SidebarBrandFont,
@@ -45,23 +48,25 @@ public sealed class SidebarControl : Panel
             TextAlign = ContentAlignment.MiddleCenter,
             UseCompatibleTextRendering = true
         };
-        var subtitle = new Label
+        _brandSubtitle = new Label
         {
             AutoSize = false,
             Font = PharmaTheme.SidebarSubtitleFont,
             ForeColor = PharmaTheme.OnSurfaceVariant,
             Size = new Size(220, 24),
-            Text = "صيدلية الشفاء",
+            Text = UiBranding.PharmacyDisplayName,
             TextAlign = ContentAlignment.MiddleCenter,
             UseCompatibleTextRendering = true
         };
         brandPanel.Controls.Add(badge);
-        brandPanel.Controls.Add(title);
-        brandPanel.Controls.Add(subtitle);
-        brandPanel.Resize += (_, _) => LayoutBrandStack(brandPanel, badge, title, subtitle);
-        LayoutBrandStack(brandPanel, badge, title, subtitle);
+        brandPanel.Controls.Add(_brandTitle);
+        brandPanel.Controls.Add(_brandSubtitle);
+        brandPanel.Resize += (_, _) => LayoutBrandStack(brandPanel, badge, _brandTitle, _brandSubtitle);
+        LayoutBrandStack(brandPanel, badge, _brandTitle, _brandSubtitle);
 
-        var navHost = new FlowLayoutPanel
+        UiBranding.PharmacyDisplayNameChanged += OnPharmacyDisplayNameChanged;
+
+        _navHost = new FlowLayoutPanel
         {
             AutoScroll = true,
             BackColor = PharmaTheme.SidebarLightBackground,
@@ -72,21 +77,21 @@ public sealed class SidebarControl : Panel
             WrapContents = false
         };
 
-        AddNavItem(navHost, AppNavigation.Dashboard, "لوحة التحكم", SegoeMdl2Icons.Dashboard);
-        AddNavItem(navHost, AppNavigation.Inventory, "المخزون", SegoeMdl2Icons.Inventory);
-        AddNavItem(navHost, AppNavigation.PointOfSale, "نقطة البيع", SegoeMdl2Icons.PointOfSale);
-        AddNavItem(navHost, AppNavigation.Purchases, "المشتريات", SegoeMdl2Icons.Purchases);
-        AddNavItem(navHost, AppNavigation.Customers, "الزبائن", SegoeMdl2Icons.Customers);
-        AddNavItem(navHost, AppNavigation.Suppliers, "الموردين", SegoeMdl2Icons.Suppliers);
-        AddNavItem(navHost, AppNavigation.Reports, "التقارير", SegoeMdl2Icons.Reports);
-        AddNavItem(navHost, AppNavigation.Users, "المستخدمين", SegoeMdl2Icons.Users);
-        AddNavItem(navHost, AppNavigation.Settings, "الإعدادات", SegoeMdl2Icons.Settings);
+        AddNavItem(_navHost, AppNavigation.Dashboard, "لوحة التحكم", SegoeMdl2Icons.Dashboard);
+        AddNavItem(_navHost, AppNavigation.Inventory, "المخزون", SegoeMdl2Icons.Inventory);
+        AddNavItem(_navHost, AppNavigation.PointOfSale, "نقطة البيع", SegoeMdl2Icons.PointOfSale);
+        AddNavItem(_navHost, AppNavigation.Purchases, "المشتريات", SegoeMdl2Icons.Purchases);
+        AddNavItem(_navHost, AppNavigation.Customers, "الزبائن", SegoeMdl2Icons.Customers);
+        AddNavItem(_navHost, AppNavigation.Suppliers, "الموردين", SegoeMdl2Icons.Suppliers);
+        AddNavItem(_navHost, AppNavigation.Reports, "التقارير", SegoeMdl2Icons.Reports);
+        AddNavItem(_navHost, AppNavigation.Users, "المستخدمين", SegoeMdl2Icons.Users);
+        AddNavItem(_navHost, AppNavigation.Settings, "الإعدادات", SegoeMdl2Icons.Settings);
 
-        navHost.Resize += (_, _) =>
+        _navHost.Resize += (_, _) =>
         {
-            foreach (Control control in navHost.Controls)
+            foreach (Control control in _navHost.Controls)
             {
-                control.Width = navHost.ClientSize.Width - navHost.Padding.Horizontal;
+                control.Width = _navHost.ClientSize.Width - _navHost.Padding.Horizontal;
             }
         };
 
@@ -108,11 +113,80 @@ public sealed class SidebarControl : Panel
         logoutRow.Controls.Add(logout);
 
         root.Controls.Add(brandPanel, 0, 0);
-        root.Controls.Add(navHost, 0, 1);
+        root.Controls.Add(_navHost, 0, 1);
         root.Controls.Add(logoutRow, 0, 2);
         Controls.Add(root);
 
         SetActive(AppNavigation.Dashboard);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            UiBranding.PharmacyDisplayNameChanged -= OnPharmacyDisplayNameChanged;
+        }
+
+        base.Dispose(disposing);
+    }
+
+    public void RefreshChrome()
+    {
+        BackColor = PharmaTheme.SidebarLightBackground;
+        if (_navHost is not null)
+        {
+            _navHost.BackColor = PharmaTheme.SidebarLightBackground;
+        }
+
+        if (_brandTitle is not null)
+        {
+            _brandTitle.Font = PharmaTheme.SidebarBrandFont;
+            _brandTitle.ForeColor = PharmaTheme.PrimaryGreen;
+        }
+
+        if (_brandSubtitle is not null)
+        {
+            _brandSubtitle.Font = PharmaTheme.SidebarSubtitleFont;
+            _brandSubtitle.ForeColor = PharmaTheme.OnSurfaceVariant;
+        }
+
+        foreach (Control control in Controls)
+        {
+            RefreshSidebarChildColors(control);
+        }
+
+        Invalidate(true);
+    }
+
+    private static void RefreshSidebarChildColors(Control root)
+    {
+        foreach (Control control in root.Controls)
+        {
+            switch (control)
+            {
+                case SidebarButton sidebarButton:
+                    sidebarButton.BackColor = PharmaTheme.SidebarLightBackground;
+                    sidebarButton.Invalidate();
+                    continue;
+                case FlowLayoutPanel fp:
+                    if (fp.BackColor != PharmaTheme.SidebarLightBackground)
+                    {
+                        fp.BackColor = PharmaTheme.SidebarLightBackground;
+                    }
+
+                    break;
+            }
+
+            RefreshSidebarChildColors(control);
+        }
+    }
+
+    private void OnPharmacyDisplayNameChanged(object? sender, EventArgs e)
+    {
+        if (_brandSubtitle is not null)
+        {
+            _brandSubtitle.Text = UiBranding.PharmacyDisplayName;
+        }
     }
 
     protected override void OnPaint(PaintEventArgs e)

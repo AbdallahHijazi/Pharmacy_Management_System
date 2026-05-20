@@ -162,6 +162,37 @@ public sealed class TopBarControl : Panel
         LayoutChrome();
     }
 
+    public void RefreshChrome()
+    {
+        _actionsFlow.BackColor = PharmaTheme.SoftGreenBackground;
+        foreach (Control c in _actionsFlow.Controls)
+        {
+            if (c is FlowLayoutPanel stack)
+            {
+                stack.BackColor = PharmaTheme.SoftGreenBackground;
+            }
+
+            c.Invalidate(true);
+        }
+
+        _searchShell.BackColor = PharmaTheme.SurfaceContainerHighest;
+        _searchIconLabel.BackColor = PharmaTheme.SurfaceContainerHighest;
+        _searchIconLabel.Font = PharmaTheme.IconFont(14f);
+        _searchIconLabel.ForeColor = PharmaTheme.OnSurfaceVariant;
+        _searchBox.BackColor = PharmaTheme.SurfaceContainerHighest;
+        _searchBox.Font = PharmaTheme.BodyFont;
+        _searchBox.ForeColor = PharmaTheme.TextDark;
+
+        _userNameLabel.Font = PharmaTheme.ArabicFont(10.5f, FontStyle.Bold);
+        _userNameLabel.ForeColor = PharmaTheme.TextDark;
+        _roleLabel.Font = PharmaTheme.SmallFont;
+        _roleLabel.ForeColor = PharmaTheme.MutedText;
+        _dateLabel.Font = PharmaTheme.SmallFont;
+        _dateLabel.ForeColor = PharmaTheme.OnSurfaceVariant;
+
+        Invalidate(true);
+    }
+
     private void LayoutSearch()
     {
         _searchIconLabel.Left = _searchShell.ClientSize.Width - _searchIconLabel.Width - 4;

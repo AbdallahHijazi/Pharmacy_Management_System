@@ -430,6 +430,53 @@ public sealed partial class DashboardControl : UserControl
         loadingLabel.Top = (loadingOverlay.ClientSize.Height - loadingLabel.Height) / 2;
     }
 
+    public void RefreshVisualTheme()
+    {
+        BackColor = PharmaTheme.SoftGreenBackground;
+        Font = PharmaTheme.BodyFont;
+
+        titleLabel.Font = PharmaTheme.DashboardHeadlineFont;
+        titleLabel.ForeColor = PharmaTheme.PrimaryGreen;
+        titleLabel.Height = TextLayoutHelper.LineHeight(PharmaTheme.DashboardHeadlineFont, 12);
+
+        subtitleLabel.Font = PharmaTheme.DashboardSubtitleFont;
+        subtitleLabel.ForeColor = PharmaTheme.OnSurfaceVariant;
+        subtitleLabel.Height = TextLayoutHelper.LineHeight(PharmaTheme.DashboardSubtitleFont, 8);
+
+        errorBannerLabel.Font = PharmaTheme.SmallFont;
+        errorBannerLabel.ForeColor = PharmaTheme.Danger;
+
+        loadingLabel.Font = PharmaTheme.BodyFont;
+        loadingLabel.ForeColor = PharmaTheme.TextDark;
+
+        latestSalesEmptyLabel.Font = PharmaTheme.BodyFont;
+        latestSalesEmptyLabel.ForeColor = PharmaTheme.MutedText;
+
+        newInvoiceButton.Invalidate();
+        ApplyDashboardThemedSurfaces(this);
+        Invalidate(true);
+    }
+
+    private static void ApplyDashboardThemedSurfaces(Control root)
+    {
+        foreach (Control c in root.Controls)
+        {
+            switch (c)
+            {
+                case StatCardControl s:
+                    s.BackColor = PharmaTheme.Background;
+                    s.Invalidate();
+                    break;
+                case PharmaCardPanel p:
+                    p.BackColor = PharmaTheme.Surface;
+                    p.Invalidate();
+                    break;
+            }
+
+            ApplyDashboardThemedSurfaces(c);
+        }
+    }
+
     private static string FormatCurrency(decimal value) => $"{value:N2} ل.س";
 
     protected override void Dispose(bool disposing)

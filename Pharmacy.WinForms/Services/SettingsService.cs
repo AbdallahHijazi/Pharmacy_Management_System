@@ -86,18 +86,9 @@ internal sealed class SettingsService
             return new SettingsSaveResult { ErrorMessage = "انتهت الجلسة. سجّل الدخول مرة أخرى." };
         }
 
-        var appearanceChanged = current.ThemeIndex != baseline.ThemeIndex
-            || current.FontSizeLevel != baseline.FontSizeLevel;
-
         var updates = BuildUpdates(current, baseline, settingsByKey);
         if (updates.Count == 0)
         {
-            if (appearanceChanged)
-            {
-                return SettingsSaveResult.Unsupported(
-                    "حفظ إعدادات النظام غير مدعوم بعد في الواجهة الحالية.\nتغييرات المظهر وحجم الخط غير مدعومة بعد.");
-            }
-
             return new SettingsSaveResult
             {
                 NoChanges = true,
@@ -139,7 +130,7 @@ internal sealed class SettingsService
             };
         }
 
-        return SettingsSaveResult.Success(saved, appearanceChanged);
+        return SettingsSaveResult.Success(saved, appearancePending: false);
     }
 
     private static List<(Guid SettingId, string Value)> BuildUpdates(

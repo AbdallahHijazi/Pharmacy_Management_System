@@ -33,7 +33,7 @@ internal sealed class SettingsControl : UserControl
 
     private const int PharmacyCardHeight = 290;
     private const int CurrencyCardHeight = 220;
-    private const int AppearanceCardHeight = 360;
+    private const int AppearanceCardHeight = 380;
     private const int AlertsCardHeight = 250;
     private const int BackupCardHeight = 290;
 
@@ -65,7 +65,7 @@ internal sealed class SettingsControl : UserControl
     private Label _subtitleLabel = null!;
     private Label _statusLabel = null!;
     private GradientRoundedButton _saveButton = null!;
-    private Button _cancelButton = null!;
+    private RoundedNeutralButton _cancelButton = null!;
 
     private SettingsCardPanel _pharmacyInfoCard = null!;
     private SettingsCardPanel _currencyCard = null!;
@@ -73,21 +73,23 @@ internal sealed class SettingsControl : UserControl
     private SettingsCardPanel _alertsCard = null!;
     private SettingsCardPanel _backupCard = null!;
 
-    private TextBox _pharmacyNameInput = null!;
-    private TextBox _addressInput = null!;
-    private TextBox _phoneInput = null!;
+    private RoundedFieldBox _pharmacyNameInput = null!;
+    private RoundedFieldBox _addressInput = null!;
+    private RoundedFieldBox _phoneInput = null!;
     private SettingsToggleButton _currencySypButton = null!;
     private SettingsToggleButton _currencyUsdButton = null!;
-    private TextBox _exchangeRateInput = null!;
+    private RoundedFieldBox _exchangeRateInput = null!;
     private ThemeOptionButton[] _themeButtons = null!;
-    private TrackBar _fontSizeTrack = null!;
+    private FontSizeSegmentButton _fontSmallButton = null!;
+    private FontSizeSegmentButton _fontMediumButton = null!;
+    private FontSizeSegmentButton _fontLargeButton = null!;
     private Label _fontSizeHintLabel = null!;
-    private TextBox _expiryDaysInput = null!;
-    private TextBox _lowStockInput = null!;
-    private TextBox _backupPathInput = null!;
-    private ComboBox _autoBackupCombo = null!;
-    private Button _browseFolderButton = null!;
-    private Button _backupNowButton = null!;
+    private RoundedFieldBox _expiryDaysInput = null!;
+    private RoundedFieldBox _lowStockInput = null!;
+    private RoundedFieldBox _backupPathInput = null!;
+    private RoundedComboInput _autoBackupComboHost = null!;
+    private RoundedIconButton _browseFolderButton = null!;
+    private RoundedPrimaryOutlineButton _backupNowButton = null!;
 
     public SettingsControl() : this(AppServices.SettingsService)
     {
@@ -115,6 +117,9 @@ internal sealed class SettingsControl : UserControl
 
         BuildUiControls();
         WireEvents();
+
+        ThemeManager.ThemeChanged += HandleGlobalUiRefresh;
+        FontScaleManager.Changed += HandleGlobalUiRefresh;
 
         _uiBuilt = true;
         _layoutReady = true;
@@ -192,17 +197,12 @@ internal sealed class SettingsControl : UserControl
             Text = "حفظ التغييرات"
         };
 
-        _cancelButton = new Button
+        _cancelButton = new RoundedNeutralButton
         {
-            BackColor = PharmaTheme.SurfaceContainer,
-            FlatStyle = FlatStyle.Flat,
-            Font = PharmaTheme.BodyFont,
-            ForeColor = PharmaTheme.TextDark,
-            Size = new Size(110, 44),
             Text = "إلغاء",
-            UseCompatibleTextRendering = true
+            Size = new Size(110, 44),
+            RightToLeft = RightToLeft.Yes
         };
-        _cancelButton.FlatAppearance.BorderSize = 0;
 
         _pharmacyNameInput = CreateTextInput("صيدلية الشفاء");
         _addressInput = CreateTextInput("شارع الاستقلال, البناء 4");
@@ -231,17 +231,9 @@ internal sealed class SettingsControl : UserControl
             _appearanceCard.Controls.Add(button);
         }
 
-        _fontSizeTrack = new TrackBar
-        {
-            Height = 40,
-            LargeChange = 1,
-            Maximum = 3,
-            Minimum = 1,
-            RightToLeft = RightToLeft.No,
-            TickStyle = TickStyle.None,
-            Value = 2,
-            Width = 200
-        };
+        _fontSmallButton = new FontSizeSegmentButton("صغير") { Width = 72, RightToLeft = RightToLeft.Yes };
+        _fontMediumButton = new FontSizeSegmentButton("متوسط") { Width = 80, RightToLeft = RightToLeft.Yes };
+        _fontLargeButton = new FontSizeSegmentButton("كبير") { Width = 72, RightToLeft = RightToLeft.Yes };
 
         _fontSizeHintLabel = new Label
         {
@@ -250,9 +242,11 @@ internal sealed class SettingsControl : UserControl
             ForeColor = PharmaTheme.MutedText,
             Height = LabelHeight,
             TextAlign = ContentAlignment.MiddleCenter,
+            RightToLeft = RightToLeft.Yes,
             UseCompatibleTextRendering = true
         };
-        UpdateFontSizeHint();
+        SyncFontSegmentSelection(FontScaleManager.Level);
+        UpdateFontSizeHint(FontScaleManager.Level);
 
         _expiryDaysInput = CreateNumberInput("90");
         _lowStockInput = CreateNumberInput("5");
@@ -261,40 +255,19 @@ internal sealed class SettingsControl : UserControl
         _backupPathInput.ReadOnly = true;
         _backupPathInput.TextAlign = HorizontalAlignment.Left;
 
-        _browseFolderButton = new Button
-        {
-            BackColor = PharmaTheme.SurfaceContainerHighest,
-            FlatStyle = FlatStyle.Flat,
-            Font = SettingsIconFont(14f),
-            ForeColor = PharmaTheme.PrimaryGreen,
-            Size = new Size(48, FieldHeight),
-            Text = SegoeMdl2Icons.Folder,
-            UseCompatibleTextRendering = true
-        };
-        _browseFolderButton.FlatAppearance.BorderSize = 0;
+        _browseFolderButton = new RoundedIconButton(SegoeMdl2Icons.Folder) { RightToLeft = RightToLeft.Yes };
 
-        _autoBackupCombo = new ComboBox
-        {
-            DropDownStyle = ComboBoxStyle.DropDownList,
-            Font = PharmaTheme.BodyFont,
-            Height = FieldHeight,
-            Width = 140
-        };
-        _autoBackupCombo.Items.AddRange(["يومياً", "أسبوعياً", "شهرياً"]);
-        _autoBackupCombo.SelectedIndex = 0;
+        _autoBackupComboHost = new RoundedComboInput();
+        var combo = _autoBackupComboHost.Combo;
+        combo.RightToLeft = RightToLeft.Yes;
+        combo.Items.AddRange(["يومياً", "أسبوعياً", "شهرياً"]);
+        combo.SelectedIndex = 0;
 
-        _backupNowButton = new Button
+        _backupNowButton = new RoundedPrimaryOutlineButton
         {
-            BackColor = PharmaTheme.SurfaceContainerLow,
-            FlatStyle = FlatStyle.Flat,
-            Font = PharmaTheme.ArabicFont(10f, FontStyle.Bold),
-            ForeColor = PharmaTheme.PrimaryGreen,
-            Height = 44,
             Text = "إنشاء نسخة الآن",
-            UseCompatibleTextRendering = true
+            RightToLeft = RightToLeft.Yes
         };
-        _backupNowButton.FlatAppearance.BorderColor = PharmaTheme.PrimaryGreen;
-        _backupNowButton.FlatAppearance.BorderSize = 1;
 
         AddFieldToCard(_pharmacyInfoCard, "اسم الصيدلية", _pharmacyNameInput);
         AddFieldToCard(_pharmacyInfoCard, "العنوان", _addressInput);
@@ -304,7 +277,9 @@ internal sealed class SettingsControl : UserControl
         _currencyCard.Controls.Add(_currencyUsdButton);
         _currencyCard.Controls.Add(_exchangeRateInput);
 
-        _appearanceCard.Controls.Add(_fontSizeTrack);
+        _appearanceCard.Controls.Add(_fontSmallButton);
+        _appearanceCard.Controls.Add(_fontMediumButton);
+        _appearanceCard.Controls.Add(_fontLargeButton);
         _appearanceCard.Controls.Add(_fontSizeHintLabel);
 
         _alertsCard.Controls.Add(_expiryDaysInput);
@@ -312,7 +287,7 @@ internal sealed class SettingsControl : UserControl
 
         _backupCard.Controls.Add(_backupPathInput);
         _backupCard.Controls.Add(_browseFolderButton);
-        _backupCard.Controls.Add(_autoBackupCombo);
+        _backupCard.Controls.Add(_autoBackupComboHost);
         _backupCard.Controls.Add(_backupNowButton);
 
         _contentCanvas.Controls.Add(_backupCard);
@@ -333,10 +308,12 @@ internal sealed class SettingsControl : UserControl
     private void WireEvents()
     {
         _saveButton.Click += async (_, _) => await SaveAsync();
-        _cancelButton.Click += (_, _) => ApplyState(_loadedState.Clone());
+        _cancelButton.Click += (_, _) => CancelToLastSaved();
         _currencySypButton.Click += (_, _) => SetCurrency("SYP");
         _currencyUsdButton.Click += (_, _) => SetCurrency("USD");
-        _fontSizeTrack.ValueChanged += (_, _) => UpdateFontSizeHint();
+        _fontSmallButton.Click += (_, _) => SetFontLevelPreview(1);
+        _fontMediumButton.Click += (_, _) => SetFontLevelPreview(2);
+        _fontLargeButton.Click += (_, _) => SetFontLevelPreview(3);
         _browseFolderButton.Click += (_, _) => BrowseBackupFolder();
         _backupNowButton.Click += (_, _) =>
             UiFeedback.ShowFeatureNotAvailable(FindForm(), "ميزة النسخ الاحتياطي");
@@ -577,7 +554,7 @@ internal sealed class SettingsControl : UserControl
     private static void LayoutFieldRow(
         SettingsCardPanel card,
         string label,
-        TextBox field,
+        Control field,
         Rectangle inner,
         ref int y)
     {
@@ -659,8 +636,13 @@ internal sealed class SettingsControl : UserControl
         var capFont = EnsureCaption(_appearanceCard, "حجم الخط");
         capFont.SetBounds(rightX, fontY, rightW, LabelHeight);
         fontY += LabelHeight + 8;
-        _fontSizeTrack.SetBounds(rightX, fontY, rightW, 40);
-        _fontSizeHintLabel.SetBounds(rightX, fontY + 44, rightW, LabelHeight);
+
+        var segW = Math.Max(64, (rightW - 18) / 3);
+        var rowRight = rightX + rightW;
+        _fontLargeButton.SetBounds(rowRight - segW, fontY, segW, 40);
+        _fontMediumButton.SetBounds(rowRight - segW * 2 - 8, fontY, segW, 40);
+        _fontSmallButton.SetBounds(rowRight - segW * 3 - 16, fontY, segW, 40);
+        _fontSizeHintLabel.SetBounds(rightX, fontY + 46, rightW, LabelHeight);
     }
 
     private void LayoutAlertsCard()
@@ -694,7 +676,7 @@ internal sealed class SettingsControl : UserControl
 
         var scheduleCaption = EnsureCaption(_backupCard, "النسخ التلقائي", PharmaTheme.BodyFont, PharmaTheme.TextDark);
         scheduleCaption.SetBounds(inner.X, y, inner.Width - 150, LabelHeight);
-        _autoBackupCombo.SetBounds(inner.Right - 140, y, 140, FieldHeight);
+        _autoBackupComboHost.SetBounds(inner.Right - 156, y, 156, FieldHeight);
         y += FieldHeight + 16;
 
         _backupNowButton.SetBounds(inner.X, y, inner.Width, 44);
@@ -727,7 +709,7 @@ internal sealed class SettingsControl : UserControl
         return caption;
     }
 
-    private void LayoutAlertRow(Rectangle inner, string title, string subtitle, TextBox input, string unit, int index)
+    private void LayoutAlertRow(Rectangle inner, string title, string subtitle, RoundedFieldBox input, string unit, int index)
     {
         if (_alertsCard is null || input is null || input.IsDisposed)
         {
@@ -806,7 +788,7 @@ internal sealed class SettingsControl : UserControl
         };
     }
 
-    private static void AddFieldToCard(SettingsCardPanel card, string label, TextBox input)
+    private static void AddFieldToCard(SettingsCardPanel card, string label, RoundedFieldBox input)
     {
         var caption = new Label
         {
@@ -823,18 +805,15 @@ internal sealed class SettingsControl : UserControl
         card.Controls.Add(input);
     }
 
-    private static TextBox CreateTextInput(string value) => new()
+    private static RoundedFieldBox CreateTextInput(string value) => new()
     {
-        BackColor = PharmaTheme.SurfaceContainerHighest,
-        BorderStyle = BorderStyle.FixedSingle,
-        Font = PharmaTheme.BodyFont,
-        ForeColor = PharmaTheme.TextDark,
         Height = FieldHeight,
         MinimumSize = new Size(0, FieldHeight),
-        Text = value
+        Text = value,
+        RightToLeft = RightToLeft.Yes
     };
 
-    private static TextBox CreateNumberInput(string value)
+    private static RoundedFieldBox CreateNumberInput(string value)
     {
         var box = CreateTextInput(value);
         box.TextAlign = HorizontalAlignment.Center;
@@ -852,20 +831,18 @@ internal sealed class SettingsControl : UserControl
         SetBusy(true);
         try
         {
+            var disk = LocalAppSettingsStore.LoadOrDefault();
             var result = await _settingsService.LoadAsync();
             _settingsByKey = result.SettingsByKey;
-            _loadedState = result.State.Clone();
-            ApplyState(_loadedState);
+
+            var merged = MergeLocalWithApi(disk, result);
+            _loadedState = merged.Clone();
+            ApplyState(merged);
+            UiBranding.SetPharmacyDisplayName(merged.PharmacyName);
 
             if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
             {
                 ShowStatus(result.ErrorMessage!, PharmaTheme.WarningStrong);
-            }
-            else if (result.UsedDefaults)
-            {
-                ShowStatus(
-                    "تم تحميل القيم الافتراضية محلياً. الحفظ على الخادم يتطلب إعدادات مسجّلة في النظام.",
-                    PharmaTheme.MutedText);
             }
             else
             {
@@ -891,41 +868,47 @@ internal sealed class SettingsControl : UserControl
         }
 
         var current = CaptureState();
+        if (!TryValidateForSave(current, out var validationMessage))
+        {
+            MessageBox.Show(
+                FindForm(),
+                validationMessage,
+                "الإعدادات",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
+        var baselineForApi = _loadedState.Clone();
         _isSaving = true;
         SetBusy(true);
         try
         {
-            var result = await _settingsService.SaveAsync(current, _loadedState, _settingsByKey);
-            if (result.NoChanges)
+            if (!LocalAppSettingsStore.TrySave(current, out var localWriteError))
             {
-                MessageBox.Show(
-                    FindForm(),
-                    result.Message ?? "لا توجد تغييرات لحفظها على الخادم.",
-                    "الإعدادات",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
+                UiFeedback.ShowError(FindForm(), $"تعذر حفظ الإعدادات: {localWriteError}");
                 return;
             }
 
-            if (result.NotSupported)
+            ThemeManager.ApplyThemeIndex(current.ThemeIndex);
+            FontScaleManager.SetLevel(current.FontSizeLevel);
+            UiBranding.SetPharmacyDisplayName(current.PharmacyName);
+
+            var apiResult = await _settingsService.SaveAsync(current, baselineForApi, _settingsByKey);
+            _loadedState = current.Clone();
+
+            UiFeedback.ShowSuccess(FindForm(), "تم حفظ الإعدادات بنجاح");
+            ShowStatus("تم حفظ الإعدادات على هذا الجهاز وتمت المحاولة على الخادم.", PharmaTheme.Success);
+
+            var apiMessyFailure = !string.IsNullOrWhiteSpace(apiResult.ErrorMessage)
+                && !apiResult.AnySaved
+                && !apiResult.NoChanges
+                && !apiResult.NotSupported;
+            if (apiMessyFailure)
             {
                 UiFeedback.ShowError(
                     FindForm(),
-                    result.Message ?? "حفظ إعدادات النظام غير مدعوم بعد في الواجهة الحالية.");
-                return;
-            }
-
-            if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
-            {
-                UiFeedback.ShowError(FindForm(), result.ErrorMessage);
-                return;
-            }
-
-            if (result.AnySaved)
-            {
-                _loadedState = current.Clone();
-                UiFeedback.ShowSuccess(FindForm(), result.Message ?? "تم الحفظ بنجاح.");
-                ShowStatus("تمت مزامنة الإعدادات المحفوظة مع الخادم.", PharmaTheme.Success);
+                    $"تم الحفظ محلياً، لكن الخادم أبلغ بتعطل: {apiResult.ErrorMessage}");
             }
         }
         finally
@@ -954,6 +937,196 @@ internal sealed class SettingsControl : UserControl
         }
     }
 
+    private void HandleGlobalUiRefresh(object? sender, EventArgs e)
+    {
+        if (IsDisposed || Disposing)
+        {
+            return;
+        }
+
+        if (InvokeRequired)
+        {
+            BeginInvoke(new Action(() => HandleGlobalUiRefresh(sender, e)));
+            return;
+        }
+
+        ApplyThemeAndFontVisuals();
+    }
+
+    private void CancelToLastSaved()
+    {
+        var disk = LocalAppSettingsStore.LoadOrDefault();
+        ApplyState(disk);
+        UiBranding.SetPharmacyDisplayName(disk.PharmacyName);
+    }
+
+    private void SetFontLevelPreview(int level)
+    {
+        var clamped = Math.Clamp(level, 1, 3);
+        FontScaleManager.SetLevel(clamped);
+        SyncFontSegmentSelection(clamped);
+        UpdateFontSizeHint(clamped);
+    }
+
+    private void SyncFontSegmentSelection(int level)
+    {
+        _fontSmallButton.IsSelected = level == 1;
+        _fontMediumButton.IsSelected = level == 2;
+        _fontLargeButton.IsSelected = level == 3;
+    }
+
+    private void UpdateFontSizeHint(int level)
+    {
+        if (_fontSizeHintLabel is null)
+        {
+            return;
+        }
+
+        var label = level switch
+        {
+            1 => "صغير",
+            3 => "كبير",
+            _ => "متوسط"
+        };
+        _fontSizeHintLabel.Text = $"الحجم الحالي: {label}";
+    }
+
+    private static SettingsFormState MergeLocalWithApi(SettingsFormState disk, SettingsLoadResult api)
+    {
+        var merged = disk.Clone();
+
+        bool TryOverlay(string key, Action<string> apply)
+        {
+            if (!api.SettingsByKey.TryGetValue(key, out var row) || string.IsNullOrWhiteSpace(row.Value))
+            {
+                return false;
+            }
+
+            apply(row.Value.Trim());
+            return true;
+        }
+
+        TryOverlay(SettingsKeys.PharmacyName, v => merged.PharmacyName = v);
+        TryOverlay(SettingsKeys.PharmacyAddress, v => merged.Address = v);
+        TryOverlay(SettingsKeys.PharmacyPhone, v => merged.Phone = v);
+        TryOverlay(SettingsKeys.DefaultCurrency, v => merged.CurrencyCode = v);
+        TryOverlay(SettingsKeys.ExchangeRate, v => merged.ExchangeRate = v);
+        TryOverlay(SettingsKeys.ExpiryAlertDays, v => merged.ExpiryAlertDays = v);
+        TryOverlay(SettingsKeys.LowStockThreshold, v => merged.LowStockThreshold = v);
+
+        return merged;
+    }
+
+    private static bool TryValidateForSave(SettingsFormState s, out string message)
+    {
+        if (string.IsNullOrWhiteSpace(s.PharmacyName))
+        {
+            message = "يرجى إدخال اسم الصيدلية.";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(s.Phone) || s.Phone.Trim().Length < 3)
+        {
+            message = "يرجى إدخال رقم هاتف صالح.";
+            return false;
+        }
+
+        if (!decimal.TryParse(
+                s.ExchangeRate,
+                System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var rate) ||
+            rate <= 0)
+        {
+            message = "يرجى إدخال سعر صرف موجب.";
+            return false;
+        }
+
+        if (!int.TryParse(s.ExpiryAlertDays, out var exp) || exp <= 0)
+        {
+            message = "يرجى إدخال عدد أيام انتهاء الصلاحية بقيمة موجبة.";
+            return false;
+        }
+
+        if (!int.TryParse(s.LowStockThreshold, out var low) || low < 0)
+        {
+            message = "يرجى إدخال حد النقص رقماً صفراً أو أكبر.";
+            return false;
+        }
+
+        message = string.Empty;
+        return true;
+    }
+
+    public void ApplyThemeAndFontVisuals()
+    {
+        if (!_uiBuilt)
+        {
+            return;
+        }
+
+        BackColor = PharmaTheme.Background;
+        _scrollPanel.BackColor = PharmaTheme.Background;
+        _contentCanvas.BackColor = PharmaTheme.Background;
+
+        _titleLabel.Font = PharmaTheme.ArabicFont(18f, FontStyle.Bold);
+        _titleLabel.ForeColor = PharmaTheme.PrimaryGreen;
+        _subtitleLabel.Font = PharmaTheme.SmallFont;
+        _subtitleLabel.ForeColor = PharmaTheme.OnSurfaceVariant;
+        _statusLabel.Font = PharmaTheme.SmallFont;
+
+        _saveButton.Invalidate();
+        _cancelButton.RefreshThemeVisuals();
+
+        _pharmacyNameInput.ApplyThemeVisuals();
+        _addressInput.ApplyThemeVisuals();
+        _phoneInput.ApplyThemeVisuals();
+        _exchangeRateInput.ApplyThemeVisuals();
+        _expiryDaysInput.ApplyThemeVisuals();
+        _lowStockInput.ApplyThemeVisuals();
+        _backupPathInput.ApplyThemeVisuals();
+
+        _autoBackupComboHost.SyncTheme();
+        _browseFolderButton.RefreshThemeVisuals();
+        _backupNowButton.RefreshThemeVisuals();
+
+        _currencySypButton.Invalidate();
+        _currencyUsdButton.Invalidate();
+
+        foreach (var b in _themeButtons)
+        {
+            b.Invalidate();
+        }
+
+        _fontSmallButton.Invalidate();
+        _fontMediumButton.Invalidate();
+        _fontLargeButton.Invalidate();
+        _fontSizeHintLabel.Font = PharmaTheme.SmallFont;
+        _fontSizeHintLabel.ForeColor = PharmaTheme.MutedText;
+
+        foreach (Control c in _pharmacyInfoCard.Controls)
+        {
+            if (c is Label la && la.Tag is string)
+            {
+                la.Font = PharmaTheme.SmallFont;
+                la.ForeColor = PharmaTheme.OnSurfaceVariant;
+            }
+        }
+
+        Invalidate(true);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            ThemeManager.ThemeChanged -= HandleGlobalUiRefresh;
+            FontScaleManager.Changed -= HandleGlobalUiRefresh;
+        }
+
+        base.Dispose(disposing);
+    }
+
     private void SetCurrency(string code)
     {
         var normalized = string.Equals(code, "USD", StringComparison.OrdinalIgnoreCase) ? "USD" : "SYP";
@@ -963,42 +1136,44 @@ internal sealed class SettingsControl : UserControl
 
     private void SetTheme(int index)
     {
+        var clamped = Math.Clamp(index, 0, _themeButtons.Length - 1);
         for (var i = 0; i < _themeButtons.Length; i++)
         {
-            _themeButtons[i].IsSelected = i == index;
+            _themeButtons[i].IsSelected = i == clamped;
         }
+
+        ThemeManager.ApplyThemeIndex(clamped);
     }
 
-    private void UpdateFontSizeHint()
+    private SettingsFormState CaptureState()
     {
-        if (_fontSizeTrack is null || _fontSizeHintLabel is null)
+        var fontLevel = _fontLargeButton.IsSelected
+            ? 3
+            : _fontSmallButton.IsSelected
+                ? 1
+                : 2;
+        var themeIndex = Array.FindIndex(_themeButtons, b => b.IsSelected);
+        if (themeIndex < 0)
         {
-            return;
+            themeIndex = 0;
         }
 
-        var label = _fontSizeTrack.Value switch
+        var combo = _autoBackupComboHost.Combo;
+        return new SettingsFormState
         {
-            1 => "صغير",
-            3 => "كبير",
-            _ => "متوسط"
+            PharmacyName = _pharmacyNameInput.Text ?? string.Empty,
+            Address = _addressInput.Text ?? string.Empty,
+            Phone = _phoneInput.Text ?? string.Empty,
+            CurrencyCode = _currencySypButton.IsSelected ? "SYP" : "USD",
+            ExchangeRate = _exchangeRateInput.Text ?? string.Empty,
+            ThemeIndex = themeIndex,
+            FontSizeLevel = fontLevel,
+            ExpiryAlertDays = _expiryDaysInput.Text ?? string.Empty,
+            LowStockThreshold = _lowStockInput.Text ?? string.Empty,
+            BackupPath = _backupPathInput.Text ?? string.Empty,
+            AutoBackupSchedule = combo.SelectedItem?.ToString() ?? "يومياً"
         };
-        _fontSizeHintLabel.Text = $"الحجم الحالي: {label}";
     }
-
-    private SettingsFormState CaptureState() => new()
-    {
-        PharmacyName = _pharmacyNameInput.Text,
-        Address = _addressInput.Text,
-        Phone = _phoneInput.Text,
-        CurrencyCode = _currencySypButton.IsSelected ? "SYP" : "USD",
-        ExchangeRate = _exchangeRateInput.Text,
-        ThemeIndex = Array.FindIndex(_themeButtons, b => b.IsSelected),
-        FontSizeLevel = _fontSizeTrack.Value,
-        ExpiryAlertDays = _expiryDaysInput.Text,
-        LowStockThreshold = _lowStockInput.Text,
-        BackupPath = _backupPathInput.Text,
-        AutoBackupSchedule = _autoBackupCombo.SelectedItem?.ToString() ?? "يومياً"
-    };
 
     private void ApplyState(SettingsFormState state)
     {
@@ -1007,15 +1182,24 @@ internal sealed class SettingsControl : UserControl
         _phoneInput.Text = state.Phone;
         SetCurrency(state.CurrencyCode);
         _exchangeRateInput.Text = state.ExchangeRate;
+
         SetTheme(Math.Clamp(state.ThemeIndex, 0, _themeButtons.Length - 1));
-        _fontSizeTrack.Value = Math.Clamp(state.FontSizeLevel, _fontSizeTrack.Minimum, _fontSizeTrack.Maximum);
-        UpdateFontSizeHint();
+
+        var lvl = Math.Clamp(state.FontSizeLevel, 1, 3);
+        SyncFontSegmentSelection(lvl);
+        UpdateFontSizeHint(lvl);
+        if (lvl != FontScaleManager.Level)
+        {
+            FontScaleManager.SetLevel(lvl);
+        }
+
         _expiryDaysInput.Text = state.ExpiryAlertDays;
         _lowStockInput.Text = state.LowStockThreshold;
         _backupPathInput.Text = state.BackupPath;
 
-        var scheduleIndex = Math.Max(0, _autoBackupCombo.Items.IndexOf(state.AutoBackupSchedule));
-        _autoBackupCombo.SelectedIndex = scheduleIndex >= 0 ? scheduleIndex : 0;
+        var combo = _autoBackupComboHost.Combo;
+        var scheduleIndex = combo.Items.IndexOf(state.AutoBackupSchedule);
+        combo.SelectedIndex = scheduleIndex >= 0 ? scheduleIndex : 0;
         if (_layoutReady)
         {
             PerformLayout();
@@ -1170,7 +1354,7 @@ internal sealed class SettingsControl : UserControl
             bounds.Inflate(-1, -1);
             var back = _isSelected ? PharmaTheme.PrimaryGreen : PharmaTheme.SurfaceContainerHighest;
             var textColor = _isSelected ? Color.White : PharmaTheme.OnSurfaceVariant;
-            RoundedDrawing.FillRounded(e.Graphics, bounds, 8, back);
+            RoundedDrawing.FillRounded(e.Graphics, bounds, 12, back);
             TextRenderer.DrawText(
                 e.Graphics,
                 Text,

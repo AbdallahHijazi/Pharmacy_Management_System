@@ -22,6 +22,55 @@ public sealed partial class MainForm : Form
         topBar.BindUser();
         WireEvents();
         ShowPage(AppNavigation.Dashboard);
+        ApplyGlobalChrome();
+    }
+
+    private void ApplyGlobalChrome()
+    {
+        if (IsDisposed)
+        {
+            return;
+        }
+
+        BackColor = PharmaTheme.SoftGreenBackground;
+        Font = PharmaTheme.BodyFont;
+        shellLayout.BackColor = PharmaTheme.SoftGreenBackground;
+        mainShell.BackColor = PharmaTheme.Background;
+        contentHost.BackColor = PharmaTheme.Background;
+        sidebar.RefreshChrome();
+        topBar.RefreshChrome();
+        _dashboard?.RefreshVisualTheme();
+
+        foreach (var page in _pages.Values)
+        {
+            switch (page)
+            {
+                case SettingsControl settings:
+                    settings.ApplyThemeAndFontVisuals();
+                    break;
+                case PlaceholderPageControl placeholder:
+                    placeholder.ApplyThemeVisuals();
+                    break;
+            }
+        }
+
+        Invalidate(true);
+    }
+
+    private void OnGlobalThemeOrFontChanged(object? sender, EventArgs e)
+    {
+        if (IsDisposed)
+        {
+            return;
+        }
+
+        if (InvokeRequired)
+        {
+            BeginInvoke(new Action(ApplyGlobalChrome));
+            return;
+        }
+
+        ApplyGlobalChrome();
     }
 
     private void WireEvents()
@@ -42,6 +91,9 @@ public sealed partial class MainForm : Form
         topBar.NotificationsClicked += (_, _) => UiFeedback.ShowFeatureNotAvailable(this, "التنبيهات");
         topBar.ThemeToggleRequested += (_, _) => UiFeedback.ShowFeatureNotAvailable(this, "تبديل المظهر في التطبيق");
         topBar.AccountClicked += (_, _) => UiFeedback.ShowFeatureNotAvailable(this, "صفحة الحساب");
+
+        ThemeManager.ThemeChanged += OnGlobalThemeOrFontChanged;
+        FontScaleManager.Changed += OnGlobalThemeOrFontChanged;
 
         FormClosed += (_, _) => _authService.Logout();
     }
@@ -131,6 +183,8 @@ public sealed partial class MainForm : Form
     {
         if (disposing)
         {
+            ThemeManager.ThemeChanged -= OnGlobalThemeOrFontChanged;
+            FontScaleManager.Changed -= OnGlobalThemeOrFontChanged;
             components?.Dispose();
             foreach (var page in _pages.Values)
             {

@@ -4,40 +4,42 @@ namespace Pharmacy.WinForms.Ui;
 
 internal static class PharmaTheme
 {
-    public static readonly Color PrimaryGreen = Color.FromArgb(7, 100, 67);
-    public static readonly Color PrimaryContainer = Color.FromArgb(45, 125, 90);
-    public static readonly Color Success = Color.FromArgb(0, 127, 86);
-    public static readonly Color AccentTeal = Color.FromArgb(43, 184, 168);
-    public static readonly Color SoftGreenBackground = Color.FromArgb(231, 255, 241);
-    public static readonly Color CardBackground = Color.White;
-    public static readonly Color SurfaceContainerLowest = Color.White;
-    public static readonly Color SurfaceContainerLow = Color.FromArgb(225, 249, 235);
-    public static readonly Color SurfaceContainer = Color.FromArgb(220, 244, 229);
-    public static readonly Color SurfaceContainerHighest = Color.FromArgb(208, 232, 218);
-    public static readonly Color OutlineVariant = Color.FromArgb(190, 201, 192);
-    public static readonly Color OnSurfaceVariant = Color.FromArgb(63, 73, 67);
-    public static Color Background => SoftGreenBackground;
-    public static Color Surface => CardBackground;
-    public static readonly Color InputSurface = Color.FromArgb(246, 249, 247);
-    public static readonly Color TextDark = Color.FromArgb(11, 31, 23);
-    public static readonly Color MutedText = Color.FromArgb(111, 122, 114);
-    public static readonly Color SidebarBackground = Color.FromArgb(5, 72, 49);
-    public static readonly Color SidebarHover = Color.FromArgb(14, 92, 63);
-    public static readonly Color SidebarActive = Color.FromArgb(22, 118, 78);
-    public static readonly Color SidebarLightBackground = Color.FromArgb(244, 246, 247);
-    public static readonly Color SidebarNavHoverFill = Color.FromArgb(230, 241, 235);
-    public static readonly Color SidebarDivider = Color.FromArgb(210, 220, 214);
-    public static readonly Color BorderLight = Color.FromArgb(214, 228, 220);
-    public static readonly Color BorderSoft = Color.FromArgb(220, 232, 224);
-    public static readonly Color Danger = Color.FromArgb(186, 26, 26);
-    public static readonly Color Warning = Color.FromArgb(245, 158, 11);
-    public static readonly Color WarningStrong = Color.FromArgb(217, 119, 6);
-    public static readonly Color WarningSurface = Color.FromArgb(255, 251, 235);
-    public static readonly Color SuccessSurface = Color.FromArgb(220, 244, 229);
-    public static readonly Color ErrorContainer = Color.FromArgb(255, 218, 214);
-    public static readonly Color TopBarGradientDeep = Color.FromArgb(255, 220, 241, 232);
-    public static readonly Color DashboardCardShadow = Color.FromArgb(10, 7, 100, 67);
-    public static readonly Color PrimaryFixed = Color.FromArgb(163, 243, 200);
+    private static ThemeSnapshot T => ThemeManager.Snapshot;
+
+    public static Color PrimaryGreen => T.PrimaryGreen;
+    public static Color PrimaryContainer => T.PrimaryContainer;
+    public static Color Success => T.Success;
+    public static Color AccentTeal => T.AccentTeal;
+    public static Color SoftGreenBackground => T.SoftGreenBackground;
+    public static Color CardBackground => T.CardBackground;
+    public static Color SurfaceContainerLowest => T.SurfaceContainerLowest;
+    public static Color SurfaceContainerLow => T.SurfaceContainerLow;
+    public static Color SurfaceContainer => T.SurfaceContainer;
+    public static Color SurfaceContainerHighest => T.SurfaceContainerHighest;
+    public static Color OutlineVariant => T.OutlineVariant;
+    public static Color OnSurfaceVariant => T.OnSurfaceVariant;
+    public static Color Background => T.SoftGreenBackground;
+    public static Color Surface => T.CardBackground;
+    public static Color InputSurface => T.InputSurface;
+    public static Color TextDark => T.TextDark;
+    public static Color MutedText => T.MutedText;
+    public static Color SidebarBackground => T.SidebarBackground;
+    public static Color SidebarHover => T.SidebarHover;
+    public static Color SidebarActive => T.SidebarActive;
+    public static Color SidebarLightBackground => T.SidebarLightBackground;
+    public static Color SidebarNavHoverFill => T.SidebarNavHoverFill;
+    public static Color SidebarDivider => T.SidebarDivider;
+    public static Color BorderLight => T.BorderLight;
+    public static Color BorderSoft => T.BorderSoft;
+    public static Color Danger => T.Danger;
+    public static Color Warning => T.Warning;
+    public static Color WarningStrong => T.WarningStrong;
+    public static Color WarningSurface => T.WarningSurface;
+    public static Color SuccessSurface => T.SuccessSurface;
+    public static Color ErrorContainer => T.ErrorContainer;
+    public static Color TopBarGradientDeep => T.TopBarGradientDeep;
+    public static Color DashboardCardShadow => T.DashboardCardShadow;
+    public static Color PrimaryFixed => T.PrimaryFixed;
 
     public const int DashboardCardCornerRadius = 20;
     public const int DashboardStatCornerRadius = 20;
@@ -50,13 +52,16 @@ internal static class PharmaTheme
     private static readonly string[] ArabicFontCandidates = ["Cairo", "Segoe UI", "Tahoma"];
     private static readonly string[] NumberFontCandidates = ["Inter", "Segoe UI", "Tahoma"];
 
+    private static float Sc(float sizePx) => sizePx * FontScaleManager.Multiplier;
+
     public static Font ArabicFont(float size, FontStyle style = FontStyle.Regular) =>
-        CreateFont(ArabicFontCandidates, size, style);
+        CreateFont(ArabicFontCandidates, Sc(size), style);
 
     public static Font NumberFont(float size, FontStyle style = FontStyle.Bold) =>
-        CreateFont(NumberFontCandidates, size, style);
+        CreateFont(NumberFontCandidates, Sc(size), style);
 
-    public static Font IconFont(float size) => new("Segoe MDL2 Assets", size, FontStyle.Regular, GraphicsUnit.Point);
+    public static Font IconFont(float size) =>
+        new("Segoe MDL2 Assets", Sc(size), FontStyle.Regular, GraphicsUnit.Point);
 
     public static Font TitleFont => ArabicFont(14f, FontStyle.Bold);
     public static Font DashboardHeadlineFont => ArabicFont(22f, FontStyle.Bold);
@@ -91,14 +96,14 @@ internal static class PharmaTheme
     public const int LoginRevealColumnWidth = 44;
     public const int LoginNoticeCornerRadius = 16;
 
-    public static readonly Color LoginGradientTop = Color.FromArgb(238, 252, 247);
-    public static readonly Color LoginGradientBottom = Color.FromArgb(188, 228, 218);
-    public static readonly Color LoginCardFill = Color.FromArgb(253, 255, 254);
-    public static readonly Color LoginCardBorder = Color.FromArgb(218, 234, 228);
-    public static readonly Color LoginOverlayScrim = Color.FromArgb(170, 232, 248, 240);
-    public static readonly Color LoginErrorSurface = Color.FromArgb(255, 251, 249);
-    public static readonly Color LoginErrorBorder = Color.FromArgb(232, 200, 200);
-    public static readonly Color LoginRevealHover = Color.FromArgb(236, 248, 242);
+    public static Color LoginGradientTop => T.LoginGradientTop;
+    public static Color LoginGradientBottom => T.LoginGradientBottom;
+    public static Color LoginCardFill => T.LoginCardFill;
+    public static Color LoginCardBorder => T.LoginCardBorder;
+    public static Color LoginOverlayScrim => T.LoginOverlayScrim;
+    public static Color LoginErrorSurface => T.LoginErrorSurface;
+    public static Color LoginErrorBorder => T.LoginErrorBorder;
+    public static Color LoginRevealHover => T.LoginRevealHover;
 
     private static Font CreateFont(string[] candidates, float size, FontStyle style)
     {
