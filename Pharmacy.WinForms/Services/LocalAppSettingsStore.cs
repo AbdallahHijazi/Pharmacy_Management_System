@@ -35,6 +35,68 @@ internal static class LocalAppSettingsStore
         }
     }
 
+    /// <summary>
+    /// Writes <c>PharmaCare_SettingsBackup_yyyyMMdd_HHmmss.json</c> under <paramref name="backupDirectory"/>.
+    /// Uses current UI state; merges from existing settings.json when present.
+    /// </summary>
+    public static bool TryCreateBackup(
+        string backupDirectory,
+        SettingsFormState currentUiState,
+        out string? createdFilePath,
+        out string? error)
+    {
+        createdFilePath = null;
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(backupDirectory))
+        {
+            error = "مسار النسخ الاحتياطي فارغ.";
+            return false;
+        }
+
+        try
+        {
+            Directory.CreateDirectory(backupDirectory);
+
+            var persistence = File.Exists(FilePath)
+                ? JsonSerializer.Deserialize<AppSettingsPersistence>(File.ReadAllText(FilePath), JsonOptions)
+                  ?? AppSettingsPersistence.FromState(currentUiState)
+                : AppSettingsPersistence.FromState(currentUiState);
+
+            var fromUi = AppSettingsPersistence.FromState(currentUiState);
+            persistence.PharmacyName = fromUi.PharmacyName;
+            persistence.Address = fromUi.Address;
+            persistence.Phone = fromUi.Phone;
+            persistence.CurrencyCode = fromUi.CurrencyCode;
+            persistence.ExchangeRate = fromUi.ExchangeRate;
+            persistence.ThemeIndex = fromUi.ThemeIndex;
+            persistence.FontSizeLevel = fromUi.FontSizeLevel;
+            persistence.ExpiryAlertDays = fromUi.ExpiryAlertDays;
+            persistence.LowStockThreshold = fromUi.LowStockThreshold;
+            persistence.BackupPath = fromUi.BackupPath;
+            persistence.AutoBackupSchedule = fromUi.AutoBackupSchedule;
+
+            var document = new SettingsBackupDocument
+            {
+                CreatedAtUtc = DateTime.UtcNow,
+                Settings = persistence
+            };
+
+            var stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var fileName = $"PharmaCare_SettingsBackup_{stamp}.json";
+            createdFilePath = Path.Combine(backupDirectory, fileName);
+
+            var json = JsonSerializer.Serialize(document, JsonOptions);
+            File.WriteAllText(createdFilePath, json);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
+        }
+    }
+
     /// <summary>Persists full UI settings. Returns true if file was written.</summary>
     public static bool TrySave(SettingsFormState state, out string? error)
     {

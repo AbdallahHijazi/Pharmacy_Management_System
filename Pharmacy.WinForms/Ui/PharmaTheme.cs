@@ -15,6 +15,7 @@ internal static class PharmaTheme
     public static Color SurfaceContainerLowest => T.SurfaceContainerLowest;
     public static Color SurfaceContainerLow => T.SurfaceContainerLow;
     public static Color SurfaceContainer => T.SurfaceContainer;
+    public static Color SurfaceContainerHigh => T.SurfaceContainerHigh;
     public static Color SurfaceContainerHighest => T.SurfaceContainerHighest;
     public static Color OutlineVariant => T.OutlineVariant;
     public static Color OnSurfaceVariant => T.OnSurfaceVariant;

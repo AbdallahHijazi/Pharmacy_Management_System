@@ -6,12 +6,14 @@ using Pharmacy.WinForms.Ui;
 namespace Pharmacy.WinForms.Controls;
 
 /// <summary>Rounded input host for settings fields (distinct from Login RoundedTextInput in Forms).</summary>
-internal sealed class RoundedFieldBox : UserControl
+internal class RoundedFieldBox : UserControl
 {
-    private readonly TextBox _box;
+    private TextBox _box = null!;
     private bool _isConstructing = true;
     private bool _childrenCreated;
-    private const int CornerRadius = 12;
+    private bool _focused;
+    protected int CornerRadius { get; set; } = 12;
+    protected virtual int VerticalPad => 5;
 
     public RoundedFieldBox()
     {
@@ -26,67 +28,39 @@ internal sealed class RoundedFieldBox : UserControl
                 | ControlStyles.ResizeRedraw,
             true);
         DoubleBuffered = true;
-        BackColor = PharmaTheme.SurfaceContainerHighest;
+        BackColor = PharmaTheme.SurfaceContainerHigh;
         Margin = Padding.Empty;
 
-        // Children first — Height/Padding/Size trigger layout; _box must exist before any of that.
         _box = new TextBox
         {
             BorderStyle = BorderStyle.None,
             Font = PharmaTheme.BodyFont,
-            BackColor = PharmaTheme.SurfaceContainerHighest,
+            BackColor = PharmaTheme.SurfaceContainerHigh,
             ForeColor = PharmaTheme.TextDark
         };
-        _box.HandleCreated += (_, _) => ClipInnerCornersSafely();
-        _box.SizeChanged += (_, _) => ClipInnerCornersSafely();
+        _box.GotFocus += (_, _) => { _focused = true; Invalidate(); };
+        _box.LostFocus += (_, _) => { _focused = false; Invalidate(); };
         Controls.Add(_box);
         _childrenCreated = true;
 
         Padding = new Padding(14, 0, 14, 0);
         MinimumSize = new Size(120, 44);
-        Height = 44;
 
         _isConstructing = false;
         ResumeLayout(performLayout: false);
-    }
-
-    private void ClipInnerCornersSafely()
-    {
-        if (_isConstructing || !_childrenCreated || Disposing || IsDisposed)
-        {
-            return;
-        }
-
-        if (_box.IsDisposed || !_box.IsHandleCreated)
-        {
-            return;
-        }
-
-        var r = _box.ClientRectangle;
-        if (r.Width < 4 || r.Height < 4)
-        {
-            _box.Region = null;
-            return;
-        }
-
-        r.Inflate(-1, -1);
-        using var path = RoundedDrawing.CreateRoundedRect(r, 8);
-        var prev = _box.Region;
-        _box.Region = new Region(path);
-        prev?.Dispose();
+        Height = 44;
     }
 
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public TextBox Inner => _box;
 
-    #pragma warning disable CS8765 // Base Text setter nullability varies by target framework.
+    #pragma warning disable CS8765
     public override string Text
     {
         get => _box.Text;
         set => _box.Text = value ?? string.Empty;
     }
-
 #pragma warning restore CS8765
 
     [Browsable(false)]
@@ -112,8 +86,9 @@ internal sealed class RoundedFieldBox : UserControl
             return;
         }
 
-        BackColor = PharmaTheme.SurfaceContainerHighest;
-        _box.BackColor = PharmaTheme.SurfaceContainerHighest;
+        var fill = PharmaTheme.SurfaceContainerHigh;
+        BackColor = fill;
+        _box.BackColor = fill;
         _box.ForeColor = PharmaTheme.TextDark;
         _box.Font = PharmaTheme.BodyFont;
         Invalidate();
@@ -139,17 +114,22 @@ internal sealed class RoundedFieldBox : UserControl
         }
 
         LayoutChildrenSafely();
-        ClipInnerCornersSafely();
     }
 
-    private void LayoutChildrenSafely()
+    protected virtual void LayoutChildrenSafely()
     {
-        var innerH = Math.Max(24, ClientSize.Height - 10);
+        var innerH = Math.Max(22, ClientSize.Height - VerticalPad * 2);
         var top = (ClientSize.Height - innerH) / 2;
         var w = Math.Max(20, ClientSize.Width - Padding.Horizontal);
         _box.SetBounds(Padding.Left, top, w, innerH);
     }
 
+    protected Color FieldFillColor => PharmaTheme.SurfaceContainerHigh;
+
+    protected Color BorderColor => _focused ? PharmaTheme.PrimaryGreen : PharmaTheme.BorderSoft;
+
+    protected float BorderWidth => _focused ? 1.75f : 1f;
+
     protected override void OnPaint(PaintEventArgs e)
     {
         if (!_childrenCreated || Disposing || IsDisposed)
@@ -166,160 +146,86 @@ internal sealed class RoundedFieldBox : UserControl
             return;
         }
 
-        RoundedDrawing.FillRounded(g, r, CornerRadius, PharmaTheme.SurfaceContainerHighest);
-        RoundedDrawing.DrawRoundedBorder(g, r, CornerRadius, PharmaTheme.BorderSoft, 1f);
+        RoundedDrawing.FillRounded(g, r, CornerRadius, FieldFillColor);
+        RoundedDrawing.DrawRoundedBorder(g, r, CornerRadius, BorderColor, BorderWidth);
     }
 }
 
-/// <summary>Drop-down with rounded chrome on the collapsed control.</summary>
-internal sealed class RoundedComboInput : UserControl
+/// <summary>Compact rounded numeric field for alert rows.</summary>
+internal sealed class RoundedNumberField : RoundedFieldBox
 {
-    private readonly ComboBox _combo;
-    private bool _isConstructing = true;
-    private bool _childrenCreated;
-    private const int CornerRadius = 12;
-
-    public RoundedComboInput()
+    public RoundedNumberField()
     {
-        SuspendLayout();
-        _isConstructing = true;
-        _childrenCreated = false;
+        CornerRadius = 10;
+        Padding = new Padding(8, 0, 8, 0);
+        MinimumSize = new Size(48, 40);
+        Height = 40;
+    }
+}
 
+/// <summary>Rounded segment chip (font size, backup schedule, etc.).</summary>
+internal class SegmentChipButton : Control
+{
+    private bool _selected;
+
+    public SegmentChipButton(string caption)
+    {
+        Text = caption;
+        Cursor = Cursors.Hand;
+        Height = 40;
+        MinimumSize = new Size(52, 40);
         SetStyle(
             ControlStyles.AllPaintingInWmPaint
                 | ControlStyles.UserPaint
                 | ControlStyles.OptimizedDoubleBuffer
-                | ControlStyles.ResizeRedraw,
+                | ControlStyles.StandardClick,
             true);
-        DoubleBuffered = true;
-        BackColor = PharmaTheme.SurfaceContainerHighest;
-
-        _combo = new ComboBox
-        {
-            DropDownStyle = ComboBoxStyle.DropDownList,
-            FlatStyle = FlatStyle.Popup,
-            Font = PharmaTheme.BodyFont,
-            BackColor = PharmaTheme.SurfaceContainerHighest,
-            ForeColor = PharmaTheme.TextDark,
-            IntegralHeight = false
-        };
-        _combo.HandleCreated += (_, _) => ClipComboCornersSafely();
-        _combo.SizeChanged += (_, _) => ClipComboCornersSafely();
-        Controls.Add(_combo);
-        _childrenCreated = true;
-
-        Padding = new Padding(10, 0, 6, 0);
-        MinimumSize = new Size(120, 44);
-        Height = 44;
-
-        _isConstructing = false;
-        ResumeLayout(performLayout: false);
-    }
-
-    private void ClipComboCornersSafely()
-    {
-        if (_isConstructing || !_childrenCreated || Disposing || IsDisposed)
-        {
-            return;
-        }
-
-        if (_combo.IsDisposed || !_combo.IsHandleCreated)
-        {
-            return;
-        }
-
-        var r = _combo.ClientRectangle;
-        if (r.Width < 4 || r.Height < 4)
-        {
-            _combo.Region = null;
-            return;
-        }
-
-        r.Inflate(-1, -1);
-        using var path = RoundedDrawing.CreateRoundedRect(r, 8);
-        var prev = _combo.Region;
-        _combo.Region = new Region(path);
-        prev?.Dispose();
     }
 
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public ComboBox Combo => _combo;
-
-    public void SyncTheme()
+    public bool IsSelected
     {
-        if (!_childrenCreated || _combo.IsDisposed)
+        get => _selected;
+        set
         {
-            return;
+            _selected = value;
+            Invalidate();
         }
-
-        BackColor = PharmaTheme.SurfaceContainerHighest;
-        _combo.BackColor = PharmaTheme.SurfaceContainerHighest;
-        _combo.ForeColor = PharmaTheme.TextDark;
-        _combo.Font = PharmaTheme.BodyFont;
-        Invalidate();
     }
 
     protected override void OnPaint(PaintEventArgs e)
     {
-        if (!_childrenCreated || Disposing || IsDisposed)
-        {
-            return;
-        }
-
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
-        var r = ClientRectangle;
-        r.Inflate(-1, -1);
-        if (r.Width < 4 || r.Height < 4)
+        var b = ClientRectangle;
+        b.Inflate(-1, -1);
+        var back = _selected ? PharmaTheme.PrimaryGreen : PharmaTheme.SurfaceContainerHigh;
+        var text = _selected ? Color.White : PharmaTheme.OnSurfaceVariant;
+        RoundedDrawing.FillRounded(g, b, 12, back);
+        if (_selected)
         {
-            return;
+            RoundedDrawing.DrawRoundedBorder(g, b, 12, PharmaTheme.PrimaryContainer, 1.75f);
+        }
+        else
+        {
+            RoundedDrawing.DrawRoundedBorder(g, b, 12, PharmaTheme.BorderSoft);
         }
 
-        RoundedDrawing.FillRounded(g, r, CornerRadius, PharmaTheme.SurfaceContainerHighest);
-        RoundedDrawing.DrawRoundedBorder(g, r, CornerRadius, PharmaTheme.BorderSoft, 1f);
-    }
-
-    protected override void OnLayout(LayoutEventArgs levent)
-    {
-        base.OnLayout(levent);
-
-        if (_isConstructing || !_childrenCreated || Disposing || IsDisposed)
-        {
-            return;
-        }
-
-        if (_combo.IsDisposed)
-        {
-            return;
-        }
-
-        if (ClientSize.Width <= 0 || ClientSize.Height <= 0)
-        {
-            return;
-        }
-
-        const int m = 6;
-        _combo.SetBounds(m, m, Math.Max(20, ClientSize.Width - 2 * m), Math.Max(24, ClientSize.Height - 2 * m));
-        ClipComboCornersSafely();
-    }
-
-    protected override void OnResize(EventArgs e)
-    {
-        base.OnResize(e);
-        if (_isConstructing || !_childrenCreated || Disposing || IsDisposed)
-        {
-            return;
-        }
-
-        Invalidate();
+        TextRenderer.DrawText(
+            g,
+            Text,
+            PharmaTheme.SmallFont,
+            b,
+            text,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
     }
 }
 
 /// <summary>Rounded CTA with primary border (e.g. backup now).</summary>
 internal sealed class RoundedPrimaryOutlineButton : Control
 {
-    private const int Radius = 12;
+    private const int Radius = 14;
     private bool _hover;
 
     public RoundedPrimaryOutlineButton()
@@ -358,7 +264,7 @@ internal sealed class RoundedPrimaryOutlineButton : Control
         b.Inflate(-1, -1);
         var fill = _hover ? PharmaTheme.SurfaceContainerLow : PharmaTheme.SurfaceContainer;
         RoundedDrawing.FillRounded(g, b, Radius, fill);
-        RoundedDrawing.DrawRoundedBorder(g, b, Radius, PharmaTheme.PrimaryGreen, 1.5f);
+        RoundedDrawing.DrawRoundedBorder(g, b, Radius, PharmaTheme.PrimaryGreen, 1.75f);
         TextRenderer.DrawText(
             g,
             Text,
@@ -372,7 +278,7 @@ internal sealed class RoundedPrimaryOutlineButton : Control
 /// <summary>Secondary rounded action (outline / neutral).</summary>
 internal sealed class RoundedNeutralButton : Control
 {
-    private const int Radius = 12;
+    private const int Radius = 14;
     private bool _pressed;
 
     public RoundedNeutralButton()
@@ -387,10 +293,7 @@ internal sealed class RoundedNeutralButton : Control
             true);
     }
 
-    public void RefreshThemeVisuals()
-    {
-        Invalidate();
-    }
+    public void RefreshThemeVisuals() => Invalidate();
 
     protected override void OnMouseDown(MouseEventArgs e)
     {
@@ -428,7 +331,7 @@ internal sealed class RoundedNeutralButton : Control
 /// <summary>Rounded icon square (Segoe MDL2 text).</summary>
 internal sealed class RoundedIconButton : Control
 {
-    private const int Radius = 12;
+    private const int Radius = 14;
     private bool _hover;
 
     public RoundedIconButton(string glyphMdL2)
@@ -468,7 +371,7 @@ internal sealed class RoundedIconButton : Control
         g.SmoothingMode = SmoothingMode.AntiAlias;
         var b = ClientRectangle;
         b.Inflate(-1, -1);
-        var bg = _hover ? PharmaTheme.SurfaceContainerLow : PharmaTheme.SurfaceContainerHighest;
+        var bg = _hover ? PharmaTheme.SurfaceContainerLow : PharmaTheme.SurfaceContainerHigh;
         RoundedDrawing.FillRounded(g, b, Radius, bg);
         RoundedDrawing.DrawRoundedBorder(g, b, Radius, PharmaTheme.BorderSoft);
         TextRenderer.DrawText(
@@ -481,61 +384,10 @@ internal sealed class RoundedIconButton : Control
     }
 }
 
-/// <summary>Segment chip for font size (small / medium / large).</summary>
-internal sealed class FontSizeSegmentButton : Control
+/// <summary>Font size segment — alias of <see cref="SegmentChipButton"/>.</summary>
+internal sealed class FontSizeSegmentButton : SegmentChipButton
 {
-    private bool _selected;
-
-    public FontSizeSegmentButton(string caption)
+    public FontSizeSegmentButton(string caption) : base(caption)
     {
-        Text = caption;
-        Cursor = Cursors.Hand;
-        Height = 40;
-        MinimumSize = new Size(56, 40);
-        SetStyle(
-            ControlStyles.AllPaintingInWmPaint
-                | ControlStyles.UserPaint
-                | ControlStyles.OptimizedDoubleBuffer
-                | ControlStyles.StandardClick,
-            true);
-    }
-
-    [Browsable(false)]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public bool IsSelected
-    {
-        get => _selected;
-        set
-        {
-            _selected = value;
-            Invalidate();
-        }
-    }
-
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        var g = e.Graphics;
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        var b = ClientRectangle;
-        b.Inflate(-1, -1);
-        var back = _selected ? PharmaTheme.PrimaryGreen : PharmaTheme.SurfaceContainerHighest;
-        var text = _selected ? Color.White : PharmaTheme.OnSurfaceVariant;
-        RoundedDrawing.FillRounded(g, b, 12, back);
-        if (_selected)
-        {
-            RoundedDrawing.DrawRoundedBorder(g, b, 12, PharmaTheme.PrimaryContainer, 1.5f);
-        }
-        else
-        {
-            RoundedDrawing.DrawRoundedBorder(g, b, 12, PharmaTheme.BorderSoft);
-        }
-
-        TextRenderer.DrawText(
-            g,
-            Text,
-            PharmaTheme.SmallFont,
-            b,
-            text,
-            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
     }
 }

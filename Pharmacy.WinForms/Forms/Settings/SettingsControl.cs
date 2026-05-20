@@ -37,16 +37,6 @@ internal sealed class SettingsControl : UserControl
     private const int AlertsCardHeight = 250;
     private const int BackupCardHeight = 290;
 
-    private static readonly (string Name, Color Color)[] ThemeOptions =
-    [
-        ("Healthcare Green", Color.FromArgb(7, 100, 67)),
-        ("Medical Blue", Color.FromArgb(30, 64, 175)),
-        ("Clinical Purple", Color.FromArgb(107, 33, 168)),
-        ("Sky Teal", Color.FromArgb(15, 118, 110)),
-        ("Dark Mode", Color.FromArgb(24, 24, 27)),
-        ("Neutral Gray", Color.FromArgb(82, 82, 91))
-    ];
-
     private readonly SettingsService _settingsService;
 
     private bool _uiBuilt;
@@ -84,10 +74,12 @@ internal sealed class SettingsControl : UserControl
     private FontSizeSegmentButton _fontMediumButton = null!;
     private FontSizeSegmentButton _fontLargeButton = null!;
     private Label _fontSizeHintLabel = null!;
-    private RoundedFieldBox _expiryDaysInput = null!;
-    private RoundedFieldBox _lowStockInput = null!;
+    private RoundedNumberField _expiryDaysInput = null!;
+    private RoundedNumberField _lowStockInput = null!;
     private RoundedFieldBox _backupPathInput = null!;
-    private RoundedComboInput _autoBackupComboHost = null!;
+    private SegmentChipButton _scheduleDailyButton = null!;
+    private SegmentChipButton _scheduleWeeklyButton = null!;
+    private SegmentChipButton _scheduleMonthlyButton = null!;
     private RoundedIconButton _browseFolderButton = null!;
     private RoundedPrimaryOutlineButton _backupNowButton = null!;
 
@@ -221,12 +213,13 @@ internal sealed class SettingsControl : UserControl
         _alertsCard = CreateSettingsCard(SegoeMdl2Icons.Warning, "التنبيهات", AlertsCardHeight);
         _backupCard = CreateSettingsCard(SegoeMdl2Icons.Backup, "النسخ الاحتياطي", BackupCardHeight);
 
-        _themeButtons = new ThemeOptionButton[ThemeOptions.Length];
-        for (var i = 0; i < ThemeOptions.Length; i++)
+        _themeButtons = new ThemeOptionButton[ThemeManager.ThemeCount];
+        for (var i = 0; i < ThemeManager.ThemeCount; i++)
         {
-            var index = i;
-            var option = ThemeOptions[i];
-            var button = new ThemeOptionButton(option.Name, option.Color, index == 0);
+            var button = new ThemeOptionButton(
+                ThemeManager.ThemeNames[i],
+                ThemeManager.GetThemeSwatchColor(i),
+                i == 0);
             _themeButtons[i] = button;
             _appearanceCard.Controls.Add(button);
         }
@@ -257,11 +250,10 @@ internal sealed class SettingsControl : UserControl
 
         _browseFolderButton = new RoundedIconButton(SegoeMdl2Icons.Folder) { RightToLeft = RightToLeft.Yes };
 
-        _autoBackupComboHost = new RoundedComboInput();
-        var combo = _autoBackupComboHost.Combo;
-        combo.RightToLeft = RightToLeft.Yes;
-        combo.Items.AddRange(["يومياً", "أسبوعياً", "شهرياً"]);
-        combo.SelectedIndex = 0;
+        _scheduleDailyButton = new SegmentChipButton("يومياً") { Width = 72, RightToLeft = RightToLeft.Yes };
+        _scheduleWeeklyButton = new SegmentChipButton("أسبوعياً") { Width = 80, RightToLeft = RightToLeft.Yes };
+        _scheduleMonthlyButton = new SegmentChipButton("شهرياً") { Width = 72, RightToLeft = RightToLeft.Yes };
+        SyncScheduleSelection("يومياً");
 
         _backupNowButton = new RoundedPrimaryOutlineButton
         {
@@ -287,7 +279,9 @@ internal sealed class SettingsControl : UserControl
 
         _backupCard.Controls.Add(_backupPathInput);
         _backupCard.Controls.Add(_browseFolderButton);
-        _backupCard.Controls.Add(_autoBackupComboHost);
+        _backupCard.Controls.Add(_scheduleDailyButton);
+        _backupCard.Controls.Add(_scheduleWeeklyButton);
+        _backupCard.Controls.Add(_scheduleMonthlyButton);
         _backupCard.Controls.Add(_backupNowButton);
 
         _contentCanvas.Controls.Add(_backupCard);
@@ -315,8 +309,10 @@ internal sealed class SettingsControl : UserControl
         _fontMediumButton.Click += (_, _) => SetFontLevelPreview(2);
         _fontLargeButton.Click += (_, _) => SetFontLevelPreview(3);
         _browseFolderButton.Click += (_, _) => BrowseBackupFolder();
-        _backupNowButton.Click += (_, _) =>
-            UiFeedback.ShowFeatureNotAvailable(FindForm(), "ميزة النسخ الاحتياطي");
+        _backupNowButton.Click += (_, _) => CreateBackupNow();
+        _scheduleDailyButton.Click += (_, _) => SyncScheduleSelection("يومياً");
+        _scheduleWeeklyButton.Click += (_, _) => SyncScheduleSelection("أسبوعياً");
+        _scheduleMonthlyButton.Click += (_, _) => SyncScheduleSelection("شهرياً");
 
         for (var i = 0; i < _themeButtons.Length; i++)
         {
@@ -675,8 +671,12 @@ internal sealed class SettingsControl : UserControl
         y += FieldHeight + 16;
 
         var scheduleCaption = EnsureCaption(_backupCard, "النسخ التلقائي", PharmaTheme.BodyFont, PharmaTheme.TextDark);
-        scheduleCaption.SetBounds(inner.X, y, inner.Width - 150, LabelHeight);
-        _autoBackupComboHost.SetBounds(inner.Right - 156, y, 156, FieldHeight);
+        scheduleCaption.SetBounds(inner.X, y, inner.Width - 260, LabelHeight);
+        var segW = Math.Max(68, (260 - 16) / 3);
+        var segRight = inner.Right;
+        _scheduleMonthlyButton.SetBounds(segRight - segW, y, segW, 40);
+        _scheduleWeeklyButton.SetBounds(segRight - segW * 2 - 8, y, segW, 40);
+        _scheduleDailyButton.SetBounds(segRight - segW * 3 - 16, y, segW, 40);
         y += FieldHeight + 16;
 
         _backupNowButton.SetBounds(inner.X, y, inner.Width, 44);
@@ -709,7 +709,7 @@ internal sealed class SettingsControl : UserControl
         return caption;
     }
 
-    private void LayoutAlertRow(Rectangle inner, string title, string subtitle, RoundedFieldBox input, string unit, int index)
+    private void LayoutAlertRow(Rectangle inner, string title, string subtitle, RoundedNumberField input, string unit, int index)
     {
         if (_alertsCard is null || input is null || input.IsDisposed)
         {
@@ -718,10 +718,11 @@ internal sealed class SettingsControl : UserControl
 
         var rowH = 78;
         var y = inner.Y + index * (rowH + 10);
-        var boxW = 56;
+        const int boxW = 56;
+        const int boxH = 40;
         var unitLabelW = 40;
         var valueX = inner.Right - boxW;
-        input.SetBounds(valueX, y + 22, boxW, FieldHeight);
+        input.SetBounds(valueX, y + 24, boxW, boxH);
 
         var unitLabel = _alertsCard.Controls.OfType<Label>()
             .FirstOrDefault(l => l.Tag as string == $"unit-{index}");
@@ -813,11 +814,64 @@ internal sealed class SettingsControl : UserControl
         RightToLeft = RightToLeft.Yes
     };
 
-    private static RoundedFieldBox CreateNumberInput(string value)
+    private static RoundedNumberField CreateNumberInput(string value) => new()
     {
-        var box = CreateTextInput(value);
-        box.TextAlign = HorizontalAlignment.Center;
-        return box;
+        Text = value,
+        TextAlign = HorizontalAlignment.Center,
+        RightToLeft = RightToLeft.Yes
+    };
+
+    private void SyncScheduleSelection(string schedule)
+    {
+        _scheduleDailyButton.IsSelected = schedule == "يومياً";
+        _scheduleWeeklyButton.IsSelected = schedule == "أسبوعياً";
+        _scheduleMonthlyButton.IsSelected = schedule == "شهرياً";
+    }
+
+    private string GetSelectedSchedule()
+    {
+        if (_scheduleWeeklyButton.IsSelected)
+        {
+            return "أسبوعياً";
+        }
+
+        if (_scheduleMonthlyButton.IsSelected)
+        {
+            return "شهرياً";
+        }
+
+        return "يومياً";
+    }
+
+    private void CreateBackupNow()
+    {
+        var path = _backupPathInput.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            MessageBox.Show(
+                FindForm(),
+                "يرجى اختيار مسار النسخ الاحتياطي أولًا",
+                "النسخ الاحتياطي",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
+        var state = CaptureState();
+        if (!LocalAppSettingsStore.TryCreateBackup(path, state, out var filePath, out var error))
+        {
+            UiFeedback.ShowError(
+                FindForm(),
+                string.IsNullOrWhiteSpace(error)
+                    ? "تعذر إنشاء النسخة الاحتياطية."
+                    : $"تعذر إنشاء النسخة الاحتياطية: {error}");
+            return;
+        }
+
+        var shortName = Path.GetFileName(filePath);
+        UiFeedback.ShowSuccess(
+            FindForm(),
+            $"تم إنشاء النسخة الاحتياطية بنجاح.\n{shortName}");
     }
 
     private async Task LoadSettingsFromServiceAsync()
@@ -1086,7 +1140,9 @@ internal sealed class SettingsControl : UserControl
         _lowStockInput.ApplyThemeVisuals();
         _backupPathInput.ApplyThemeVisuals();
 
-        _autoBackupComboHost.SyncTheme();
+        _scheduleDailyButton.Invalidate();
+        _scheduleWeeklyButton.Invalidate();
+        _scheduleMonthlyButton.Invalidate();
         _browseFolderButton.RefreshThemeVisuals();
         _backupNowButton.RefreshThemeVisuals();
 
@@ -1158,7 +1214,6 @@ internal sealed class SettingsControl : UserControl
             themeIndex = 0;
         }
 
-        var combo = _autoBackupComboHost.Combo;
         return new SettingsFormState
         {
             PharmacyName = _pharmacyNameInput.Text ?? string.Empty,
@@ -1171,7 +1226,7 @@ internal sealed class SettingsControl : UserControl
             ExpiryAlertDays = _expiryDaysInput.Text ?? string.Empty,
             LowStockThreshold = _lowStockInput.Text ?? string.Empty,
             BackupPath = _backupPathInput.Text ?? string.Empty,
-            AutoBackupSchedule = combo.SelectedItem?.ToString() ?? "يومياً"
+            AutoBackupSchedule = GetSelectedSchedule()
         };
     }
 
@@ -1197,9 +1252,10 @@ internal sealed class SettingsControl : UserControl
         _lowStockInput.Text = state.LowStockThreshold;
         _backupPathInput.Text = state.BackupPath;
 
-        var combo = _autoBackupComboHost.Combo;
-        var scheduleIndex = combo.Items.IndexOf(state.AutoBackupSchedule);
-        combo.SelectedIndex = scheduleIndex >= 0 ? scheduleIndex : 0;
+        SyncScheduleSelection(
+            state.AutoBackupSchedule is "أسبوعياً" or "شهرياً"
+                ? state.AutoBackupSchedule
+                : "يومياً");
         if (_layoutReady)
         {
             PerformLayout();
@@ -1336,7 +1392,7 @@ internal sealed class SettingsControl : UserControl
         public SettingsToggleButton(string text, bool selected)
         {
             Text = text;
-            Size = new Size(68, 38);
+            Size = new Size(68, 40);
             _isSelected = selected;
             Cursor = Cursors.Hand;
             Font = PharmaTheme.BodyFont;
@@ -1352,9 +1408,18 @@ internal sealed class SettingsControl : UserControl
         {
             var bounds = ClientRectangle;
             bounds.Inflate(-1, -1);
-            var back = _isSelected ? PharmaTheme.PrimaryGreen : PharmaTheme.SurfaceContainerHighest;
+            var back = _isSelected ? PharmaTheme.PrimaryGreen : PharmaTheme.SurfaceContainerHigh;
             var textColor = _isSelected ? Color.White : PharmaTheme.OnSurfaceVariant;
             RoundedDrawing.FillRounded(e.Graphics, bounds, 12, back);
+            if (_isSelected)
+            {
+                RoundedDrawing.DrawRoundedBorder(e.Graphics, bounds, 12, PharmaTheme.PrimaryContainer, 1.75f);
+            }
+            else
+            {
+                RoundedDrawing.DrawRoundedBorder(e.Graphics, bounds, 12, PharmaTheme.BorderSoft);
+            }
+
             TextRenderer.DrawText(
                 e.Graphics,
                 Text,
@@ -1406,10 +1471,14 @@ internal sealed class SettingsControl : UserControl
             bounds.Inflate(-2, -2);
 
             var back = _isSelected ? PharmaTheme.SurfaceContainerLow : PharmaTheme.Surface;
-            RoundedDrawing.FillRounded(g, bounds, 10, back);
+            RoundedDrawing.FillRounded(g, bounds, 14, back);
             if (_isSelected)
             {
-                RoundedDrawing.DrawRoundedBorder(g, bounds, 10, PharmaTheme.PrimaryGreen, 2f);
+                RoundedDrawing.DrawRoundedBorder(g, bounds, 14, PharmaTheme.PrimaryGreen, 2f);
+            }
+            else
+            {
+                RoundedDrawing.DrawRoundedBorder(g, bounds, 14, PharmaTheme.BorderSoft);
             }
 
             var circle = new Rectangle(bounds.X + (bounds.Width - 32) / 2, bounds.Y + 8, 32, 32);

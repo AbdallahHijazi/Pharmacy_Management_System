@@ -14,6 +14,7 @@ internal sealed class ThemeSnapshot
     public required Color SurfaceContainerLowest { get; init; }
     public required Color SurfaceContainerLow { get; init; }
     public required Color SurfaceContainer { get; init; }
+    public required Color SurfaceContainerHigh { get; init; }
     public required Color SurfaceContainerHighest { get; init; }
     public required Color OutlineVariant { get; init; }
     public required Color OnSurfaceVariant { get; init; }
