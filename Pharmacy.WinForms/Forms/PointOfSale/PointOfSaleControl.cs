@@ -331,9 +331,9 @@ internal sealed class PointOfSaleControl : UserControl
         _checkoutButton = new GradientRoundedButton
         {
             Height = 64,
-            IconGlyph = SegoeMdl2Icons.Print,
+            IconGlyph = SegoeMdl2Icons.Payments,
             MinimumSize = new Size(200, 64),
-            Text = "طباعة الفاتورة"
+            Text = "إتمام البيع"
         };
 
         _messageLabel = new Label
@@ -916,7 +916,7 @@ internal sealed class PointOfSaleControl : UserControl
 
         if (_cart.Count == 0)
         {
-            ShowMessage("السلة فارغة. أضف منتجات قبل طباعة الفاتورة.", PharmaTheme.Danger);
+            ShowMessage("السلة فارغة. أضف منتجات قبل إتمام البيع.", PharmaTheme.Danger);
             return;
         }
 
@@ -996,7 +996,7 @@ internal sealed class PointOfSaleControl : UserControl
         finally
         {
             _isSubmitting = false;
-            _checkoutButton.Text = "طباعة الفاتورة";
+            _checkoutButton.Text = "إتمام البيع";
             UpdateCheckoutButtonState();
         }
     }
