@@ -15,7 +15,7 @@ public sealed class GradientRoundedButton : Control
         DoubleBuffered = true;
         Cursor = Cursors.Hand;
         Font = PharmaTheme.ArabicFont(10.5f, FontStyle.Bold);
-        ForeColor = Color.White;
+        ForeColor = PharmaTheme.OnPrimary;
         Height = 46;
         MinimumSize = new Size(120, 42);
         Padding = new Padding(18, 4, 18, 4);
@@ -67,7 +67,11 @@ public sealed class GradientRoundedButton : Control
 
         RoundedDrawing.DrawSoftShadow(g, bounds, PharmaTheme.DashboardButtonCornerRadius, PharmaTheme.DashboardCardShadow);
 
-        var top = _isPressed ? PharmaTheme.PrimaryContainer : _isHover ? Color.FromArgb(38, 125, 90) : PharmaTheme.PrimaryGreen;
+        var top = _isPressed
+            ? PharmaTheme.PrimaryContainer
+            : _isHover
+                ? PharmaTheme.PrimaryDark
+                : PharmaTheme.PrimaryGreen;
         var bottom = _isPressed ? PharmaTheme.PrimaryGreen : PharmaTheme.PrimaryContainer;
         using (var path = RoundedDrawing.CreateRoundedRect(bounds, PharmaTheme.DashboardButtonCornerRadius))
         using (var brush = new LinearGradientBrush(bounds, top, bottom, LinearGradientMode.ForwardDiagonal))

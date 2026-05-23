@@ -84,7 +84,7 @@ public sealed class TopBarControl : Panel
         {
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            BackColor = PharmaTheme.SoftGreenBackground,
+            BackColor = PharmaTheme.Background,
             FlowDirection = FlowDirection.RightToLeft,
             WrapContents = false
         };
@@ -134,7 +134,7 @@ public sealed class TopBarControl : Panel
         {
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            BackColor = PharmaTheme.SoftGreenBackground,
+            BackColor = PharmaTheme.Background,
             FlowDirection = FlowDirection.TopDown,
             Margin = new Padding(4, 0, 0, 0),
             WrapContents = false
@@ -164,12 +164,12 @@ public sealed class TopBarControl : Panel
 
     public void RefreshChrome()
     {
-        _actionsFlow.BackColor = PharmaTheme.SoftGreenBackground;
+        _actionsFlow.BackColor = PharmaTheme.Background;
         foreach (Control c in _actionsFlow.Controls)
         {
             if (c is FlowLayoutPanel stack)
             {
-                stack.BackColor = PharmaTheme.SoftGreenBackground;
+                stack.BackColor = PharmaTheme.Background;
             }
 
             c.Invalidate(true);
@@ -205,7 +205,7 @@ public sealed class TopBarControl : Panel
     {
         using var brush = new LinearGradientBrush(
             ClientRectangle,
-            PharmaTheme.SoftGreenBackground,
+            PharmaTheme.Background,
             PharmaTheme.TopBarGradientDeep,
             LinearGradientMode.Vertical);
         e.Graphics.FillRectangle(brush, ClientRectangle);

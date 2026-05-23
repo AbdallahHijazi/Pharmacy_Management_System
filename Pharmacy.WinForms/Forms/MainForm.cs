@@ -32,9 +32,9 @@ public sealed partial class MainForm : Form
             return;
         }
 
-        BackColor = PharmaTheme.SoftGreenBackground;
+        BackColor = PharmaTheme.Background;
         Font = PharmaTheme.BodyFont;
-        shellLayout.BackColor = PharmaTheme.SoftGreenBackground;
+        shellLayout.BackColor = PharmaTheme.Background;
         mainShell.BackColor = PharmaTheme.Background;
         contentHost.BackColor = PharmaTheme.Background;
         sidebar.RefreshChrome();
@@ -54,7 +54,9 @@ public sealed partial class MainForm : Form
             }
         }
 
+        ThemeApplier.ApplyThemeRecursive(this);
         Invalidate(true);
+        Refresh();
     }
 
     private void OnGlobalThemeOrFontChanged(object? sender, EventArgs e)

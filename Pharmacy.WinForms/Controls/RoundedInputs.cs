@@ -12,7 +12,7 @@ internal class RoundedFieldBox : UserControl
     private bool _isConstructing = true;
     private bool _childrenCreated;
     private bool _focused;
-    protected int CornerRadius { get; set; } = 12;
+    protected int CornerRadius { get; set; } = PharmaTheme.SettingsFieldCornerRadius;
     protected virtual int VerticalPad => 5;
 
     public RoundedFieldBox()
@@ -126,7 +126,7 @@ internal class RoundedFieldBox : UserControl
 
     protected Color FieldFillColor => PharmaTheme.SurfaceContainerHigh;
 
-    protected Color BorderColor => _focused ? PharmaTheme.PrimaryGreen : PharmaTheme.BorderSoft;
+    protected Color BorderColor => _focused ? PharmaTheme.Primary : PharmaTheme.BorderSoft;
 
     protected float BorderWidth => _focused ? 1.75f : 1f;
 
@@ -156,7 +156,7 @@ internal sealed class RoundedNumberField : RoundedFieldBox
 {
     public RoundedNumberField()
     {
-        CornerRadius = 10;
+        CornerRadius = PharmaTheme.SettingsFieldCornerRadius;
         Padding = new Padding(8, 0, 8, 0);
         MinimumSize = new Size(48, 40);
         Height = 40;
@@ -201,15 +201,15 @@ internal class SegmentChipButton : Control
         var b = ClientRectangle;
         b.Inflate(-1, -1);
         var back = _selected ? PharmaTheme.PrimaryGreen : PharmaTheme.SurfaceContainerHigh;
-        var text = _selected ? Color.White : PharmaTheme.OnSurfaceVariant;
-        RoundedDrawing.FillRounded(g, b, 12, back);
+        var text = _selected ? PharmaTheme.OnPrimary : PharmaTheme.OnSurfaceVariant;
+        RoundedDrawing.FillRounded(g, b, PharmaTheme.SettingsChipCornerRadius, back);
         if (_selected)
         {
-            RoundedDrawing.DrawRoundedBorder(g, b, 12, PharmaTheme.PrimaryContainer, 1.75f);
+            RoundedDrawing.DrawRoundedBorder(g, b, PharmaTheme.SettingsChipCornerRadius, PharmaTheme.PrimaryContainer, 1.75f);
         }
         else
         {
-            RoundedDrawing.DrawRoundedBorder(g, b, 12, PharmaTheme.BorderSoft);
+            RoundedDrawing.DrawRoundedBorder(g, b, PharmaTheme.SettingsChipCornerRadius, PharmaTheme.BorderSoft);
         }
 
         TextRenderer.DrawText(

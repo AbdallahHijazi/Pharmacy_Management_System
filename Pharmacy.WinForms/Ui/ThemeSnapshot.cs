@@ -5,6 +5,17 @@ namespace Pharmacy.WinForms.Ui;
 /// <summary>Full color set for one app theme (shell + content + login).</summary>
 internal sealed class ThemeSnapshot
 {
+    public required Color Primary { get; init; }
+    public required Color PrimaryDark { get; init; }
+    public required Color PrimaryLight { get; init; }
+    public required Color Background { get; init; }
+    public required Color Surface { get; init; }
+    public required Color SurfaceAlt { get; init; }
+    public required Color Border { get; init; }
+    public required Color Text { get; init; }
+    public required Color MutedText { get; init; }
+    public required Color OnPrimary { get; init; }
+
     public required Color PrimaryGreen { get; init; }
     public required Color PrimaryContainer { get; init; }
     public required Color Success { get; init; }
@@ -20,7 +31,6 @@ internal sealed class ThemeSnapshot
     public required Color OnSurfaceVariant { get; init; }
     public required Color InputSurface { get; init; }
     public required Color TextDark { get; init; }
-    public required Color MutedText { get; init; }
     public required Color SidebarBackground { get; init; }
     public required Color SidebarHover { get; init; }
     public required Color SidebarActive { get; init; }

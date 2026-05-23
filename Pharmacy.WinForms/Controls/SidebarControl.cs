@@ -261,7 +261,7 @@ public sealed class SidebarControl : Panel
                 SegoeMdl2Icons.Pharmacy,
                 PharmaTheme.IconFont(22f),
                 rect,
-                Color.White,
+                PharmaTheme.OnPrimary,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
     }
@@ -328,8 +328,8 @@ public sealed class SidebarControl : Panel
             if (_isActive)
             {
                 back = PharmaTheme.PrimaryGreen;
-                textColor = Color.White;
-                iconColor = Color.White;
+                textColor = PharmaTheme.OnPrimary;
+                iconColor = PharmaTheme.OnPrimary;
             }
             else if (_isHover)
             {

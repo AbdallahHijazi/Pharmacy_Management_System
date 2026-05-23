@@ -23,7 +23,7 @@ internal static class ThemeManager
     public static string GetThemeHintName(int index) => ThemeNames[Math.Clamp(index, 0, ThemeNames.Length - 1)];
 
     public static Color GetThemeSwatchColor(int index) =>
-        Themes[Math.Clamp(index, 0, Themes.Length - 1)].PrimaryGreen;
+        Themes[Math.Clamp(index, 0, Themes.Length - 1)].Primary;
 
     internal static readonly string[] ThemeNames =
     [
@@ -37,136 +37,140 @@ internal static class ThemeManager
 
     private static Color Hex(string hex) => ColorTranslator.FromHtml(hex);
 
+    private static Color Mix(Color a, Color b, float t)
+    {
+        static int C(float v) => (int)Math.Clamp(v, 0, 255);
+        return Color.FromArgb(
+            C(a.R + (b.R - a.R) * t),
+            C(a.G + (b.G - a.G) * t),
+            C(a.B + (b.B - a.B) * t));
+    }
+
     private static ThemeSnapshot Medical(
         string primaryHex,
-        string primaryContainerHex,
+        string primaryDarkHex,
+        string primaryLightHex,
         string backgroundHex,
         string surfaceHex,
-        string surfaceContainerHex,
-        string surfaceHighHex,
-        string surfaceHighestHex,
-        string textPrimaryHex,
-        string textMutedHex,
-        string accentHex,
+        string surfaceAltHex,
+        string borderHex,
+        string textHex,
+        string mutedHex,
         bool isDark)
     {
         var primary = Hex(primaryHex);
-        var primaryContainer = Hex(primaryContainerHex);
+        var primaryDark = Hex(primaryDarkHex);
+        var primaryLight = Hex(primaryLightHex);
         var background = Hex(backgroundHex);
         var surface = Hex(surfaceHex);
-        var surfaceLow = surfaceContainerHex == surfaceHex
-            ? Mix(surface, background, 0.08f)
-            : Hex(surfaceContainerHex);
-        var surfaceMid = Hex(surfaceContainerHex);
-        var surfaceHigh = Hex(surfaceHighHex);
-        var surfaceHighest = Hex(surfaceHighestHex);
-        var text = Hex(textPrimaryHex);
-        var muted = Hex(textMutedHex);
-        var accent = Hex(accentHex);
-        var borderSoft = isDark ? Mix(surfaceHigh, accent, 0.12f) : Mix(surfaceMid, muted, 0.22f);
+        var surfaceAlt = Hex(surfaceAltHex);
+        var border = Hex(borderHex);
+        var text = Hex(textHex);
+        var muted = Hex(mutedHex);
 
-        Color Mix(Color a, Color b, float t)
-        {
-            static int C(float v) => (int)Math.Clamp(v, 0, 255);
-            return Color.FromArgb(
-                C(a.R + (b.R - a.R) * t),
-                C(a.G + (b.G - a.G) * t),
-                C(a.B + (b.B - a.B) * t));
-        }
+        var surfaceHigh = isDark ? Mix(surfaceAlt, border, 0.35f) : Mix(surfaceAlt, border, 0.28f);
+        var surfaceHighest = isDark ? Mix(surface, border, 0.42f) : Mix(surface, border, 0.18f);
+        var input = isDark ? surfaceHigh : Mix(surface, surfaceAlt, 0.45f);
+        var onPrimary = isDark ? text : Hex("#FFFFFF");
 
-        var onSurfVar = isDark ? Mix(muted, Color.White, 0.25f) : Mix(muted, text, 0.35f);
-        var outlineVar = isDark ? Mix(surfaceHighest, Color.White, 0.08f) : Mix(borderSoft, muted, 0.35f);
-        var input = isDark ? surfaceHigh : Mix(surface, background, 0.35f);
-
-        var sidebarLight = isDark ? Mix(background, Color.White, 0.04f) : Mix(background, Color.White, 0.55f);
-        var navHover = isDark ? Mix(surfaceHigh, accent, 0.18f) : Mix(surfaceLow, accent, 0.28f);
-
-        var sb = isDark ? Mix(background, primary, 0.35f) : Mix(primary, Color.Black, 0.55f);
-        var sbHover = isDark ? Mix(sb, Color.White, 0.08f) : Mix(sb, Color.White, 0.06f);
-        var sbActive = isDark ? Mix(sb, Color.White, 0.14f) : Mix(primary, Color.Black, 0.25f);
-
+        var sidebarBg = isDark ? Mix(background, primary, 0.28f) : primaryDark;
+        var sidebarHover = isDark ? Mix(sidebarBg, primary, 0.12f) : Mix(sidebarBg, primary, 0.08f);
+        var sidebarActive = isDark ? Mix(sidebarBg, primary, 0.22f) : Mix(primary, primaryDark, 0.35f);
+        var sidebarLight = isDark ? Mix(background, surface, 0.35f) : Mix(background, surface, 0.72f);
+        var navHover = isDark ? Mix(surfaceAlt, primary, 0.2f) : Mix(surfaceAlt, primary, 0.22f);
+        var divider = isDark ? Mix(border, text, 0.12f) : Mix(border, muted, 0.35f);
+        var borderLight = isDark ? Mix(surfaceHigh, text, 0.06f) : Mix(border, background, 0.4f);
         var topDeep = isDark
             ? Color.FromArgb(255, background.R, background.G, background.B)
-            : Color.FromArgb(255, Mix(background, accent, 0.15f).R, Mix(background, accent, 0.15f).G, Mix(background, accent, 0.15f).B);
-
-        var shadow = Color.FromArgb(10, primary.R, primary.G, primary.B);
+            : Color.FromArgb(255, Mix(background, primary, 0.12f).R, Mix(background, primary, 0.12f).G, Mix(background, primary, 0.12f).B);
+        var shadow = Color.FromArgb(isDark ? 48 : 12, primary.R, primary.G, primary.B);
 
         return new ThemeSnapshot
         {
+            Primary = primary,
+            PrimaryDark = primaryDark,
+            PrimaryLight = primaryLight,
+            Background = background,
+            Surface = surface,
+            SurfaceAlt = surfaceAlt,
+            Border = border,
+            Text = text,
+            MutedText = muted,
+            OnPrimary = onPrimary,
+
             PrimaryGreen = primary,
-            PrimaryContainer = primaryContainer,
-            Success = isDark ? accent : Color.FromArgb(0, 127, 86),
-            AccentTeal = accent,
+            PrimaryContainer = primaryLight,
+            Success = isDark ? Mix(primary, Hex("#7EE0B5"), 0.35f) : Hex("#0F7A55"),
+            AccentTeal = primary,
             SoftGreenBackground = background,
             CardBackground = surface,
             SurfaceContainerLowest = surface,
-            SurfaceContainerLow = surfaceLow,
-            SurfaceContainer = surfaceMid,
+            SurfaceContainerLow = surfaceAlt,
+            SurfaceContainer = surfaceAlt,
             SurfaceContainerHigh = surfaceHigh,
             SurfaceContainerHighest = surfaceHighest,
-            OutlineVariant = outlineVar,
-            OnSurfaceVariant = onSurfVar,
+            OutlineVariant = border,
+            OnSurfaceVariant = muted,
             InputSurface = input,
             TextDark = text,
-            MutedText = muted,
-            SidebarBackground = sb,
-            SidebarHover = sbHover,
-            SidebarActive = sbActive,
+            SidebarBackground = sidebarBg,
+            SidebarHover = sidebarHover,
+            SidebarActive = sidebarActive,
             SidebarLightBackground = sidebarLight,
             SidebarNavHoverFill = navHover,
-            SidebarDivider = isDark ? Mix(surfaceHighest, Color.White, 0.06f) : Mix(borderSoft, muted, 0.4f),
-            BorderLight = isDark ? Mix(surfaceHigh, Color.White, 0.05f) : Mix(borderSoft, background, 0.35f),
-            BorderSoft = borderSoft,
-            Danger = Color.FromArgb(186, 26, 26),
-            Warning = Color.FromArgb(245, 158, 11),
-            WarningStrong = Color.FromArgb(217, 119, 6),
-            WarningSurface = isDark ? Color.FromArgb(48, 42, 28) : Color.FromArgb(255, 251, 235),
-            SuccessSurface = isDark ? Mix(surfaceHigh, accent, 0.2f) : Mix(surfaceLow, accent, 0.35f),
-            ErrorContainer = isDark ? Color.FromArgb(52, 32, 30) : Color.FromArgb(255, 218, 214),
+            SidebarDivider = divider,
+            BorderLight = borderLight,
+            BorderSoft = border,
+            Danger = Hex("#BA1A1A"),
+            Warning = Hex("#F59E0B"),
+            WarningStrong = Hex("#D97706"),
+            WarningSurface = isDark ? Hex("#302A1C") : Hex("#FFFBEB"),
+            SuccessSurface = isDark ? Mix(surfaceAlt, primary, 0.22f) : Mix(surfaceAlt, primary, 0.32f),
+            ErrorContainer = isDark ? Hex("#34201E") : Hex("#FFDAD6"),
             TopBarGradientDeep = topDeep,
             DashboardCardShadow = shadow,
-            PrimaryFixed = isDark ? Mix(primaryContainer, Color.White, 0.35f) : Mix(accent, Color.White, 0.45f),
-            LoginGradientTop = isDark ? Mix(background, Color.White, 0.03f) : Mix(background, Color.White, 0.5f),
-            LoginGradientBottom = isDark ? Mix(background, Color.Black, 0.15f) : Mix(surfaceLow, primary, 0.1f),
-            LoginCardFill = isDark ? surface : Color.FromArgb(253, 255, 254),
-            LoginCardBorder = isDark ? outlineVar : Mix(borderSoft, primary, 0.2f),
-            LoginOverlayScrim = isDark ? Color.FromArgb(170, 10, 12, 11) : Color.FromArgb(170, 232, 248, 240),
-            LoginErrorSurface = isDark ? Color.FromArgb(42, 32, 30) : Color.FromArgb(255, 251, 249),
-            LoginErrorBorder = isDark ? Color.FromArgb(90, 52, 50) : Color.FromArgb(232, 200, 200),
-            LoginRevealHover = isDark ? Mix(surfaceHigh, accent, 0.15f) : Mix(surfaceLow, accent, 0.25f)
+            PrimaryFixed = isDark ? Mix(primaryLight, text, 0.25f) : Mix(primaryLight, primary, 0.35f),
+            LoginGradientTop = isDark ? Mix(background, text, 0.04f) : Mix(background, surface, 0.55f),
+            LoginGradientBottom = isDark ? Mix(background, primaryDark, 0.25f) : Mix(surfaceAlt, primary, 0.08f),
+            LoginCardFill = isDark ? surface : Mix(surface, Hex("#FDFFFE"), 0.5f),
+            LoginCardBorder = isDark ? border : Mix(border, primary, 0.18f),
+            LoginOverlayScrim = isDark ? Color.FromArgb(170, background.R, background.G, background.B) : Color.FromArgb(170, Mix(background, primaryLight, 0.35f)),
+            LoginErrorSurface = isDark ? Hex("#2A201E") : Hex("#FFFBF9"),
+            LoginErrorBorder = isDark ? Hex("#5A3432") : Hex("#E8C8C8"),
+            LoginRevealHover = isDark ? Mix(surfaceHigh, primary, 0.18f) : Mix(surfaceAlt, primary, 0.22f)
         };
     }
 
     private static readonly ThemeSnapshot[] Themes =
     [
         Medical(
-            "#076443", "#2D7D5A", "#E7FFF1", "#FFFFFF",
-            "#DCF4E5", "#D6EEE0", "#D0E8DA",
-            "#0B1F17", "#3F4943", "#88D7AD", isDark: false),
+            "#0F7A55", "#075E43", "#DDF7EA",
+            "#F3FFF8", "#FFFFFF", "#E8F7EF", "#C6E3D4",
+            "#10231B", "#5F766B", isDark: false),
 
         Medical(
-            "#0B5CAD", "#1976D2", "#EAF4FF", "#FFFFFF",
-            "#DCEEFF", "#CFE6FF", "#BDD9F7",
-            "#082033", "#415466", "#64B5F6", isDark: false),
+            "#1565C0", "#0D47A1", "#E3F2FD",
+            "#F5FAFF", "#FFFFFF", "#EAF4FF", "#C7DDF3",
+            "#102033", "#5D7085", isDark: false),
 
         Medical(
-            "#006D6F", "#168C8E", "#E6FAF8", "#FFFFFF",
-            "#D7F3F0", "#C8ECE8", "#B8E1DD",
-            "#062524", "#3E5B59", "#5DCCC8", isDark: false),
+            "#00796B", "#005B50", "#DDF7F3",
+            "#F2FFFC", "#FFFFFF", "#E5F7F3", "#BFE3DC",
+            "#0E2724", "#5E7773", isDark: false),
 
         Medical(
-            "#237A57", "#3E9C74", "#F0FFF7", "#FFFFFF",
-            "#E1F8EC", "#D3F0E1", "#C3E6D4",
-            "#10241A", "#4B6255", "#7ED9A6", isDark: false),
+            "#2E8B68", "#1F6B50", "#E4F8EE",
+            "#FAFFFC", "#FFFFFF", "#EEF8F3", "#D0E7DA",
+            "#15251E", "#6D7D74", isDark: false),
 
         Medical(
-            "#426B5A", "#5C8A74", "#F5FAF7", "#FFFFFF",
-            "#E9F1EC", "#DDE8E2", "#D1DDD6",
-            "#18231E", "#56645D", "#A7C9B7", isDark: false),
+            "#447260", "#2E5546", "#EEF5F1",
+            "#FBFCFA", "#FFFFFF", "#F2F5F1", "#D8DED8",
+            "#202620", "#6F776F", isDark: false),
 
         Medical(
-            "#7EE0B5", "#1F6F55", "#101815", "#17211D",
-            "#1D2A25", "#263832", "#30443D",
-            "#E7FFF1", "#B7C9C0", "#88D7AD", isDark: true)
+            "#49C6A3", "#2FAE8C", "#123B34",
+            "#0F1F1C", "#172B27", "#1E3833", "#31534C",
+            "#EAF7F3", "#A9C4BD", isDark: true)
     ];
 }
