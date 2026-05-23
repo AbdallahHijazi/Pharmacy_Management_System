@@ -38,7 +38,9 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
     private NumericUpDown _paidAmountInput = null!;
     private Label _invoiceDateValue = null!;
     private PurSectionCard _itemsCard = null!;
-    private Panel _linesScrollPanel = null!;
+    private PurItemsTableHost _itemsTableHost = null!;
+    private Panel _itemsTableInner = null!;
+    private PurItemsHeaderRow _itemsHeader = null!;
     private Panel _linesHost = null!;
     private GradientRoundedButton _addLineButton = null!;
     private PurSectionCard _summaryCard = null!;
@@ -129,7 +131,7 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         _headerPanel.Controls.Add(_titleLabel);
         _headerPanel.Resize += (_, _) => _closeButton.Location = new Point(0, 4);
 
-        _footerPanel = new Panel { Dock = DockStyle.Bottom, Height = 76, BackColor = Color.Transparent, Padding = new Padding(0, 8, 0, 4) };
+        _footerPanel = new Panel { Dock = DockStyle.Bottom, Height = 84, BackColor = Color.Transparent, Padding = new Padding(16, 8, 16, 12) };
         _statusLabel = new Label
         {
             Dock = DockStyle.Top,
@@ -145,9 +147,9 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
             Text = "حفظ الفاتورة",
             IconGlyph = SegoeMdl2Icons.Save,
             Width = 200,
-            Height = 48
+            Height = 50
         };
-        _cancelButton = new PurCancelButton { Width = 128, Height = 48 };
+        _cancelButton = new PurCancelButton { Width = 128, Height = 50 };
         footerButtons.Controls.Add(_cancelButton);
         footerButtons.Controls.Add(_saveButton);
         footerButtons.Resize += (_, _) => LayoutFooterButtons(footerButtons);
@@ -216,8 +218,8 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
             _paymentMethodCombo.SelectedIndex = 0;
         }
 
-        _taxRateInput = CreateNumeric(0, 100, 0, 2);
-        _paidAmountInput = CreateNumeric(0, 99999999, 0, 2);
+        _taxRateInput = CreateNumeric(0, 100, 0, 2, ltr: true);
+        _paidAmountInput = CreateNumeric(0, 99999999, 0, 2, ltr: true);
 
         _supplierHost = new PurInputHost(_supplierCombo);
         _invoiceNumberHost = new PurInputHost(_invoiceNumberBox);
@@ -236,12 +238,12 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         var dateHost = new PurInputHost(_invoiceDateValue) { Enabled = false };
 
         _infoFieldsPanel.Controls.AddRange([
-            StackField("المورد", _supplierHost),
-            StackField("رقم الفاتورة", _invoiceNumberHost),
-            StackField("طريقة الدفع", _paymentHost),
-            StackField("نسبة الضريبة %", _taxHost),
-            StackField("المبلغ المدفوع", _paidHost),
-            StackField("تاريخ اليوم", dateHost)
+            CreateFieldStack("المورد", _supplierHost),
+            CreateFieldStack("رقم الفاتورة", _invoiceNumberHost),
+            CreateFieldStack("طريقة الدفع", _paymentHost),
+            CreateFieldStack("نسبة الضريبة %", _taxHost),
+            CreateFieldStack("المبلغ المدفوع", _paidHost),
+            CreateFieldStack("تاريخ اليوم", dateHost)
         ]);
 
         _infoCard.Body.Controls.Add(_infoFieldsPanel);
@@ -254,32 +256,41 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         _itemsCard = new PurSectionCard("الأصناف");
         _itemsCard.Dock = DockStyle.Fill;
 
-        var itemsToolbar = new Panel { Dock = DockStyle.Top, Height = 48, BackColor = Color.Transparent, Padding = new Padding(0, 0, 0, 8) };
+        var itemsToolbar = new Panel { Dock = DockStyle.Top, Height = 52, BackColor = Color.Transparent, Padding = new Padding(0, 0, 0, 10) };
         _addLineButton = new GradientRoundedButton
         {
             Text = "+ إضافة صنف",
             IconGlyph = SegoeMdl2Icons.Add,
-            Width = 160,
+            Width = 168,
             Height = 40,
-            Anchor = AnchorStyles.Top | AnchorStyles.Right
+            Anchor = AnchorStyles.Top | AnchorStyles.Left
         };
         itemsToolbar.Controls.Add(_addLineButton);
-        itemsToolbar.Resize += (_, _) => _addLineButton.Location = new Point(itemsToolbar.Width - _addLineButton.Width, 4);
+        itemsToolbar.Resize += (_, _) => _addLineButton.Location = new Point(0, 6);
 
-        var header = new PurItemsHeaderRow();
-        _linesScrollPanel = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Color.Transparent };
+        _itemsTableHost = new PurItemsTableHost();
+        _itemsTableInner = new Panel
+        {
+            BackColor = Color.Transparent,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Dock = DockStyle.Top
+        };
+        _itemsHeader = new PurItemsHeaderRow();
         _linesHost = new Panel
         {
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Dock = DockStyle.Top,
             BackColor = Color.Transparent,
-            Padding = new Padding(0, 4, 0, 8)
+            Padding = new Padding(0, 0, 0, 8)
         };
-        _linesScrollPanel.Controls.Add(_linesHost);
+        _itemsTableInner.Controls.Add(_linesHost);
+        _itemsTableInner.Controls.Add(_itemsHeader);
+        _itemsTableHost.Controls.Add(_itemsTableInner);
+        _itemsTableHost.Resize += (_, _) => SyncItemsTableWidth();
 
-        _itemsCard.Body.Controls.Add(_linesScrollPanel);
-        _itemsCard.Body.Controls.Add(header);
+        _itemsCard.Body.Controls.Add(_itemsTableHost);
         _itemsCard.Body.Controls.Add(itemsToolbar);
     }
 
@@ -295,7 +306,7 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         _paidRow = new PurSummaryRow("المدفوع");
         _remainingRow = new PurSummaryRow("المتبقي");
 
-        var rowsPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent, Padding = new Padding(0, 8, 0, 0) };
+        var rowsPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent, Padding = new Padding(4, 12, 4, 8) };
         rowsPanel.Controls.Add(_remainingRow);
         rowsPanel.Controls.Add(_paidRow);
         rowsPanel.Controls.Add(_grandTotalRow);
@@ -303,6 +314,7 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         rowsPanel.Controls.Add(_subtotalRow);
         rowsPanel.Controls.Add(_itemsCountRow);
 
+        _summaryCard.Body.Padding = new Padding(24, 8, 24, 24);
         _summaryCard.Body.Controls.Add(rowsPanel);
         _summaryCard.FillColor = PharmaTheme.SurfaceAlt;
     }
@@ -384,13 +396,16 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
             _lines.Remove(line);
             _linesHost.Controls.Remove(line);
             line.Dispose();
+            SyncItemsTableWidth();
             UpdateTotals();
         };
         line.LineChanged += (_, _) => UpdateTotals();
         line.ApplyThemeVisuals();
+        line.SetTableWidth(_itemsTableHost.TableWidth);
         _lines.Add(line);
         _linesHost.Controls.Add(line);
         _linesHost.Controls.SetChildIndex(line, 0);
+        SyncItemsTableWidth();
         UpdateTotals();
     }
 
@@ -574,11 +589,10 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         _summaryCard.FillColor = PharmaTheme.SurfaceAlt;
         _summaryCard.ApplyThemeVisuals();
 
-        _supplierHost.ApplyThemeVisuals();
-        _invoiceNumberHost.ApplyThemeVisuals();
-        _paymentHost.ApplyThemeVisuals();
-        _taxHost.ApplyThemeVisuals();
-        _paidHost.ApplyThemeVisuals();
+        foreach (var stack in _infoFieldsPanel.Controls.OfType<PurFieldStack>())
+        {
+            stack.ApplyThemeVisuals();
+        }
 
         _itemsCountRow.ApplyThemeVisuals(false);
         _subtotalRow.ApplyThemeVisuals(false);
@@ -632,6 +646,26 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
 
         LayoutInfoFields(_mainColumn.Width);
         LayoutMainColumn();
+        SyncItemsTableWidth();
+    }
+
+    private void SyncItemsTableWidth()
+    {
+        if (_itemsTableHost is null || _itemsHeader is null)
+        {
+            return;
+        }
+
+        var viewport = Math.Max(_itemsTableHost.ClientSize.Width, PurItemColumnLayout.MinTableWidth);
+        _itemsTableHost.SyncTableWidth(viewport);
+        var tableW = _itemsTableHost.TableWidth;
+        _itemsTableInner.Width = tableW;
+        _itemsHeader.SetTableWidth(tableW);
+        _linesHost.Width = tableW;
+        foreach (var line in _lines)
+        {
+            line.SetTableWidth(tableW);
+        }
     }
 
     private void LayoutMainColumn()
@@ -645,11 +679,11 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
 
     private void LayoutInfoFields(int availableWidth)
     {
-        const int fieldH = 68;
-        const int gapX = 14;
+        const int fieldH = 70;
+        const int gapX = 18;
         const int gapY = 14;
-        var cols = availableWidth >= 900 ? 3 : 2;
-        var colW = (availableWidth - gapX * (cols - 1)) / cols;
+        const int cols = 2;
+        var colW = (availableWidth - gapX) / cols;
 
         var stacks = _infoFieldsPanel.Controls.OfType<PurFieldStack>().ToList();
         for (var i = 0; i < stacks.Count; i++)
@@ -662,8 +696,8 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         }
 
         var rows = (int)Math.Ceiling(stacks.Count / (double)cols);
-        _infoFieldsPanel.Height = rows * (fieldH + gapY);
-        _infoCard.Height = _infoFieldsPanel.Height + 72;
+        _infoFieldsPanel.Height = rows * (fieldH + gapY) - gapY;
+        _infoCard.Height = _infoFieldsPanel.Height + 64;
         LayoutMainColumn();
     }
 
@@ -673,11 +707,8 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         _cancelButton.Location = new Point(_saveButton.Left - _cancelButton.Width - 12, 2);
     }
 
-    private static PurFieldStack StackField(string label, Control input)
-    {
-        var stack = new PurFieldStack(label, input) { Tag = label, Dock = DockStyle.None };
-        return stack;
-    }
+    private static PurFieldStack CreateFieldStack(string label, PurInputHost host) =>
+        new(label, host) { Tag = label, Dock = DockStyle.None };
 
     private static string GenerateInvoiceNumber() =>
         $"PI-{DateTime.UtcNow:yyyyMMddHHmmss}-{Random.Shared.Next(1000, 9999)}";
@@ -697,7 +728,7 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         RightToLeft = RightToLeft.Yes
     };
 
-    private static NumericUpDown CreateNumeric(decimal min, decimal max, decimal value, int decimals) => new()
+    private static NumericUpDown CreateNumeric(decimal min, decimal max, decimal value, int decimals, bool ltr = false) => new()
     {
         Minimum = min,
         Maximum = max,
@@ -705,7 +736,7 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         DecimalPlaces = decimals,
         Font = PharmaTheme.BodyFont,
         ThousandsSeparator = true,
-        RightToLeft = RightToLeft.Yes,
+        RightToLeft = ltr ? RightToLeft.No : RightToLeft.Yes,
         BorderStyle = BorderStyle.None
     };
 

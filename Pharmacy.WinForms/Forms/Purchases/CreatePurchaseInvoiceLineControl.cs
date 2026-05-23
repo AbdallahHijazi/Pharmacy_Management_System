@@ -4,7 +4,7 @@ using Pharmacy.WinForms.Ui;
 
 namespace Pharmacy.WinForms.Forms.Purchases;
 
-internal sealed class CreatePurchaseInvoiceLineControl : PurRoundedPanel
+internal sealed class CreatePurchaseInvoiceLineControl : Panel
 {
     private readonly PurInputHost _productHost;
     private readonly PurInputHost _batchHost;
@@ -20,15 +20,15 @@ internal sealed class CreatePurchaseInvoiceLineControl : PurRoundedPanel
     private readonly NumericUpDown _unitPriceInput;
     private readonly Label _subtotalLabel;
     private readonly PurRemoveLineButton _removeButton;
+    private int _tableWidth = PurItemColumnLayout.MinTableWidth;
 
-    public CreatePurchaseInvoiceLineControl() : base(PharmaTheme.PurchasesCardCornerRadius, drawShadow: false)
+    public CreatePurchaseInvoiceLineControl()
     {
-        FillColor = PharmaTheme.SurfaceAlt;
-        BorderColor = PharmaTheme.BorderSoft;
-        Height = 88;
+        Height = PurItemColumnLayout.RowHeight;
         Dock = DockStyle.Top;
-        Margin = new Padding(0, 0, 0, 12);
-        Padding = new Padding(12, 10, 12, 10);
+        Margin = new Padding(0, 0, 0, 10);
+        Padding = new Padding(0, 4, 0, 4);
+        BackColor = Color.Transparent;
         RightToLeft = RightToLeft.Yes;
 
         _productCombo = CreateCombo();
@@ -40,7 +40,8 @@ internal sealed class CreatePurchaseInvoiceLineControl : PurRoundedPanel
             RightToLeft = RightToLeft.Yes,
             RightToLeftLayout = true,
             MinDate = DateTime.Today,
-            Value = DateTime.Today.AddYears(1)
+            Value = DateTime.Today.AddYears(1),
+            BackColor = PharmaTheme.SurfaceContainerHigh
         };
         _quantityInput = CreateNumeric(1, 99999, 1);
         _bonusInput = CreateNumeric(0, 99999, 0);
@@ -57,8 +58,9 @@ internal sealed class CreatePurchaseInvoiceLineControl : PurRoundedPanel
         {
             Text = "0.00",
             TextAlign = ContentAlignment.MiddleCenter,
-            Font = PharmaTheme.NumberFont(10f, FontStyle.Bold),
-            ForeColor = PharmaTheme.Primary
+            Font = PharmaTheme.NumberFont(10.5f, FontStyle.Bold),
+            ForeColor = PharmaTheme.Primary,
+            BackColor = Color.Transparent
         };
         _removeButton = new PurRemoveLineButton();
         _removeButton.Click += (_, _) => RemoveRequested?.Invoke(this, EventArgs.Empty);
@@ -87,6 +89,13 @@ internal sealed class CreatePurchaseInvoiceLineControl : PurRoundedPanel
     public event EventHandler? LineChanged;
 
     public decimal LineSubtotal => _quantityInput.Value * _unitPriceInput.Value;
+
+    public void SetTableWidth(int width)
+    {
+        _tableWidth = Math.Max(width, PurItemColumnLayout.MinTableWidth);
+        Width = _tableWidth;
+        LayoutLine();
+    }
 
     public void BindProducts(IReadOnlyList<PosProductView> products)
     {
@@ -144,10 +153,8 @@ internal sealed class CreatePurchaseInvoiceLineControl : PurRoundedPanel
         return true;
     }
 
-    public new void ApplyThemeVisuals()
+    public void ApplyThemeVisuals()
     {
-        FillColor = PharmaTheme.SurfaceAlt;
-        BorderColor = PharmaTheme.BorderSoft;
         _subtotalLabel.ForeColor = PharmaTheme.Primary;
         _removeButton.ApplyThemeVisuals();
         _productHost.ApplyThemeVisuals();
@@ -156,39 +163,10 @@ internal sealed class CreatePurchaseInvoiceLineControl : PurRoundedPanel
         _quantityHost.ApplyThemeVisuals();
         _bonusHost.ApplyThemeVisuals();
         _priceHost.ApplyThemeVisuals();
-        base.ApplyThemeVisuals();
     }
 
-    internal static ColumnLayout GetColumnRects(Rectangle bounds)
-    {
-        const int pad = 8;
-        var removeW = 56;
-        var subtotalW = 88;
-        var priceW = 88;
-        var bonusW = 64;
-        var qtyW = 64;
-        var expiryW = 108;
-        var batchW = 108;
-        var productW = Math.Max(120, bounds.Width - pad * 2 - removeW - subtotalW - priceW - bonusW - qtyW - expiryW - batchW - pad * 6);
-
-        var x = bounds.Right - pad - productW;
-        var product = new Rectangle(x, bounds.Y, productW, bounds.Height);
-        x -= batchW + pad;
-        var batch = new Rectangle(x, bounds.Y, batchW, bounds.Height);
-        x -= expiryW + pad;
-        var expiry = new Rectangle(x, bounds.Y, expiryW, bounds.Height);
-        x -= qtyW + pad;
-        var quantity = new Rectangle(x, bounds.Y, qtyW, bounds.Height);
-        x -= bonusW + pad;
-        var bonus = new Rectangle(x, bounds.Y, bonusW, bounds.Height);
-        x -= priceW + pad;
-        var price = new Rectangle(x, bounds.Y, priceW, bounds.Height);
-        x -= subtotalW + pad;
-        var subtotal = new Rectangle(x, bounds.Y, subtotalW, bounds.Height);
-        var remove = new Rectangle(bounds.X + pad, bounds.Y, removeW, bounds.Height);
-
-        return new ColumnLayout(product, batch, expiry, quantity, bonus, price, subtotal, remove);
-    }
+    internal static ColumnLayout GetColumnRects(Rectangle bounds) =>
+        PurItemColumnLayout.GetColumnRects(bounds);
 
     private void OnProductChanged()
     {
@@ -211,10 +189,8 @@ internal sealed class CreatePurchaseInvoiceLineControl : PurRoundedPanel
     {
         var inner = ClientRectangle;
         inner.Y += Padding.Top;
-        inner.X += Padding.Left;
-        inner.Width -= Padding.Horizontal;
         inner.Height -= Padding.Vertical;
-        var cols = GetColumnRects(inner);
+        var cols = PurItemColumnLayout.GetColumnRects(inner, _tableWidth);
 
         _productHost.Bounds = cols.Product;
         _batchHost.Bounds = cols.Batch;
@@ -249,7 +225,6 @@ internal sealed class CreatePurchaseInvoiceLineControl : PurRoundedPanel
         DecimalPlaces = decimals,
         Font = PharmaTheme.BodyFont,
         ThousandsSeparator = true,
-        RightToLeft = RightToLeft.Yes,
         BorderStyle = BorderStyle.None
     };
 
@@ -257,11 +232,7 @@ internal sealed class CreatePurchaseInvoiceLineControl : PurRoundedPanel
     {
         public ProductComboItem(PosProductView product) => Product = product;
         public PosProductView Product { get; }
-        public override string ToString()
-        {
-            var subtitle = string.IsNullOrWhiteSpace(Product.Subtitle) ? string.Empty : $" — {Product.Subtitle}";
-            return $"{Product.DisplayName}{subtitle}";
-        }
+        public override string ToString() => Product.DisplayName;
     }
 
     internal readonly record struct ColumnLayout(
@@ -280,6 +251,7 @@ internal sealed class PurRemoveLineButton : Control
     public PurRemoveLineButton()
     {
         Text = "حذف";
+        Size = new Size(56, 36);
         Cursor = Cursors.Hand;
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.StandardClick, true);
     }
@@ -296,7 +268,7 @@ internal sealed class PurRemoveLineButton : Control
         TextRenderer.DrawText(
             g,
             Text,
-            PharmaTheme.ArabicFont(9f, FontStyle.Bold),
+            PharmaTheme.ArabicFont(8.5f, FontStyle.Bold),
             b,
             PharmaTheme.Danger,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
