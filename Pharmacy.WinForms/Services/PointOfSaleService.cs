@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Pharmacy.WinForms.Models;
 
 namespace Pharmacy.WinForms.Services;
@@ -67,6 +68,11 @@ internal sealed class PointOfSaleService
                 break;
             }
 
+            if (all.Count == 0)
+            {
+                LogFirstProductRaw(result.Data.Items[0]);
+            }
+
             all.AddRange(result.Data.Items);
             page++;
 
@@ -78,8 +84,18 @@ internal sealed class PointOfSaleService
 
         var views = all
             .Select(PosProductView.FromApi)
-            .OrderBy(p => p.Name, StringComparer.CurrentCultureIgnoreCase)
+            .OrderBy(p => p.DisplayName, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
+
+        if (views.Count > 0)
+        {
+            var mapped = views[0];
+            Debug.WriteLine(
+                $"[POS] First product mapped: ProductId={mapped.ProductId}, " +
+                $"DisplayName='{mapped.DisplayName}', Subtitle='{mapped.Subtitle}', " +
+                $"RawName='{mapped.Name}', ScientificName='{mapped.ScientificName}', " +
+                $"Barcode='{mapped.Barcode}', CategoryName='{mapped.CategoryName}'");
+        }
 
         return new ProductsLoadResult
         {
@@ -149,6 +165,16 @@ internal sealed class PointOfSaleService
             Success = true,
             Invoice = result.Data
         };
+    }
+
+    private static void LogFirstProductRaw(PosProductApiModel api)
+    {
+        Debug.WriteLine(
+            $"[POS] First product raw fields: ProductId={api.ProductId}, " +
+            $"Name='{api.Name}', ProductName='{api.ProductName}', TradeName='{api.TradeName}', " +
+            $"CommercialName='{api.CommercialName}', ScientificName='{api.ScientificName}', " +
+            $"Barcode='{api.Barcode}', Sku='{api.Sku}', Code='{api.Code}', " +
+            $"CategoryName='{api.CategoryName}'");
     }
 }
 

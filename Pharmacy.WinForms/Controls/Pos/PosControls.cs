@@ -392,10 +392,10 @@ internal sealed class PosProductCard : Control
         }
 
         var textW = bounds.Width - 24;
-        var nameRect = new Rectangle(bounds.X + 12, bounds.Y + 16, textW, 28);
+        var nameRect = new Rectangle(bounds.X + 12, bounds.Y + 12, textW, 26);
         TextRenderer.DrawText(
             g,
-            _product.Name,
+            _product.DisplayName,
             PharmaTheme.ArabicFont(11.5f, FontStyle.Bold),
             nameRect,
             PharmaTheme.TextDark,
@@ -404,27 +404,31 @@ internal sealed class PosProductCard : Control
                 | TextFormatFlags.VerticalCenter
                 | TextFormatFlags.RightToLeft);
 
-        var sciRect = new Rectangle(bounds.X + 12, nameRect.Bottom + 2, textW, 22);
-        TextRenderer.DrawText(
-            g,
-            string.IsNullOrWhiteSpace(_product.ScientificName) ? " " : _product.ScientificName,
-            PharmaTheme.SmallFont,
-            sciRect,
-            PharmaTheme.OnSurfaceVariant,
-            TextFormatFlags.Right
-                | TextFormatFlags.EndEllipsis
-                | TextFormatFlags.VerticalCenter
-                | TextFormatFlags.RightToLeft);
+        var subtitle = _product.Subtitle;
+        if (!string.IsNullOrWhiteSpace(subtitle))
+        {
+            var sciRect = new Rectangle(bounds.X + 12, nameRect.Bottom + 2, textW, 20);
+            TextRenderer.DrawText(
+                g,
+                subtitle,
+                PharmaTheme.SmallFont,
+                sciRect,
+                PharmaTheme.OnSurfaceVariant,
+                TextFormatFlags.Right
+                    | TextFormatFlags.EndEllipsis
+                    | TextFormatFlags.VerticalCenter
+                    | TextFormatFlags.RightToLeft);
+        }
 
         var priceText = PosFormatting.FormatMoneyCompact(_product.SellingPrice);
-        var priceRect = new Rectangle(bounds.X + 12, bounds.Bottom - 44, textW / 2 + 40, 28);
+        var priceRect = new Rectangle(bounds.X + 12, bounds.Bottom - 36, textW / 2 + 40, 24);
         TextRenderer.DrawText(
             g,
             priceText,
-            PharmaTheme.NumberFont(14f, FontStyle.Bold),
+            PharmaTheme.NumberFont(13f, FontStyle.Bold),
             priceRect,
             PharmaTheme.Primary,
-            TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
+            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
 
         var stockLabel = _product.IsOutOfStock ? "نفد" : $"Stock: {_product.SellableQuantity}";
         var stockBack = _product.IsLowStock || _product.IsOutOfStock
@@ -434,7 +438,7 @@ internal sealed class PosProductCard : Control
             ? PharmaTheme.Danger
             : PharmaTheme.OnSurfaceVariant;
         var stockSize = TextRenderer.MeasureText(g, stockLabel, PharmaTheme.SmallFont, Size.Empty, TextFormatFlags.NoPadding);
-        var stockRect = new Rectangle(bounds.Right - stockSize.Width - 20, bounds.Bottom - 40, stockSize.Width + 12, 24);
+        var stockRect = new Rectangle(bounds.Right - stockSize.Width - 16, bounds.Bottom - 32, stockSize.Width + 12, 22);
         RoundedDrawing.FillRounded(g, stockRect, 8, stockBack);
         TextRenderer.DrawText(
             g,
@@ -448,6 +452,10 @@ internal sealed class PosProductCard : Control
 
 internal sealed class PosCartItemControl : Control
 {
+    private const int RemoveZoneWidth = 40;
+    private const int TotalZoneWidth = 92;
+    private const int QtyZoneWidth = 140;
+
     private readonly PosCartLine _line;
     public event EventHandler? IncreaseRequested;
     public event EventHandler? DecreaseRequested;
@@ -473,10 +481,11 @@ internal sealed class PosCartItemControl : Control
     {
         base.OnMouseClick(e);
         var bounds = ClientRectangle;
-        var qtyRect = new Rectangle(bounds.X + bounds.Width / 2 - 70, bounds.Y + 22, 140, 34);
-        var removeRect = new Rectangle(bounds.X + 6, bounds.Y + 6, 22, 22);
-        var plusRect = new Rectangle(qtyRect.Right - 30, qtyRect.Y + 4, 26, 26);
-        var minusRect = new Rectangle(qtyRect.X + 4, qtyRect.Y + 4, 26, 26);
+        var layout = GetLayout(bounds);
+        var removeRect = layout.RemoveRect;
+        var qtyRect = layout.QtyRect;
+        var plusRect = layout.PlusRect;
+        var minusRect = layout.MinusRect;
 
         if (removeRect.Contains(e.Location))
         {
@@ -505,7 +514,8 @@ internal sealed class PosCartItemControl : Control
         RoundedDrawing.FillRounded(g, bounds, 12, PharmaTheme.Surface);
         RoundedDrawing.DrawRoundedBorder(g, bounds, 12, PharmaTheme.BorderSoft);
 
-        var removeRect = new Rectangle(bounds.X + 6, bounds.Y + 6, 22, 22);
+        var layout = GetLayout(bounds);
+        var removeRect = layout.RemoveRect;
         RoundedDrawing.FillRounded(g, removeRect, 11, PharmaTheme.Danger);
         TextRenderer.DrawText(
             g,
@@ -515,51 +525,84 @@ internal sealed class PosCartItemControl : Control
             PharmaTheme.OnPrimary,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
-        var nameRect = new Rectangle(bounds.X + 36, bounds.Y + 10, bounds.Width / 2, 24);
         TextRenderer.DrawText(
             g,
-            _line.Product.Name,
+            _line.Product.DisplayName,
             PharmaTheme.ArabicFont(10f, FontStyle.Bold),
-            nameRect,
+            layout.NameRect,
             PharmaTheme.TextDark,
             TextFormatFlags.Right
                 | TextFormatFlags.EndEllipsis
                 | TextFormatFlags.VerticalCenter
                 | TextFormatFlags.RightToLeft);
 
-        var unitRect = new Rectangle(bounds.X + 36, nameRect.Bottom, bounds.Width / 2, 20);
         TextRenderer.DrawText(
             g,
             PosFormatting.FormatMoneyCompact(_line.Product.SellingPrice),
             PharmaTheme.SmallFont,
-            unitRect,
+            layout.UnitRect,
             PharmaTheme.OnSurfaceVariant,
-            TextFormatFlags.Right | TextFormatFlags.VerticalCenter);
+            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
 
-        var qtyRect = new Rectangle(bounds.X + bounds.Width / 2 - 70, bounds.Y + 22, 140, 34);
-        RoundedDrawing.FillRounded(g, qtyRect, 17, PharmaTheme.SurfaceContainer);
-        var plusRect = new Rectangle(qtyRect.Right - 30, qtyRect.Y + 4, 26, 26);
-        var minusRect = new Rectangle(qtyRect.X + 4, qtyRect.Y + 4, 26, 26);
-        DrawCircleButton(g, plusRect, SegoeMdl2Icons.Add);
-        DrawCircleButton(g, minusRect, SegoeMdl2Icons.Remove);
-        var qtyTextRect = new Rectangle(minusRect.Right, qtyRect.Y, plusRect.X - minusRect.Right, qtyRect.Height);
+        RoundedDrawing.FillRounded(g, layout.QtyRect, 17, PharmaTheme.SurfaceContainer);
+        DrawCircleButton(g, layout.PlusRect, SegoeMdl2Icons.Add);
+        DrawCircleButton(g, layout.MinusRect, SegoeMdl2Icons.Remove);
         TextRenderer.DrawText(
             g,
             _line.Quantity.ToString(),
             PharmaTheme.NumberFont(10f, FontStyle.Bold),
-            qtyTextRect,
+            layout.QtyTextRect,
             PharmaTheme.TextDark,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
-        var totalRect = new Rectangle(bounds.Right - 90, bounds.Y + 20, 80, 32);
         TextRenderer.DrawText(
             g,
             PosFormatting.FormatMoneyCompact(_line.LineTotal),
             PharmaTheme.NumberFont(10.5f, FontStyle.Bold),
-            totalRect,
+            layout.TotalRect,
             PharmaTheme.Primary,
-            TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix);
     }
+
+    private CartItemLayout GetLayout(Rectangle bounds)
+    {
+        const int pad = 8;
+        const int removeSize = 26;
+        var removeRect = new Rectangle(
+            bounds.X + pad,
+            bounds.Y + (bounds.Height - removeSize) / 2,
+            removeSize,
+            removeSize);
+        var totalRect = new Rectangle(bounds.Right - TotalZoneWidth - pad, bounds.Y + 18, TotalZoneWidth, 32);
+        var qtyRect = new Rectangle(totalRect.X - QtyZoneWidth - 8, bounds.Y + 20, QtyZoneWidth, 34);
+        var plusRect = new Rectangle(qtyRect.Right - 30, qtyRect.Y + 4, 26, 26);
+        var minusRect = new Rectangle(qtyRect.X + 4, qtyRect.Y + 4, 26, 26);
+        var textLeft = removeRect.Right + 10;
+        var textW = Math.Max(72, qtyRect.X - textLeft - 8);
+        var nameRect = new Rectangle(textLeft, bounds.Y + 10, textW, 24);
+        var unitRect = new Rectangle(textLeft, nameRect.Bottom, textW, 20);
+        var qtyTextRect = new Rectangle(minusRect.Right, qtyRect.Y, plusRect.X - minusRect.Right, qtyRect.Height);
+
+        return new CartItemLayout(
+            removeRect,
+            nameRect,
+            unitRect,
+            qtyRect,
+            plusRect,
+            minusRect,
+            qtyTextRect,
+            totalRect);
+    }
+
+    private readonly record struct CartItemLayout(
+        Rectangle RemoveRect,
+        Rectangle NameRect,
+        Rectangle UnitRect,
+        Rectangle QtyRect,
+        Rectangle PlusRect,
+        Rectangle MinusRect,
+        Rectangle QtyTextRect,
+        Rectangle TotalRect);
 
     private static void DrawCircleButton(Graphics g, Rectangle rect, string glyph)
     {

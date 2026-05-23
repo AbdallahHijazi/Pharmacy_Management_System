@@ -18,7 +18,7 @@ internal static class PosFormatting
         }
     }
 
-    public static string FormatMoney(decimal value) => $"{value:N2} {CurrencySuffix}";
+    public static string FormatMoney(decimal value) => $"\u200E{value:N2}\u00A0{CurrencySuffix}";
 
     public static string FormatMoneyCompact(decimal value) => FormatMoney(value);
 }

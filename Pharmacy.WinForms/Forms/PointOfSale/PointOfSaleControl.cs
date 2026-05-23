@@ -230,7 +230,7 @@ internal sealed class PointOfSaleControl : UserControl
         _customerNameBox = new TextBox
         {
             BorderStyle = BorderStyle.None,
-            Font = PharmaTheme.ArabicFont(11f, FontStyle.Bold),
+            Font = PharmaTheme.ArabicFont(10.5f),
             BackColor = PharmaTheme.SurfaceContainerHigh,
             ForeColor = PharmaTheme.TextDark,
             PlaceholderText = "اسم الزبون (اختياري)",
@@ -250,9 +250,9 @@ internal sealed class PointOfSaleControl : UserControl
         _addCustomerBtn = new Label
         {
             Cursor = Cursors.Hand,
-            Font = PharmaTheme.IconFont(14f),
+            Font = PharmaTheme.IconFont(12f),
             ForeColor = PharmaTheme.Primary,
-            Size = new Size(36, 36),
+            Size = new Size(28, 28),
             Text = SegoeMdl2Icons.PersonAdd,
             TextAlign = ContentAlignment.MiddleCenter
         };
@@ -315,6 +315,7 @@ internal sealed class PointOfSaleControl : UserControl
             Font = PharmaTheme.NumberFont(22f, FontStyle.Bold),
             ForeColor = PharmaTheme.Primary,
             Height = 40,
+            RightToLeft = RightToLeft.No,
             TextAlign = ContentAlignment.MiddleRight,
             UseCompatibleTextRendering = true
         };
@@ -374,6 +375,7 @@ internal sealed class PointOfSaleControl : UserControl
         SetCategoryFilter("الكل");
         UpdateTotals();
         RebuildCartItems();
+        UpdateCheckoutButtonState();
     }
 
     private static Label CreateTotalsCaptionLabel(string text) => new()
@@ -393,6 +395,7 @@ internal sealed class PointOfSaleControl : UserControl
         Font = PharmaTheme.NumberFont(10f),
         ForeColor = PharmaTheme.OnSurfaceVariant,
         Height = 22,
+        RightToLeft = RightToLeft.No,
         TextAlign = ContentAlignment.MiddleRight,
         UseCompatibleTextRendering = true
     };
@@ -536,12 +539,17 @@ internal sealed class PointOfSaleControl : UserControl
     private void LayoutCustomerHeader()
     {
         var w = _customerHeader.ClientSize.Width;
-        _customerAvatar.SetBounds(w - 58, 20, 40, 40);
-        _addCustomerBtn.SetBounds(14, 24, 32, 32);
-        var textRight = w - 66;
-        var textW = Math.Max(160, textRight - 52);
-        _customerNameBox.SetBounds(52, 22, textW, 28);
-        _customerHint.SetBounds(52, 52, textW, 20);
+        const int sidePad = 12;
+        const int avatarSize = 36;
+        const int addBtnSize = 28;
+        const int textLeft = sidePad + addBtnSize + 8;
+        var textRight = w - sidePad - avatarSize - 8;
+        var textW = Math.Max(180, textRight - textLeft);
+
+        _customerAvatar.SetBounds(w - sidePad - avatarSize, 24, avatarSize, avatarSize);
+        _addCustomerBtn.SetBounds(sidePad, 28, addBtnSize, addBtnSize);
+        _customerNameBox.SetBounds(textLeft, 22, textW, 30);
+        _customerHint.SetBounds(textLeft, 54, textW, 20);
     }
 
     private void LayoutTotalsFooter()
@@ -678,7 +686,8 @@ internal sealed class PointOfSaleControl : UserControl
         var q = query.Trim().ToLowerInvariant();
         return source
             .Where(p =>
-                p.Name.Contains(q, StringComparison.OrdinalIgnoreCase)
+                p.DisplayName.Contains(q, StringComparison.OrdinalIgnoreCase)
+                || p.Name.Contains(q, StringComparison.OrdinalIgnoreCase)
                 || p.ScientificName.Contains(q, StringComparison.OrdinalIgnoreCase)
                 || p.Barcode.Contains(q, StringComparison.OrdinalIgnoreCase))
             .ToList();
@@ -836,6 +845,7 @@ internal sealed class PointOfSaleControl : UserControl
         _emptyCartLabel.Visible = _cart.Count == 0;
         _cartItemsScrollPanel.Visible = _cart.Count > 0;
         _cartItemsHost.ResumeLayout(true);
+        UpdateCheckoutButtonState();
     }
 
     private void ChangeCartQuantity(PosCartLine line, int delta)
@@ -871,6 +881,22 @@ internal sealed class PointOfSaleControl : UserControl
 
         _subtotalValueLabel.Text = PosFormatting.FormatMoney(subtotal);
         _totalValueLabel.Text = PosFormatting.FormatMoney(total);
+        UpdateCheckoutButtonState();
+    }
+
+    private void UpdateCheckoutButtonState()
+    {
+        if (_checkoutButton is null)
+        {
+            return;
+        }
+
+        var hasItems = _cart.Count > 0;
+        _checkoutButton.Enabled = hasItems && !_isSubmitting;
+        _checkoutButton.ForeColor = _checkoutButton.Enabled
+            ? PharmaTheme.OnPrimary
+            : PharmaTheme.OnSurfaceVariant;
+        _checkoutButton.Invalidate();
     }
 
     private void SetPaymentMode(PosPaymentUiMode mode)
@@ -937,8 +963,8 @@ internal sealed class PointOfSaleControl : UserControl
         };
 
         _isSubmitting = true;
-        _checkoutButton.Enabled = false;
         _checkoutButton.Text = "جارٍ إنشاء الفاتورة...";
+        UpdateCheckoutButtonState();
         try
         {
             var result = await _posService.CreateSalesInvoiceAsync(request).ConfigureAwait(true);
@@ -970,8 +996,8 @@ internal sealed class PointOfSaleControl : UserControl
         finally
         {
             _isSubmitting = false;
-            _checkoutButton.Enabled = true;
             _checkoutButton.Text = "طباعة الفاتورة";
+            UpdateCheckoutButtonState();
         }
     }
 
@@ -1054,8 +1080,7 @@ internal sealed class PointOfSaleControl : UserControl
         _cashButton.ApplyThemeVisuals();
         _creditButton.ApplyThemeVisuals();
         _cardButton.ApplyThemeVisuals();
-        _checkoutButton.ForeColor = PharmaTheme.OnPrimary;
-        _checkoutButton.Invalidate();
+        UpdateCheckoutButtonState();
 
         foreach (Control c in _productGridPanel.Controls)
         {

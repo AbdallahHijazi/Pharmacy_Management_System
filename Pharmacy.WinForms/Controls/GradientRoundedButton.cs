@@ -58,6 +58,13 @@ public sealed class GradientRoundedButton : Control
         Invalidate();
     }
 
+    protected override void OnEnabledChanged(EventArgs e)
+    {
+        base.OnEnabledChanged(e);
+        Cursor = Enabled ? Cursors.Hand : Cursors.Default;
+        Invalidate();
+    }
+
     protected override void OnPaint(PaintEventArgs e)
     {
         var g = e.Graphics;
@@ -65,14 +72,31 @@ public sealed class GradientRoundedButton : Control
         var bounds = ClientRectangle;
         bounds.Inflate(-2, -2);
 
-        RoundedDrawing.DrawSoftShadow(g, bounds, PharmaTheme.DashboardButtonCornerRadius, PharmaTheme.DashboardCardShadow);
+        if (Enabled)
+        {
+            RoundedDrawing.DrawSoftShadow(g, bounds, PharmaTheme.DashboardButtonCornerRadius, PharmaTheme.DashboardCardShadow);
+        }
 
-        var top = _isPressed
-            ? PharmaTheme.PrimaryContainer
-            : _isHover
-                ? PharmaTheme.PrimaryDark
-                : PharmaTheme.Primary;
-        var bottom = _isPressed ? PharmaTheme.Primary : PharmaTheme.PrimaryContainer;
+        Color top;
+        Color bottom;
+        Color textColor;
+        if (!Enabled)
+        {
+            top = PharmaTheme.SurfaceContainerHigh;
+            bottom = PharmaTheme.SurfaceContainer;
+            textColor = PharmaTheme.OnSurfaceVariant;
+        }
+        else
+        {
+            top = _isPressed
+                ? PharmaTheme.PrimaryContainer
+                : _isHover
+                    ? PharmaTheme.PrimaryDark
+                    : PharmaTheme.Primary;
+            bottom = _isPressed ? PharmaTheme.Primary : PharmaTheme.PrimaryContainer;
+            textColor = ForeColor;
+        }
+
         using (var path = RoundedDrawing.CreateRoundedRect(bounds, PharmaTheme.DashboardButtonCornerRadius))
         using (var brush = new LinearGradientBrush(bounds, top, bottom, LinearGradientMode.ForwardDiagonal))
         {
@@ -88,7 +112,7 @@ public sealed class GradientRoundedButton : Control
                 IconGlyph,
                 PharmaTheme.IconFont(11f),
                 iconRect,
-                ForeColor,
+                textColor,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             textRect = new Rectangle(bounds.X + 8, bounds.Y, bounds.Width - 40, bounds.Height);
         }
@@ -98,7 +122,7 @@ public sealed class GradientRoundedButton : Control
             Text,
             Font,
             TextLayoutHelper.DeflateVertical(textRect, 2),
-            ForeColor,
+            textColor,
             TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
     }
 }
