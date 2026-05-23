@@ -1,5 +1,6 @@
 using Pharmacy.WinForms.Controls;
 using Pharmacy.WinForms.Forms.Dashboard;
+using Pharmacy.WinForms.Forms.PointOfSale;
 using Pharmacy.WinForms.Forms.Settings;
 using Pharmacy.WinForms.Models;
 using Pharmacy.WinForms.Services;
@@ -45,6 +46,9 @@ public sealed partial class MainForm : Form
             {
                 case SettingsControl settings:
                     settings.ApplyThemeAndFontVisuals();
+                    break;
+                case PointOfSaleControl pointOfSale:
+                    pointOfSale.ApplyThemeVisuals();
                     break;
                 case PlaceholderPageControl placeholder:
                     placeholder.ApplyThemeVisuals();
@@ -130,6 +134,10 @@ public sealed partial class MainForm : Form
         {
             settings.ApplyThemeAndFontVisuals();
         }
+        else if (page is PointOfSaleControl pointOfSale)
+        {
+            pointOfSale.ApplyThemeVisuals();
+        }
         else if (page is PlaceholderPageControl placeholder)
         {
             placeholder.ApplyThemeVisuals();
@@ -161,7 +169,7 @@ public sealed partial class MainForm : Form
         {
             AppNavigation.Dashboard => CreateDashboard(),
             AppNavigation.Inventory => new PlaceholderPageControl(NavigationLabels.Get(AppNavigation.Inventory)),
-            AppNavigation.PointOfSale => new PlaceholderPageControl(NavigationLabels.Get(AppNavigation.PointOfSale)),
+            AppNavigation.PointOfSale => new PointOfSaleControl(),
             AppNavigation.Purchases => new PlaceholderPageControl(NavigationLabels.Get(AppNavigation.Purchases)),
             AppNavigation.Customers => new PlaceholderPageControl(NavigationLabels.Get(AppNavigation.Customers)),
             AppNavigation.Suppliers => new PlaceholderPageControl(NavigationLabels.Get(AppNavigation.Suppliers)),

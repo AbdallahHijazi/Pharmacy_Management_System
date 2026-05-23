@@ -134,6 +134,12 @@ internal static class PharmaTheme
     public const int SettingsFieldCornerRadius = 12;
 
     public const int SettingsChipCornerRadius = 12;
+    public const int PosCardCornerRadius = 16;
+    public const int PosCartCornerRadius = 18;
+    public const int PosSearchCornerRadius = 14;
+    public const int PosChipCornerRadius = 999;
+    public const int PosProductCardHeight = 196;
+    public const int PosLowStockThreshold = 5;
 
 
 

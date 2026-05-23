@@ -6,4 +6,5 @@ internal static class AppServices
     public static AuthService AuthService { get; } = new(ApiClient);
     public static DashboardService DashboardService { get; } = new(ApiClient);
     public static SettingsService SettingsService { get; } = new(ApiClient);
+    public static PointOfSaleService PointOfSaleService { get; } = new(ApiClient);
 }

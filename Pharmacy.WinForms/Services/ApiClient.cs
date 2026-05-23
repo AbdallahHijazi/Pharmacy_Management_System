@@ -262,5 +262,58 @@ public sealed class ApiClient : IDisposable
         }
     }
 
+    public async Task<(bool Success, TResponse? Data, string? ErrorMessage, bool IsConnectionError, int? StatusCode)> PostAsync<TRequest, TResponse>(
+        string relativeUrl,
+        TRequest body,
+        string? logContext = null,
+        CancellationToken cancellationToken = default)
+        where TResponse : class
+    {
+        EnsureSessionAuthorization();
+
+        var requestUri = BuildRequestUri(relativeUrl);
+        var hasToken = SessionManager.IsAuthenticated;
+        Debug.WriteLine(
+            $"[API/{logContext ?? "POST"}] {requestUri} | BaseUrl={_httpClient.BaseAddress} | HasToken={hasToken}");
+
+        try
+        {
+            using var response = await _httpClient.PostAsJsonAsync(relativeUrl, body, JsonOptions, cancellationToken);
+            var statusCode = (int)response.StatusCode;
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<TResponse>(JsonOptions, cancellationToken);
+                if (data is null)
+                {
+                    LogApi(logContext, requestUri, statusCode, "استجابة فارغة أو غير قابلة للتحليل.");
+                    return (false, null, "استجابة غير صالحة من الخادم.", false, statusCode);
+                }
+
+                LogApi(logContext, requestUri, statusCode, "OK");
+                return (true, data, null, false, statusCode);
+            }
+
+            var apiMessage = await TryReadApiErrorMessageAsync(response, cancellationToken);
+            LogApi(logContext, requestUri, statusCode, apiMessage);
+            return (false, null, apiMessage, false, statusCode);
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            LogApi(logContext, requestUri, null, "Timeout");
+            return (false, null, "انتهت مهلة الاتصال بالخادم. تحقق من أن API يعمل.", true, null);
+        }
+        catch (HttpRequestException ex)
+        {
+            LogApi(logContext, requestUri, null, $"HttpRequestException: {ex.Message}");
+            return (false, null, "تعذر الاتصال بالخادم. تأكد من تشغيل PharmacyProjectApi.", true, null);
+        }
+        catch (Exception ex)
+        {
+            LogApi(logContext, requestUri, null, ex.ToString());
+            return (false, null, "حدث خطأ غير متوقع أثناء الاتصال بالخادم.", false, null);
+        }
+    }
+
     public void Dispose() => _httpClient.Dispose();
 }

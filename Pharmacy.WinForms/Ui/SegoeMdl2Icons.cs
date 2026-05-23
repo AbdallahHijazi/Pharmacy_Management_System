@@ -32,4 +32,9 @@ internal static class SegoeMdl2Icons
     public const string Palette = "\uE790";
     public const string Backup = "\uE895";
     public const string Folder = "\uE838";
+    public const string Print = "\uE749";
+    public const string Remove = "\uE738";
+    public const string PersonAdd = "\uE8FA";
+    public const string Person = "\uE77B";
+    public const string Close = "\uE711";
 }
