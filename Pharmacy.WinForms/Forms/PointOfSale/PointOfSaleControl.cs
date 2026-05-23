@@ -16,10 +16,12 @@ internal sealed class PointOfSaleControl : UserControl
     private const int GridGap = 16;
     private const int SearchCardHeight = 152;
     private const int CartHeaderHeight = 88;
-    private const int CartFooterMinHeight = 312;
+    private const int CartFooterMinHeight = 330;
+    private const int CartFooterHorizontalPad = 20;
     private const int CartFooterPaymentGap = 12;
     private const int CartFooterPaymentHeight = 44;
     private const int CartFooterCheckoutHeight = 64;
+    private int _footerSeparatorY = 72;
 
     private readonly PointOfSaleService _posService;
     private readonly System.Windows.Forms.Timer _searchDebounce = new() { Interval = 300 };
@@ -351,17 +353,17 @@ internal sealed class PointOfSaleControl : UserControl
             Visible = false
         };
 
-        _totalsFooter.Controls.Add(_checkoutButton);
-        _totalsFooter.Controls.Add(_cardButton);
-        _totalsFooter.Controls.Add(_creditButton);
-        _totalsFooter.Controls.Add(_cashButton);
-        _totalsFooter.Controls.Add(_totalValueLabel);
-        _totalsFooter.Controls.Add(_totalCaptionLabel);
-        _totalsFooter.Controls.Add(_percentLabel);
-        _totalsFooter.Controls.Add(_discountInput);
-        _totalsFooter.Controls.Add(_discountCaptionLabel);
-        _totalsFooter.Controls.Add(_subtotalValueLabel);
         _totalsFooter.Controls.Add(_subtotalCaptionLabel);
+        _totalsFooter.Controls.Add(_subtotalValueLabel);
+        _totalsFooter.Controls.Add(_discountCaptionLabel);
+        _totalsFooter.Controls.Add(_discountInput);
+        _totalsFooter.Controls.Add(_percentLabel);
+        _totalsFooter.Controls.Add(_totalCaptionLabel);
+        _totalsFooter.Controls.Add(_totalValueLabel);
+        _totalsFooter.Controls.Add(_cashButton);
+        _totalsFooter.Controls.Add(_creditButton);
+        _totalsFooter.Controls.Add(_cardButton);
+        _totalsFooter.Controls.Add(_checkoutButton);
         _totalsFooter.Resize += (_, _) => LayoutTotalsFooter();
         _totalsFooter.Paint += TotalsFooterPaintSep;
 
@@ -559,52 +561,42 @@ internal sealed class PointOfSaleControl : UserControl
     private void LayoutTotalsFooter()
     {
         var w = _totalsFooter.ClientSize.Width;
-        var h = _totalsFooter.ClientSize.Height;
-        const int pad = 16;
-        var y = pad;
+        var pad = CartFooterHorizontalPad;
+        var contentW = Math.Max(200, w - pad * 2);
+        var y = 16;
 
-        _subtotalCaptionLabel.SetBounds(pad, y, w / 2, 22);
-        _subtotalValueLabel.SetBounds(w / 2, y, w / 2 - pad, 22);
+        _subtotalCaptionLabel.SetBounds(pad, y, contentW / 2, 22);
+        _subtotalValueLabel.SetBounds(pad + contentW / 2, y, contentW / 2, 22);
         y += 28;
 
         _discountCaptionLabel.SetBounds(pad, y, 80, 22);
         _discountInput.SetBounds(w - pad - 90, y - 2, 64, 26);
         _percentLabel.SetBounds(w - pad - 24, y, 24, 22);
-        y += 38;
+        y += 32;
 
-        _totalCaptionLabel.SetBounds(pad, y, 100, 28);
-        _totalValueLabel.SetBounds(w / 2 - 20, y - 2, w / 2, 40);
-        y += 46;
+        _footerSeparatorY = y + 4;
+        y += 12;
 
-        var availableW = Math.Max(220, w - pad * 2);
-        var paymentGap = CartFooterPaymentGap;
-        var paymentTotalGap = paymentGap * 2;
-        var btnW = Math.Max(68, (availableW - paymentTotalGap) / 3);
-        var rowW = btnW * 3 + paymentTotalGap;
-        var rowX = pad + Math.Max(0, (availableW - rowW) / 2);
+        _totalCaptionLabel.SetBounds(pad, y + 8, 100, 24);
+        _totalValueLabel.SetBounds(w / 2 - 24, y, w / 2, 44);
+        y += 52;
 
-        _cashButton.SetBounds(rowX, y, btnW, CartFooterPaymentHeight);
-        _creditButton.SetBounds(rowX + btnW + paymentGap, y, btnW, CartFooterPaymentHeight);
-        _cardButton.SetBounds(rowX + (btnW + paymentGap) * 2, y, btnW, CartFooterPaymentHeight);
-        y += CartFooterPaymentHeight + 12;
+        var gap = CartFooterPaymentGap;
+        var btnW = Math.Max(72, (contentW - gap * 2) / 3);
+        _cashButton.SetBounds(pad, y, btnW, CartFooterPaymentHeight);
+        _creditButton.SetBounds(pad + btnW + gap, y, btnW, CartFooterPaymentHeight);
+        _cardButton.SetBounds(pad + (btnW + gap) * 2, y, btnW, CartFooterPaymentHeight);
+        y += CartFooterPaymentHeight + 16;
 
-        var checkoutW = w - pad * 2;
-        var checkoutY = Math.Min(y, Math.Max(pad, h - CartFooterCheckoutHeight - 8));
-        _checkoutButton.SetBounds(pad, checkoutY, checkoutW, CartFooterCheckoutHeight);
-
-        _cashButton.BringToFront();
-        _creditButton.BringToFront();
-        _cardButton.BringToFront();
-        _checkoutButton.BringToFront();
+        _checkoutButton.SetBounds(pad, y, contentW, CartFooterCheckoutHeight);
     }
 
     private void TotalsFooterPaintSep(object? sender, PaintEventArgs e)
     {
         var w = _totalsFooter.ClientSize.Width;
-        var pad = 16;
-        var y = pad + 28 + 38;
-        using var pen = new Pen(PharmaTheme.WithAlpha(PharmaTheme.BorderSoft, 120));
-        e.Graphics.DrawLine(pen, pad, y, w - pad, y);
+        var pad = CartFooterHorizontalPad;
+        using var pen = new Pen(PharmaTheme.WithAlpha(PharmaTheme.BorderSoft, 140));
+        e.Graphics.DrawLine(pen, pad, _footerSeparatorY, w - pad, _footerSeparatorY);
     }
 
     private async Task LoadProductsAsync()
@@ -916,9 +908,6 @@ internal sealed class PointOfSaleControl : UserControl
 
         var hasItems = _cart.Count > 0;
         _checkoutButton.Enabled = hasItems && !_isSubmitting;
-        _checkoutButton.ForeColor = _checkoutButton.Enabled
-            ? PharmaTheme.OnPrimary
-            : PharmaTheme.OnSurfaceVariant;
         _checkoutButton.Invalidate();
     }
 

@@ -92,9 +92,9 @@ internal sealed class PointOfSaleService
             var mapped = views[0];
             Debug.WriteLine(
                 $"[POS] First product mapped: ProductId={mapped.ProductId}, " +
+                $"rawName='{mapped.Name}', IsGeneratedTestName={PosProductView.IsGeneratedTestName(mapped.Name)}, " +
                 $"DisplayName='{mapped.DisplayName}', Subtitle='{mapped.Subtitle}', " +
-                $"RawName='{mapped.Name}', ScientificName='{mapped.ScientificName}', " +
-                $"Barcode='{mapped.Barcode}', CategoryName='{mapped.CategoryName}'");
+                $"ScientificName='{mapped.ScientificName}', Barcode='{mapped.Barcode}'");
         }
 
         return new ProductsLoadResult

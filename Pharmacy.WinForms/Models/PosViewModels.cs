@@ -1,11 +1,14 @@
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace Pharmacy.WinForms.Models;
 
 internal sealed class PosProductView
 {
-    private static readonly string[] GeneratedNamePrefixes = ["mt-p-", "mt2-p-", "test-", "seed-"];
-    private static readonly Regex GeneratedNamePattern = new(@"^mt\d*-p-", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly string[] GeneratedNamePrefixes = ["test-", "seed-"];
+    private static readonly Regex GeneratedNamePattern = new(
+        @"^mt\d*-[a-z]+-[a-z0-9]+$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     public Guid ProductId { get; init; }
     public string Name { get; init; } = string.Empty;
@@ -24,7 +27,14 @@ internal sealed class PosProductView
 
     public static PosProductView FromApi(PosProductApiModel api)
     {
+        var rawName = FirstNonEmpty(api.Name, api.ProductName, api.ScientificName);
         var displayName = ResolveDisplayName(api);
+        var subtitle = ResolveSubtitle(api, displayName);
+        Debug.WriteLine(
+            $"[POS] Product map rawName='{rawName}' " +
+            $"IsGeneratedTestName={IsGeneratedTestName(rawName)} " +
+            $"DisplayName='{displayName}' Subtitle='{subtitle}'");
+
         return new PosProductView
         {
             ProductId = api.ProductId,
@@ -33,7 +43,7 @@ internal sealed class PosProductView
             Barcode = api.Barcode,
             CategoryName = api.CategoryName,
             DisplayName = displayName,
-            Subtitle = ResolveSubtitle(api, displayName),
+            Subtitle = subtitle,
             SellingPrice = api.SellingPrice,
             PricingType = api.PricingType,
             SellableQuantity = api.SellableQuantity

@@ -33,6 +33,11 @@ public sealed class GradientRoundedButton : Control
     protected override void OnMouseEnter(EventArgs e)
     {
         base.OnMouseEnter(e);
+        if (!Enabled)
+        {
+            return;
+        }
+
         _isHover = true;
         Invalidate();
     }
@@ -48,11 +53,13 @@ public sealed class GradientRoundedButton : Control
     protected override void OnMouseDown(MouseEventArgs e)
     {
         base.OnMouseDown(e);
-        if (e.Button == MouseButtons.Left)
+        if (!Enabled || e.Button != MouseButtons.Left)
         {
-            _isPressed = true;
-            Invalidate();
+            return;
         }
+
+        _isPressed = true;
+        Invalidate();
     }
 
     protected override void OnMouseUp(MouseEventArgs e)
@@ -66,6 +73,8 @@ public sealed class GradientRoundedButton : Control
     {
         base.OnEnabledChanged(e);
         Cursor = Enabled ? Cursors.Hand : Cursors.Default;
+        _isHover = false;
+        _isPressed = false;
         Invalidate();
     }
 
@@ -74,37 +83,32 @@ public sealed class GradientRoundedButton : Control
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         var bounds = ClientRectangle;
-        bounds.Inflate(-2, -2);
+        bounds.Inflate(-1, -1);
+        var radius = PharmaTheme.DashboardButtonCornerRadius;
 
-        if (Enabled && DrawShadow)
-        {
-            RoundedDrawing.DrawSoftShadow(g, bounds, PharmaTheme.DashboardButtonCornerRadius, PharmaTheme.DashboardCardShadow);
-        }
-
-        Color top;
-        Color bottom;
+        Color fillColor;
         Color textColor;
         if (!Enabled)
         {
-            top = PharmaTheme.SurfaceContainerHigh;
-            bottom = PharmaTheme.SurfaceContainer;
-            textColor = PharmaTheme.OnSurfaceVariant;
+            fillColor = PharmaTheme.SurfaceContainerHigh;
+            textColor = PharmaTheme.MutedText;
+            RoundedDrawing.FillRounded(g, bounds, radius, fillColor);
+            RoundedDrawing.DrawRoundedBorder(g, bounds, radius, PharmaTheme.BorderSoft, 1f);
         }
         else
         {
-            top = _isPressed
-                ? PharmaTheme.PrimaryContainer
+            if (DrawShadow)
+            {
+                RoundedDrawing.DrawSoftShadow(g, bounds, radius, PharmaTheme.DashboardCardShadow);
+            }
+
+            fillColor = _isPressed
+                ? PharmaTheme.PrimaryDark
                 : _isHover
                     ? PharmaTheme.PrimaryDark
                     : PharmaTheme.Primary;
-            bottom = _isPressed ? PharmaTheme.Primary : PharmaTheme.PrimaryContainer;
-            textColor = ForeColor;
-        }
-
-        using (var path = RoundedDrawing.CreateRoundedRect(bounds, PharmaTheme.DashboardButtonCornerRadius))
-        using (var brush = new LinearGradientBrush(bounds, top, bottom, LinearGradientMode.ForwardDiagonal))
-        {
-            g.FillPath(brush, path);
+            textColor = PharmaTheme.OnPrimary;
+            RoundedDrawing.FillRounded(g, bounds, radius, fillColor);
         }
 
         var textRect = bounds;
