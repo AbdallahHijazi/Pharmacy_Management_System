@@ -5,9 +5,11 @@ using Pharmacy.WinForms.Ui;
 
 namespace Pharmacy.WinForms.Controls;
 
+/// <summary>Shared application top bar — hosted only by <see cref="Forms.MainForm"/> main shell.</summary>
 public sealed class TopBarControl : Panel
 {
     private readonly ToolTip _toolTips = new();
+    private readonly List<TopBarIconButton> _iconButtons = new();
     private readonly Label _userNameLabel;
     private readonly Label _roleLabel;
     private readonly TextBox _searchBox;
@@ -15,6 +17,7 @@ public sealed class TopBarControl : Panel
     private readonly Label _searchIconLabel;
     private readonly FlowLayoutPanel _actionsFlow;
     private readonly Label _dateLabel;
+    private readonly FlowLayoutPanel _userStack;
 
     public event EventHandler? LogoutRequested;
     public event EventHandler<string>? SearchSubmitted;
@@ -25,30 +28,24 @@ public sealed class TopBarControl : Panel
     public TopBarControl()
     {
         Dock = DockStyle.Top;
-        Height = 84;
+        Height = AppShellLayout.TopBarHeight;
         RightToLeft = RightToLeft.Yes;
         Padding = new Padding(24, 14, 28, 14);
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
 
         _searchShell = new Panel
         {
-            BackColor = PharmaTheme.SurfaceContainerHighest,
+            BackColor = PharmaTheme.InputSurface,
             Height = 50
         };
-        _searchShell.Paint += (_, e) =>
-        {
-            var shell = _searchShell.ClientRectangle;
-            shell.Inflate(-1, -1);
-            RoundedDrawing.FillRounded(e.Graphics, shell, PharmaTheme.DashboardSearchCornerRadius, PharmaTheme.SurfaceContainerHighest);
-            RoundedDrawing.DrawRoundedBorder(e.Graphics, shell, PharmaTheme.DashboardSearchCornerRadius, Color.FromArgb(40, PharmaTheme.OutlineVariant));
-        };
+        _searchShell.Paint += PaintSearchShell;
         _searchShell.HandleCreated += (_, _) => RoundedDrawing.ApplyRoundedRegion(_searchShell, PharmaTheme.DashboardSearchCornerRadius);
         _searchShell.Resize += (_, _) => RoundedDrawing.ApplyRoundedRegion(_searchShell, PharmaTheme.DashboardSearchCornerRadius);
 
         _searchIconLabel = new Label
         {
             AutoSize = false,
-            BackColor = PharmaTheme.SurfaceContainerHighest,
+            BackColor = PharmaTheme.InputSurface,
             Font = PharmaTheme.IconFont(14f),
             ForeColor = PharmaTheme.OnSurfaceVariant,
             Size = new Size(40, 50),
@@ -59,7 +56,7 @@ public sealed class TopBarControl : Panel
         _searchBox = new TextBox
         {
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-            BackColor = PharmaTheme.SurfaceContainerHighest,
+            BackColor = PharmaTheme.InputSurface,
             BorderStyle = BorderStyle.None,
             Font = PharmaTheme.BodyFont,
             ForeColor = PharmaTheme.TextDark,
@@ -92,6 +89,7 @@ public sealed class TopBarControl : Panel
         _dateLabel = new Label
         {
             AutoSize = true,
+            BackColor = PharmaTheme.Background,
             Font = PharmaTheme.SmallFont,
             ForeColor = PharmaTheme.OnSurfaceVariant,
             Margin = new Padding(8, 12, 10, 0),
@@ -99,18 +97,19 @@ public sealed class TopBarControl : Panel
             TextAlign = ContentAlignment.MiddleRight
         };
 
-        var notificationsButton = new TopBarIconButton(SegoeMdl2Icons.Notification, "الإشعارات");
+        var notificationsButton = CreateIconButton(SegoeMdl2Icons.Notification, "الإشعارات");
         notificationsButton.Click += (_, _) => NotificationsClicked?.Invoke(this, EventArgs.Empty);
 
-        var themeButton = new TopBarIconButton("\uE708", "المظهر");
+        var themeButton = CreateIconButton("\uE708", "المظهر");
         themeButton.Click += (_, _) => ThemeToggleRequested?.Invoke(this, EventArgs.Empty);
 
-        var logoutButton = new TopBarIconButton(SegoeMdl2Icons.SignOut, "تسجيل الخروج");
+        var logoutButton = CreateIconButton(SegoeMdl2Icons.SignOut, "تسجيل الخروج");
         logoutButton.Click += (_, _) => LogoutRequested?.Invoke(this, EventArgs.Empty);
 
         _userNameLabel = new Label
         {
             AutoSize = false,
+            BackColor = PharmaTheme.Background,
             Font = PharmaTheme.ArabicFont(10.5f, FontStyle.Bold),
             ForeColor = PharmaTheme.TextDark,
             Margin = new Padding(6, 2, 0, 0),
@@ -122,6 +121,7 @@ public sealed class TopBarControl : Panel
         _roleLabel = new Label
         {
             AutoSize = false,
+            BackColor = PharmaTheme.Background,
             Font = PharmaTheme.SmallFont,
             ForeColor = PharmaTheme.MutedText,
             Margin = new Padding(6, 0, 0, 0),
@@ -130,7 +130,7 @@ public sealed class TopBarControl : Panel
             UseCompatibleTextRendering = true
         };
 
-        var userStack = new FlowLayoutPanel
+        _userStack = new FlowLayoutPanel
         {
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
@@ -139,16 +139,16 @@ public sealed class TopBarControl : Panel
             Margin = new Padding(4, 0, 0, 0),
             WrapContents = false
         };
-        userStack.Controls.Add(_userNameLabel);
-        userStack.Controls.Add(_roleLabel);
-        userStack.Cursor = Cursors.Hand;
-        userStack.Click += (_, _) => AccountClicked?.Invoke(this, EventArgs.Empty);
+        _userStack.Controls.Add(_userNameLabel);
+        _userStack.Controls.Add(_roleLabel);
+        _userStack.Cursor = Cursors.Hand;
+        _userStack.Click += (_, _) => AccountClicked?.Invoke(this, EventArgs.Empty);
         _userNameLabel.Cursor = Cursors.Hand;
         _roleLabel.Cursor = Cursors.Hand;
         _userNameLabel.Click += (_, _) => AccountClicked?.Invoke(this, EventArgs.Empty);
         _roleLabel.Click += (_, _) => AccountClicked?.Invoke(this, EventArgs.Empty);
 
-        _actionsFlow.Controls.Add(userStack);
+        _actionsFlow.Controls.Add(_userStack);
         _actionsFlow.Controls.Add(logoutButton);
         _actionsFlow.Controls.Add(themeButton);
         _actionsFlow.Controls.Add(notificationsButton);
@@ -162,34 +162,62 @@ public sealed class TopBarControl : Panel
         LayoutChrome();
     }
 
+    private TopBarIconButton CreateIconButton(string glyph, string tooltip)
+    {
+        var button = new TopBarIconButton(glyph, tooltip, _toolTips);
+        _iconButtons.Add(button);
+        return button;
+    }
+
+    private void PaintSearchShell(object? sender, PaintEventArgs e)
+    {
+        var shell = _searchShell.ClientRectangle;
+        shell.Inflate(-1, -1);
+        RoundedDrawing.FillRounded(e.Graphics, shell, PharmaTheme.DashboardSearchCornerRadius, PharmaTheme.InputSurface);
+        RoundedDrawing.DrawRoundedBorder(
+            e.Graphics,
+            shell,
+            PharmaTheme.DashboardSearchCornerRadius,
+            PharmaTheme.TopBarSearchBorder);
+    }
+
     public void RefreshChrome()
     {
         _actionsFlow.BackColor = PharmaTheme.Background;
+        _userStack.BackColor = PharmaTheme.Background;
+
         foreach (Control c in _actionsFlow.Controls)
         {
-            if (c is FlowLayoutPanel stack)
+            if (c is Label label)
             {
-                stack.BackColor = PharmaTheme.Background;
+                label.BackColor = PharmaTheme.Background;
             }
-
-            c.Invalidate(true);
         }
 
-        _searchShell.BackColor = PharmaTheme.SurfaceContainerHighest;
-        _searchIconLabel.BackColor = PharmaTheme.SurfaceContainerHighest;
+        _searchShell.BackColor = PharmaTheme.InputSurface;
+        _searchIconLabel.BackColor = PharmaTheme.InputSurface;
         _searchIconLabel.Font = PharmaTheme.IconFont(14f);
         _searchIconLabel.ForeColor = PharmaTheme.OnSurfaceVariant;
-        _searchBox.BackColor = PharmaTheme.SurfaceContainerHighest;
+        _searchBox.BackColor = PharmaTheme.InputSurface;
         _searchBox.Font = PharmaTheme.BodyFont;
         _searchBox.ForeColor = PharmaTheme.TextDark;
 
         _userNameLabel.Font = PharmaTheme.ArabicFont(10.5f, FontStyle.Bold);
         _userNameLabel.ForeColor = PharmaTheme.TextDark;
+        _userNameLabel.BackColor = PharmaTheme.Background;
         _roleLabel.Font = PharmaTheme.SmallFont;
         _roleLabel.ForeColor = PharmaTheme.MutedText;
+        _roleLabel.BackColor = PharmaTheme.Background;
         _dateLabel.Font = PharmaTheme.SmallFont;
         _dateLabel.ForeColor = PharmaTheme.OnSurfaceVariant;
+        _dateLabel.BackColor = PharmaTheme.Background;
 
+        foreach (var iconButton in _iconButtons)
+        {
+            iconButton.RefreshVisuals();
+        }
+
+        _searchShell.Invalidate();
         Invalidate(true);
     }
 
@@ -260,12 +288,13 @@ public sealed class TopBarControl : Panel
 
     private sealed class TopBarIconButton : Control
     {
+        private readonly ToolTip _tooltip;
         private bool _isHover;
-        private readonly string _glyph;
 
-        public TopBarIconButton(string glyph, string tooltip)
+        public TopBarIconButton(string glyph, string tooltip, ToolTip sharedToolTip)
         {
-            _glyph = glyph;
+            Glyph = glyph;
+            _tooltip = sharedToolTip;
             Size = new Size(44, 44);
             Cursor = Cursors.Hand;
             SetStyle(
@@ -275,9 +304,12 @@ public sealed class TopBarControl : Panel
                     | ControlStyles.StandardClick
                     | ControlStyles.StandardDoubleClick,
                 true);
-            var tip = new ToolTip();
-            tip.SetToolTip(this, tooltip);
+            _tooltip.SetToolTip(this, tooltip);
         }
+
+        public string Glyph { get; }
+
+        public void RefreshVisuals() => Invalidate();
 
         protected override void OnMouseEnter(EventArgs e)
         {
@@ -299,14 +331,14 @@ public sealed class TopBarControl : Panel
             g.SmoothingMode = SmoothingMode.AntiAlias;
             var bounds = ClientRectangle;
             bounds.Inflate(-2, -2);
-            var fill = _isHover ? Color.FromArgb(36, PharmaTheme.PrimaryContainer) : Color.FromArgb(18, PharmaTheme.PrimaryContainer);
+            var fill = _isHover ? PharmaTheme.TopBarIconHoverFill : PharmaTheme.TopBarIconRestFill;
             RoundedDrawing.FillRounded(g, bounds, PharmaTheme.DashboardButtonCornerRadius, fill);
             TextRenderer.DrawText(
                 g,
-                _glyph,
+                Glyph,
                 PharmaTheme.IconFont(14f),
                 bounds,
-                PharmaTheme.PrimaryGreen,
+                PharmaTheme.Primary,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
     }

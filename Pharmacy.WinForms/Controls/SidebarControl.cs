@@ -4,9 +4,12 @@ using Pharmacy.WinForms.Ui;
 
 namespace Pharmacy.WinForms.Controls;
 
+/// <summary>Shared application sidebar — hosted only by <see cref="Forms.MainForm"/>.</summary>
 public sealed class SidebarControl : Panel
 {
     private readonly Dictionary<AppNavigation, SidebarButton> _buttons = new();
+    private readonly LogoBadgeControl _logoBadge;
+    private readonly TableLayoutPanel _root;
     private FlowLayoutPanel _navHost = null!;
     private Label _brandTitle = null!;
     private Label _brandSubtitle = null!;
@@ -16,14 +19,14 @@ public sealed class SidebarControl : Panel
 
     public SidebarControl()
     {
-        Width = 268;
-        MinimumSize = new Size(248, 0);
+        Width = AppShellLayout.SidebarColumnWidth + 8;
+        MinimumSize = new Size(AppShellLayout.SidebarColumnWidth, 0);
         BackColor = PharmaTheme.SidebarLightBackground;
         Padding = new Padding(0);
         RightToLeft = RightToLeft.Yes;
-        SetStyle(ControlStyles.ResizeRedraw, true);
+        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
 
-        var root = new TableLayoutPanel
+        _root = new TableLayoutPanel
         {
             ColumnCount = 1,
             Dock = DockStyle.Fill,
@@ -32,17 +35,23 @@ public sealed class SidebarControl : Panel
             RightToLeft = RightToLeft.Yes,
             RowCount = 3
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 118F));
-        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64F));
+        _root.RowStyles.Add(new RowStyle(SizeType.Absolute, 118F));
+        _root.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        _root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64F));
 
-        var brandPanel = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 10) };
-        var badge = new LogoBadgeControl { Size = new Size(60, 60) };
+        var brandPanel = new Panel
+        {
+            BackColor = PharmaTheme.SidebarLightBackground,
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 0, 0, 10)
+        };
+        _logoBadge = new LogoBadgeControl { Size = new Size(60, 60) };
         _brandTitle = new Label
         {
             AutoSize = false,
+            BackColor = PharmaTheme.SidebarLightBackground,
             Font = PharmaTheme.SidebarBrandFont,
-            ForeColor = PharmaTheme.PrimaryGreen,
+            ForeColor = PharmaTheme.Primary,
             Size = new Size(220, 32),
             Text = "PharmaCare",
             TextAlign = ContentAlignment.MiddleCenter,
@@ -51,6 +60,7 @@ public sealed class SidebarControl : Panel
         _brandSubtitle = new Label
         {
             AutoSize = false,
+            BackColor = PharmaTheme.SidebarLightBackground,
             Font = PharmaTheme.SidebarSubtitleFont,
             ForeColor = PharmaTheme.OnSurfaceVariant,
             Size = new Size(220, 24),
@@ -58,11 +68,11 @@ public sealed class SidebarControl : Panel
             TextAlign = ContentAlignment.MiddleCenter,
             UseCompatibleTextRendering = true
         };
-        brandPanel.Controls.Add(badge);
+        brandPanel.Controls.Add(_logoBadge);
         brandPanel.Controls.Add(_brandTitle);
         brandPanel.Controls.Add(_brandSubtitle);
-        brandPanel.Resize += (_, _) => LayoutBrandStack(brandPanel, badge, _brandTitle, _brandSubtitle);
-        LayoutBrandStack(brandPanel, badge, _brandTitle, _brandSubtitle);
+        brandPanel.Resize += (_, _) => LayoutBrandStack(brandPanel, _logoBadge, _brandTitle, _brandSubtitle);
+        LayoutBrandStack(brandPanel, _logoBadge, _brandTitle, _brandSubtitle);
 
         UiBranding.PharmacyDisplayNameChanged += OnPharmacyDisplayNameChanged;
 
@@ -97,13 +107,14 @@ public sealed class SidebarControl : Panel
 
         var logoutRow = new Panel
         {
+            BackColor = PharmaTheme.SidebarLightBackground,
             Dock = DockStyle.Fill,
             Margin = new Padding(0, 6, 0, 0),
             Padding = new Padding(0, 12, 0, 0)
         };
         logoutRow.Paint += (_, e) =>
         {
-            using var pen = new Pen(Color.FromArgb(50, PharmaTheme.SidebarDivider));
+            using var pen = new Pen(PharmaTheme.SidebarDividerLine);
             e.Graphics.DrawLine(pen, 0, 0, logoutRow.ClientSize.Width, 0);
         };
         var logout = CreateButton("تسجيل الخروج", SegoeMdl2Icons.SignOut, isLogout: true);
@@ -112,10 +123,10 @@ public sealed class SidebarControl : Panel
         logout.Click += (_, _) => LogoutRequested?.Invoke(this, EventArgs.Empty);
         logoutRow.Controls.Add(logout);
 
-        root.Controls.Add(brandPanel, 0, 0);
-        root.Controls.Add(_navHost, 0, 1);
-        root.Controls.Add(logoutRow, 0, 2);
-        Controls.Add(root);
+        _root.Controls.Add(brandPanel, 0, 0);
+        _root.Controls.Add(_navHost, 0, 1);
+        _root.Controls.Add(logoutRow, 0, 2);
+        Controls.Add(_root);
 
         SetActive(AppNavigation.Dashboard);
     }
@@ -133,66 +144,36 @@ public sealed class SidebarControl : Panel
     public void RefreshChrome()
     {
         BackColor = PharmaTheme.SidebarLightBackground;
-        if (_navHost is not null)
+        _root.BackColor = PharmaTheme.SidebarLightBackground;
+        _navHost.BackColor = PharmaTheme.SidebarLightBackground;
+
+        _brandTitle.Font = PharmaTheme.SidebarBrandFont;
+        _brandTitle.ForeColor = PharmaTheme.Primary;
+        _brandTitle.BackColor = PharmaTheme.SidebarLightBackground;
+
+        _brandSubtitle.Font = PharmaTheme.SidebarSubtitleFont;
+        _brandSubtitle.ForeColor = PharmaTheme.OnSurfaceVariant;
+        _brandSubtitle.BackColor = PharmaTheme.SidebarLightBackground;
+
+        foreach (var button in _buttons.Values)
         {
-            _navHost.BackColor = PharmaTheme.SidebarLightBackground;
+            button.BackColor = PharmaTheme.SidebarLightBackground;
+            button.Invalidate();
         }
 
-        if (_brandTitle is not null)
-        {
-            _brandTitle.Font = PharmaTheme.SidebarBrandFont;
-            _brandTitle.ForeColor = PharmaTheme.PrimaryGreen;
-        }
-
-        if (_brandSubtitle is not null)
-        {
-            _brandSubtitle.Font = PharmaTheme.SidebarSubtitleFont;
-            _brandSubtitle.ForeColor = PharmaTheme.OnSurfaceVariant;
-        }
-
-        foreach (Control control in Controls)
-        {
-            RefreshSidebarChildColors(control);
-        }
-
+        _logoBadge.Invalidate();
         Invalidate(true);
-    }
-
-    private static void RefreshSidebarChildColors(Control root)
-    {
-        foreach (Control control in root.Controls)
-        {
-            switch (control)
-            {
-                case SidebarButton sidebarButton:
-                    sidebarButton.BackColor = PharmaTheme.SidebarLightBackground;
-                    sidebarButton.Invalidate();
-                    continue;
-                case FlowLayoutPanel fp:
-                    if (fp.BackColor != PharmaTheme.SidebarLightBackground)
-                    {
-                        fp.BackColor = PharmaTheme.SidebarLightBackground;
-                    }
-
-                    break;
-            }
-
-            RefreshSidebarChildColors(control);
-        }
     }
 
     private void OnPharmacyDisplayNameChanged(object? sender, EventArgs e)
     {
-        if (_brandSubtitle is not null)
-        {
-            _brandSubtitle.Text = UiBranding.PharmacyDisplayName;
-        }
+        _brandSubtitle.Text = UiBranding.PharmacyDisplayName;
     }
 
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
-        using var edge = new Pen(Color.FromArgb(22, PharmaTheme.PrimaryGreen));
+        using var edge = new Pen(PharmaTheme.SidebarEdgeLine);
         e.Graphics.DrawLine(edge, 0, 0, 0, Height);
     }
 
@@ -220,10 +201,9 @@ public sealed class SidebarControl : Panel
     private void AddNavItem(FlowLayoutPanel host, AppNavigation navigation, string text, string iconGlyph)
     {
         var button = CreateButton(text, iconGlyph);
-        button.Width = host.ClientSize.Width - host.Padding.Horizontal;
+        button.Width = Math.Max(180, host.ClientSize.Width - host.Padding.Horizontal);
         button.Click += (_, _) =>
         {
-            SetActive(navigation);
             NavigationRequested?.Invoke(this, navigation);
         };
         _buttons[navigation] = button;
@@ -261,7 +241,7 @@ public sealed class SidebarControl : Panel
                 SegoeMdl2Icons.Pharmacy,
                 PharmaTheme.IconFont(22f),
                 rect,
-                PharmaTheme.OnPrimary,
+                PharmaTheme.Primary,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
     }
@@ -319,6 +299,7 @@ public sealed class SidebarControl : Panel
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             var bounds = ClientRectangle;
             bounds.Inflate(-1, -1);
 
@@ -327,21 +308,27 @@ public sealed class SidebarControl : Panel
             Color iconColor;
             if (_isActive)
             {
-                back = PharmaTheme.PrimaryGreen;
-                textColor = PharmaTheme.OnPrimary;
-                iconColor = PharmaTheme.OnPrimary;
+                back = PharmaTheme.SidebarNavActiveFill;
+                textColor = PharmaTheme.SidebarNavActiveText;
+                iconColor = PharmaTheme.SidebarNavActiveIcon;
             }
             else if (_isHover)
             {
                 back = PharmaTheme.SidebarNavHoverFill;
                 textColor = PharmaTheme.TextDark;
-                iconColor = PharmaTheme.PrimaryGreen;
+                iconColor = PharmaTheme.Primary;
+            }
+            else if (IsLogoutStyle)
+            {
+                back = PharmaTheme.SidebarLightBackground;
+                textColor = PharmaTheme.Danger;
+                iconColor = PharmaTheme.Danger;
             }
             else
             {
                 back = PharmaTheme.SidebarLightBackground;
                 textColor = PharmaTheme.TextDark;
-                iconColor = PharmaTheme.PrimaryGreen;
+                iconColor = PharmaTheme.Primary;
             }
 
             RoundedDrawing.FillRounded(g, bounds, PharmaTheme.DashboardSidebarItemRadius, back);

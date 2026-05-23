@@ -7,6 +7,10 @@ using Pharmacy.WinForms.Ui;
 
 namespace Pharmacy.WinForms.Forms;
 
+/// <summary>
+/// Application shell: one <see cref="SidebarControl"/> and one <see cref="TopBarControl"/>.
+/// Navigation swaps only the child inside <c>contentHost</c>.
+/// </summary>
 public sealed partial class MainForm : Form
 {
     private readonly AuthService _authService;
@@ -32,13 +36,7 @@ public sealed partial class MainForm : Form
             return;
         }
 
-        BackColor = PharmaTheme.Background;
-        Font = PharmaTheme.BodyFont;
-        shellLayout.BackColor = PharmaTheme.Background;
-        mainShell.BackColor = PharmaTheme.Background;
-        contentHost.BackColor = PharmaTheme.Background;
-        sidebar.RefreshChrome();
-        topBar.RefreshChrome();
+        ApplyShellChrome();
         _dashboard?.RefreshVisualTheme();
 
         foreach (var page in _pages.Values)
@@ -54,9 +52,21 @@ public sealed partial class MainForm : Form
             }
         }
 
-        ThemeApplier.ApplyThemeRecursive(this);
+        ThemeApplier.ApplyThemeRecursive(contentHost);
         Invalidate(true);
         Refresh();
+    }
+
+    /// <summary>Theme refresh for fixed shell chrome only (sidebar + top bar + hosts).</summary>
+    private void ApplyShellChrome()
+    {
+        BackColor = PharmaTheme.Background;
+        Font = PharmaTheme.BodyFont;
+        shellLayout.BackColor = PharmaTheme.Background;
+        mainShell.BackColor = PharmaTheme.Background;
+        contentHost.BackColor = PharmaTheme.Background;
+        sidebar.RefreshChrome();
+        topBar.RefreshChrome();
     }
 
     private void OnGlobalThemeOrFontChanged(object? sender, EventArgs e)
@@ -115,6 +125,15 @@ public sealed partial class MainForm : Form
         page.Dock = DockStyle.Fill;
         contentHost.ResumeLayout(true);
         _activePage = page;
+
+        if (page is SettingsControl settings)
+        {
+            settings.ApplyThemeAndFontVisuals();
+        }
+        else if (page is PlaceholderPageControl placeholder)
+        {
+            placeholder.ApplyThemeVisuals();
+        }
 
         Text = navigation switch
         {
