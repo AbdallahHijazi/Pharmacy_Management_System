@@ -191,11 +191,14 @@ internal sealed class PosPaymentButton : Control
 
 internal sealed class PosSearchBox : UserControl
 {
-    private readonly TextBox _box;
+    private TextBox? _box;
     private bool _focused;
+    private bool _isConstructing;
+    private bool _childrenCreated;
 
     public PosSearchBox()
     {
+        _isConstructing = true;
         SetStyle(
             ControlStyles.AllPaintingInWmPaint
                 | ControlStyles.UserPaint
@@ -203,15 +206,23 @@ internal sealed class PosSearchBox : UserControl
                 | ControlStyles.ResizeRedraw,
             true);
         DoubleBuffered = true;
+        RightToLeft = RightToLeft.No;
+
+        CreateChildren();
+        _childrenCreated = true;
+        _isConstructing = false;
+
         Height = 52;
         MinimumSize = new Size(200, 52);
         Padding = new Padding(44, 0, 16, 0);
-        RightToLeft = RightToLeft.No;
+        PerformLayout();
+    }
 
+    private void CreateChildren()
+    {
         _box = new TextBox
         {
             BorderStyle = BorderStyle.None,
-            Dock = DockStyle.Fill,
             Font = PharmaTheme.ArabicFont(11f),
             BackColor = PharmaTheme.InputSurface,
             ForeColor = PharmaTheme.TextDark,
@@ -231,8 +242,14 @@ internal sealed class PosSearchBox : UserControl
 #pragma warning disable CS8765, CS8764
     public override string? Text
     {
-        get => _box.Text;
-        set => _box.Text = value ?? string.Empty;
+        get => _box?.Text ?? string.Empty;
+        set
+        {
+            if (_box is not null)
+            {
+                _box.Text = value ?? string.Empty;
+            }
+        }
     }
 #pragma warning restore CS8765, CS8764
 
@@ -240,12 +257,23 @@ internal sealed class PosSearchBox : UserControl
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string PlaceholderText
     {
-        get => _box.PlaceholderText;
-        set => _box.PlaceholderText = value;
+        get => _box?.PlaceholderText ?? string.Empty;
+        set
+        {
+            if (_box is not null)
+            {
+                _box.PlaceholderText = value;
+            }
+        }
     }
 
     public void ApplyThemeVisuals()
     {
+        if (_box is null)
+        {
+            return;
+        }
+
         _box.BackColor = PharmaTheme.InputSurface;
         _box.ForeColor = PharmaTheme.TextDark;
         _box.Font = PharmaTheme.ArabicFont(11f);
@@ -279,13 +307,17 @@ internal sealed class PosSearchBox : UserControl
     protected override void OnLayout(LayoutEventArgs levent)
     {
         base.OnLayout(levent);
-        if (_box.IsDisposed)
+        if (_isConstructing || !_childrenCreated || _box is null || _box.IsDisposed)
         {
             return;
         }
 
         var innerH = Math.Max(24, ClientSize.Height - 8);
-        _box.SetBounds(Padding.Left, (ClientSize.Height - innerH) / 2, Math.Max(40, ClientSize.Width - Padding.Horizontal), innerH);
+        _box.SetBounds(
+            Padding.Left,
+            (ClientSize.Height - innerH) / 2,
+            Math.Max(40, ClientSize.Width - Padding.Horizontal),
+            innerH);
     }
 }
 
