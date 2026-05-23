@@ -1,7 +1,12 @@
+using System.Text.RegularExpressions;
+
 namespace Pharmacy.WinForms.Models;
 
 internal sealed class PosProductView
 {
+    private static readonly string[] GeneratedNamePrefixes = ["mt-p-", "mt2-p-", "test-", "seed-"];
+    private static readonly Regex GeneratedNamePattern = new(@"^mt\d*-p-", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     public Guid ProductId { get; init; }
     public string Name { get; init; } = string.Empty;
     public string ScientificName { get; init; } = string.Empty;
@@ -35,21 +40,43 @@ internal sealed class PosProductView
         };
     }
 
+    internal static bool IsGeneratedTestName(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var normalized = value.Trim();
+        if (GeneratedNamePrefixes.Any(p => normalized.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        return GeneratedNamePattern.IsMatch(normalized);
+    }
+
     internal static string ResolveDisplayName(PosProductApiModel api)
     {
         foreach (var candidate in new[]
                  {
                      api.TradeName,
                      api.CommercialName,
+                     api.ArabicName,
                      api.Name,
                      api.ProductName,
-                     api.ScientificName,
-                     api.Barcode,
-                     api.Sku,
-                     api.Code
+                     api.ScientificName
                  })
         {
-            if (!string.IsNullOrWhiteSpace(candidate))
+            if (!string.IsNullOrWhiteSpace(candidate) && !IsGeneratedTestName(candidate))
+            {
+                return candidate.Trim();
+            }
+        }
+
+        foreach (var candidate in new[] { api.Barcode, api.Sku, api.Code })
+        {
+            if (!string.IsNullOrWhiteSpace(candidate) && !IsGeneratedTestName(candidate))
             {
                 return candidate.Trim();
             }
@@ -60,9 +87,16 @@ internal sealed class PosProductView
 
     internal static string ResolveSubtitle(PosProductApiModel api, string displayName)
     {
+        if (string.Equals(displayName, "منتج بدون اسم", StringComparison.Ordinal))
+        {
+            var code = FirstNonEmpty(api.Name, api.ProductName, api.Barcode, api.Sku, api.Code);
+            return string.IsNullOrWhiteSpace(code) ? string.Empty : $"الكود: {code.Trim()}";
+        }
+
         var displayKey = displayName.Trim();
 
         if (!string.IsNullOrWhiteSpace(api.ScientificName)
+            && !IsGeneratedTestName(api.ScientificName)
             && !string.Equals(api.ScientificName.Trim(), displayKey, StringComparison.OrdinalIgnoreCase))
         {
             return api.ScientificName.Trim();
@@ -74,18 +108,25 @@ internal sealed class PosProductView
             return api.CategoryName.Trim();
         }
 
-        var barcodeOrSku = !string.IsNullOrWhiteSpace(api.Barcode)
-            ? api.Barcode.Trim()
-            : !string.IsNullOrWhiteSpace(api.Sku)
-                ? api.Sku.Trim()
-                : !string.IsNullOrWhiteSpace(api.Code)
-                    ? api.Code.Trim()
-                    : string.Empty;
-
+        var barcodeOrSku = FirstNonEmpty(api.Barcode, api.Sku, api.Code);
         if (!string.IsNullOrWhiteSpace(barcodeOrSku)
+            && !IsGeneratedTestName(barcodeOrSku)
             && !string.Equals(barcodeOrSku, displayKey, StringComparison.OrdinalIgnoreCase))
         {
             return barcodeOrSku;
+        }
+
+        return string.Empty;
+    }
+
+    private static string FirstNonEmpty(params string?[] values)
+    {
+        foreach (var value in values)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value.Trim();
+            }
         }
 
         return string.Empty;

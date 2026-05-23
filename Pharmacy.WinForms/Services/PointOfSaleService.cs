@@ -172,7 +172,7 @@ internal sealed class PointOfSaleService
         Debug.WriteLine(
             $"[POS] First product raw fields: ProductId={api.ProductId}, " +
             $"Name='{api.Name}', ProductName='{api.ProductName}', TradeName='{api.TradeName}', " +
-            $"CommercialName='{api.CommercialName}', ScientificName='{api.ScientificName}', " +
+            $"CommercialName='{api.CommercialName}', ArabicName='{api.ArabicName}', ScientificName='{api.ScientificName}', " +
             $"Barcode='{api.Barcode}', Sku='{api.Sku}', Code='{api.Code}', " +
             $"CategoryName='{api.CategoryName}'");
     }

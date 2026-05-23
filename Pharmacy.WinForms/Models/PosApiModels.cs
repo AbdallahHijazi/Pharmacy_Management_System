@@ -15,6 +15,7 @@ internal sealed class PosProductApiModel
     public string ProductName { get; set; } = string.Empty;
     public string TradeName { get; set; } = string.Empty;
     public string CommercialName { get; set; } = string.Empty;
+    public string ArabicName { get; set; } = string.Empty;
     public string ScientificName { get; set; } = string.Empty;
     public string Barcode { get; set; } = string.Empty;
     public string Sku { get; set; } = string.Empty;

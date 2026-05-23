@@ -26,6 +26,10 @@ public sealed class GradientRoundedButton : Control
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string? IconGlyph { get; set; }
 
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public bool DrawShadow { get; set; } = true;
+
     protected override void OnMouseEnter(EventArgs e)
     {
         base.OnMouseEnter(e);
@@ -72,7 +76,7 @@ public sealed class GradientRoundedButton : Control
         var bounds = ClientRectangle;
         bounds.Inflate(-2, -2);
 
-        if (Enabled)
+        if (Enabled && DrawShadow)
         {
             RoundedDrawing.DrawSoftShadow(g, bounds, PharmaTheme.DashboardButtonCornerRadius, PharmaTheme.DashboardCardShadow);
         }

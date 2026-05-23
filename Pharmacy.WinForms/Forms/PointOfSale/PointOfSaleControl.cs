@@ -16,7 +16,10 @@ internal sealed class PointOfSaleControl : UserControl
     private const int GridGap = 16;
     private const int SearchCardHeight = 152;
     private const int CartHeaderHeight = 88;
-    private const int CartFooterMinHeight = 292;
+    private const int CartFooterMinHeight = 312;
+    private const int CartFooterPaymentGap = 12;
+    private const int CartFooterPaymentHeight = 44;
+    private const int CartFooterCheckoutHeight = 64;
 
     private readonly PointOfSaleService _posService;
     private readonly System.Windows.Forms.Timer _searchDebounce = new() { Interval = 300 };
@@ -330,9 +333,10 @@ internal sealed class PointOfSaleControl : UserControl
 
         _checkoutButton = new GradientRoundedButton
         {
-            Height = 64,
+            DrawShadow = false,
+            Height = CartFooterCheckoutHeight,
             IconGlyph = SegoeMdl2Icons.Payments,
-            MinimumSize = new Size(200, 64),
+            MinimumSize = new Size(120, CartFooterCheckoutHeight),
             Text = "إتمام البيع"
         };
 
@@ -555,24 +559,43 @@ internal sealed class PointOfSaleControl : UserControl
     private void LayoutTotalsFooter()
     {
         var w = _totalsFooter.ClientSize.Width;
-        var pad = 16;
+        var h = _totalsFooter.ClientSize.Height;
+        const int pad = 16;
         var y = pad;
+
         _subtotalCaptionLabel.SetBounds(pad, y, w / 2, 22);
         _subtotalValueLabel.SetBounds(w / 2, y, w / 2 - pad, 22);
         y += 28;
+
         _discountCaptionLabel.SetBounds(pad, y, 80, 22);
         _discountInput.SetBounds(w - pad - 90, y - 2, 64, 26);
         _percentLabel.SetBounds(w - pad - 24, y, 24, 22);
         y += 38;
+
         _totalCaptionLabel.SetBounds(pad, y, 100, 28);
         _totalValueLabel.SetBounds(w / 2 - 20, y - 2, w / 2, 40);
         y += 46;
-        var btnW = Math.Max(72, (w - pad * 2 - 16) / 3);
-        _cashButton.SetBounds(pad, y, btnW, 44);
-        _creditButton.SetBounds(pad + btnW + 8, y, btnW, 44);
-        _cardButton.SetBounds(pad + (btnW + 8) * 2, y, btnW, 44);
-        y += 52;
-        _checkoutButton.SetBounds(pad, y, w - pad * 2, 64);
+
+        var availableW = Math.Max(220, w - pad * 2);
+        var paymentGap = CartFooterPaymentGap;
+        var paymentTotalGap = paymentGap * 2;
+        var btnW = Math.Max(68, (availableW - paymentTotalGap) / 3);
+        var rowW = btnW * 3 + paymentTotalGap;
+        var rowX = pad + Math.Max(0, (availableW - rowW) / 2);
+
+        _cashButton.SetBounds(rowX, y, btnW, CartFooterPaymentHeight);
+        _creditButton.SetBounds(rowX + btnW + paymentGap, y, btnW, CartFooterPaymentHeight);
+        _cardButton.SetBounds(rowX + (btnW + paymentGap) * 2, y, btnW, CartFooterPaymentHeight);
+        y += CartFooterPaymentHeight + 12;
+
+        var checkoutW = w - pad * 2;
+        var checkoutY = Math.Min(y, Math.Max(pad, h - CartFooterCheckoutHeight - 8));
+        _checkoutButton.SetBounds(pad, checkoutY, checkoutW, CartFooterCheckoutHeight);
+
+        _cashButton.BringToFront();
+        _creditButton.BringToFront();
+        _cardButton.BringToFront();
+        _checkoutButton.BringToFront();
     }
 
     private void TotalsFooterPaintSep(object? sender, PaintEventArgs e)
@@ -963,7 +986,7 @@ internal sealed class PointOfSaleControl : UserControl
         };
 
         _isSubmitting = true;
-        _checkoutButton.Text = "جارٍ إنشاء الفاتورة...";
+        _checkoutButton.Text = "جارٍ إتمام البيع...";
         UpdateCheckoutButtonState();
         try
         {
