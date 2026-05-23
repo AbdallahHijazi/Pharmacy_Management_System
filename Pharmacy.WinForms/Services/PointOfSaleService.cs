@@ -4,7 +4,8 @@ namespace Pharmacy.WinForms.Services;
 
 internal sealed class PointOfSaleService
 {
-    private const int ProductsPageSize = 200;
+    private const int DefaultPageSize = 50;
+    private const int MaxPageSize = 100;
 
     private readonly ApiClient _apiClient;
 
@@ -13,10 +14,21 @@ internal sealed class PointOfSaleService
         _apiClient = apiClient;
     }
 
+    internal static int ClampPageSize(int pageSize)
+    {
+        if (pageSize < 1)
+        {
+            return DefaultPageSize;
+        }
+
+        return Math.Min(pageSize, MaxPageSize);
+    }
+
     public async Task<ProductsLoadResult> LoadProductsAsync(CancellationToken cancellationToken = default)
     {
         _apiClient.EnsureSessionAuthorization();
 
+        var pageSize = ClampPageSize(DefaultPageSize);
         var all = new List<PosProductApiModel>();
         var page = 1;
         var total = int.MaxValue;
@@ -24,7 +36,7 @@ internal sealed class PointOfSaleService
         while (all.Count < total)
         {
             var url =
-                $"api/v1/products?pageNumber={page}&pageSize={ProductsPageSize}&sortBy=name&sortDirection=asc";
+                $"api/v1/products?pageNumber={page}&pageSize={pageSize}&sortBy=name&sortDirection=asc";
             var result = await _apiClient.GetAsync<PagedProductsApiModel>(
                 url,
                 "pos/products",

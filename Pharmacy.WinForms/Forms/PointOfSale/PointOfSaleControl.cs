@@ -14,7 +14,9 @@ internal sealed class PointOfSaleControl : UserControl
     private const int WideBreakpoint = 1100;
     private const int StackBreakpoint = 850;
     private const int GridGap = 16;
-    private const int SearchCardMinHeight = 168;
+    private const int SearchCardHeight = 152;
+    private const int CartHeaderHeight = 88;
+    private const int CartFooterMinHeight = 292;
 
     private readonly PointOfSaleService _posService;
     private readonly System.Windows.Forms.Timer _searchDebounce = new() { Interval = 300 };
@@ -42,7 +44,11 @@ internal sealed class PointOfSaleControl : UserControl
     private readonly List<PosCategoryChip> _categoryChips = new();
     private Panel _productsScrollPanel = null!;
     private Panel _productGridPanel = null!;
-    private Label _catalogStatusLabel = null!;
+    private Panel _productsStatePanel = null!;
+    private Label _productsStateTitle = null!;
+    private Label _productsStateDetail = null!;
+    private Button _productsRetryButton = null!;
+    private string? _productsLoadError;
     private PosRoundedPanel _cartCard = null!;
     private Panel _customerHeader = null!;
     private Label _customerAvatar = null!;
@@ -61,6 +67,10 @@ internal sealed class PointOfSaleControl : UserControl
     private PosPaymentButton _cardButton = null!;
     private GradientRoundedButton _checkoutButton = null!;
     private Label _messageLabel = null!;
+    private Label _discountCaptionLabel = null!;
+    private Label _subtotalCaptionLabel = null!;
+    private Label _totalCaptionLabel = null!;
+    private Label _percentLabel = null!;
 
     public PointOfSaleControl() : this(AppServices.PointOfSaleService)
     {
@@ -110,22 +120,22 @@ internal sealed class PointOfSaleControl : UserControl
 
         _searchBox = new PosSearchBox
         {
-            Dock = DockStyle.Top,
             PlaceholderText = "ابحث عن دواء بالاسم التجاري أو العلمي أو الباركود..."
         };
 
         _categoryChipsPanel = new FlowLayoutPanel
         {
             AutoSize = false,
+            BackColor = PharmaTheme.SurfaceAlt,
             FlowDirection = FlowDirection.RightToLeft,
             WrapContents = true,
-            Padding = new Padding(0, 12, 0, 0),
+            Padding = new Padding(0, 10, 0, 0),
             RightToLeft = RightToLeft.Yes
         };
 
         foreach (var filter in _categoryFilters)
         {
-            var chip = new PosCategoryChip(filter) { Margin = new Padding(6, 0, 0, 8) };
+            var chip = new PosCategoryChip(filter) { Margin = new Padding(0, 0, 8, 8) };
             chip.Click += (_, _) => SetCategoryFilter(filter);
             _categoryChips.Add(chip);
             _categoryChipsPanel.Controls.Add(chip);
@@ -133,17 +143,6 @@ internal sealed class PointOfSaleControl : UserControl
 
         _searchFilterCard.Controls.Add(_categoryChipsPanel);
         _searchFilterCard.Controls.Add(_searchBox);
-
-        _catalogStatusLabel = new Label
-        {
-            AutoSize = false,
-            Font = PharmaTheme.BodyFont,
-            ForeColor = PharmaTheme.MutedText,
-            Height = 28,
-            TextAlign = ContentAlignment.MiddleRight,
-            UseCompatibleTextRendering = true,
-            Visible = false
-        };
 
         _productsScrollPanel = new Panel
         {
@@ -153,8 +152,49 @@ internal sealed class PointOfSaleControl : UserControl
         _productGridPanel = new Panel { BackColor = PharmaTheme.Background };
         _productsScrollPanel.Controls.Add(_productGridPanel);
 
+        _productsStatePanel = new Panel
+        {
+            BackColor = PharmaTheme.Background,
+            Visible = false
+        };
+        _productsStateTitle = new Label
+        {
+            AutoSize = false,
+            Font = PharmaTheme.ArabicFont(12f, FontStyle.Bold),
+            ForeColor = PharmaTheme.TextDark,
+            Height = 28,
+            Text = "تعذر تحميل المنتجات",
+            TextAlign = ContentAlignment.MiddleCenter,
+            UseCompatibleTextRendering = true
+        };
+        _productsStateDetail = new Label
+        {
+            AutoSize = false,
+            Font = PharmaTheme.SmallFont,
+            ForeColor = PharmaTheme.MutedText,
+            Height = 40,
+            TextAlign = ContentAlignment.TopCenter,
+            UseCompatibleTextRendering = true
+        };
+        _productsRetryButton = new Button
+        {
+            AutoSize = false,
+            BackColor = PharmaTheme.Primary,
+            Cursor = Cursors.Hand,
+            FlatStyle = FlatStyle.Flat,
+            Font = PharmaTheme.ArabicFont(10f, FontStyle.Bold),
+            ForeColor = PharmaTheme.OnPrimary,
+            Text = "إعادة المحاولة",
+            UseCompatibleTextRendering = true
+        };
+        _productsRetryButton.FlatAppearance.BorderSize = 0;
+        _productsRetryButton.Click += async (_, _) => await LoadProductsAsync();
+        _productsStatePanel.Controls.Add(_productsRetryButton);
+        _productsStatePanel.Controls.Add(_productsStateDetail);
+        _productsStatePanel.Controls.Add(_productsStateTitle);
+        _productsScrollPanel.Controls.Add(_productsStatePanel);
+
         _catalogPanel.Controls.Add(_productsScrollPanel);
-        _catalogPanel.Controls.Add(_catalogStatusLabel);
         _catalogPanel.Controls.Add(_searchFilterCard);
 
         _cartCard = new PosRoundedPanel(PharmaTheme.PosCartCornerRadius)
@@ -166,11 +206,11 @@ internal sealed class PointOfSaleControl : UserControl
         _customerHeader = new Panel { BackColor = PharmaTheme.SurfaceContainerHigh };
         _customerAvatar = new Label
         {
-            BackColor = PharmaTheme.PrimaryContainer,
+            BackColor = Color.Transparent,
             Font = PharmaTheme.IconFont(16f),
             ForeColor = PharmaTheme.Primary,
-            Size = new Size(44, 44),
-            Text = SegoeMdl2Icons.Person,
+            Size = new Size(40, 40),
+            Text = string.Empty,
             TextAlign = ContentAlignment.MiddleCenter
         };
         _customerAvatar.Paint += (_, e) =>
@@ -194,7 +234,8 @@ internal sealed class PointOfSaleControl : UserControl
             BackColor = PharmaTheme.SurfaceContainerHigh,
             ForeColor = PharmaTheme.TextDark,
             PlaceholderText = "اسم الزبون (اختياري)",
-            RightToLeft = RightToLeft.Yes
+            RightToLeft = RightToLeft.Yes,
+            TextAlign = HorizontalAlignment.Right
         };
         _customerHint = new Label
         {
@@ -203,7 +244,7 @@ internal sealed class PointOfSaleControl : UserControl
             ForeColor = PharmaTheme.OnSurfaceVariant,
             Height = 20,
             Text = "مبيعات عامة",
-            TextAlign = ContentAlignment.TopRight,
+            TextAlign = ContentAlignment.MiddleRight,
             UseCompatibleTextRendering = true
         };
         _addCustomerBtn = new Label
@@ -231,6 +272,7 @@ internal sealed class PointOfSaleControl : UserControl
         _emptyCartLabel = new Label
         {
             AutoSize = false,
+            BackColor = PharmaTheme.SurfaceAlt,
             Font = PharmaTheme.BodyFont,
             ForeColor = PharmaTheme.MutedText,
             Text = "السلة فارغة\r\nاختر دواء من القائمة لإضافته إلى الفاتورة",
@@ -240,8 +282,8 @@ internal sealed class PointOfSaleControl : UserControl
 
         _totalsFooter = new Panel { BackColor = PharmaTheme.SurfaceContainerHigh };
         _subtotalValueLabel = CreateTotalsValueLabel();
-        var subtotalCaption = CreateTotalsCaptionLabel("المجموع الفرعي");
-        var discountCaption = CreateTotalsCaptionLabel("الخصم");
+        _subtotalCaptionLabel = CreateTotalsCaptionLabel("المجموع الفرعي");
+        _discountCaptionLabel = CreateTotalsCaptionLabel("الخصم");
 
         _discountInput = new NumericUpDown
         {
@@ -256,12 +298,14 @@ internal sealed class PointOfSaleControl : UserControl
             BorderStyle = BorderStyle.None,
             TextAlign = HorizontalAlignment.Center
         };
-        var percentLabel = new Label
+        _percentLabel = new Label
         {
-            AutoSize = true,
+            AutoSize = false,
             Font = PharmaTheme.SmallFont,
             ForeColor = PharmaTheme.OnSurfaceVariant,
+            Size = new Size(24, 22),
             Text = "%",
+            TextAlign = ContentAlignment.MiddleCenter,
             UseCompatibleTextRendering = true
         };
 
@@ -271,10 +315,10 @@ internal sealed class PointOfSaleControl : UserControl
             Font = PharmaTheme.NumberFont(22f, FontStyle.Bold),
             ForeColor = PharmaTheme.Primary,
             Height = 40,
-            TextAlign = ContentAlignment.MiddleLeft,
+            TextAlign = ContentAlignment.MiddleRight,
             UseCompatibleTextRendering = true
         };
-        var totalCaption = CreateTotalsCaptionLabel("الإجمالي");
+        _totalCaptionLabel = CreateTotalsCaptionLabel("الإجمالي");
 
         _cashButton = new PosPaymentButton("نقد") { IsSelected = true };
         _creditButton = new PosPaymentButton("دين");
@@ -287,6 +331,7 @@ internal sealed class PointOfSaleControl : UserControl
         {
             Height = 64,
             IconGlyph = SegoeMdl2Icons.Print,
+            MinimumSize = new Size(200, 64),
             Text = "طباعة الفاتورة"
         };
 
@@ -306,13 +351,13 @@ internal sealed class PointOfSaleControl : UserControl
         _totalsFooter.Controls.Add(_creditButton);
         _totalsFooter.Controls.Add(_cashButton);
         _totalsFooter.Controls.Add(_totalValueLabel);
-        _totalsFooter.Controls.Add(totalCaption);
-        _totalsFooter.Controls.Add(percentLabel);
+        _totalsFooter.Controls.Add(_totalCaptionLabel);
+        _totalsFooter.Controls.Add(_percentLabel);
         _totalsFooter.Controls.Add(_discountInput);
-        _totalsFooter.Controls.Add(discountCaption);
+        _totalsFooter.Controls.Add(_discountCaptionLabel);
         _totalsFooter.Controls.Add(_subtotalValueLabel);
-        _totalsFooter.Controls.Add(subtotalCaption);
-        _totalsFooter.Resize += (_, _) => LayoutTotalsFooter(subtotalCaption, discountCaption, totalCaption, percentLabel);
+        _totalsFooter.Controls.Add(_subtotalCaptionLabel);
+        _totalsFooter.Resize += (_, _) => LayoutTotalsFooter();
         _totalsFooter.Paint += TotalsFooterPaintSep;
 
         _cartCard.Controls.Add(_messageLabel);
@@ -348,7 +393,7 @@ internal sealed class PointOfSaleControl : UserControl
         Font = PharmaTheme.NumberFont(10f),
         ForeColor = PharmaTheme.OnSurfaceVariant,
         Height = 22,
-        TextAlign = ContentAlignment.MiddleLeft,
+        TextAlign = ContentAlignment.MiddleRight,
         UseCompatibleTextRendering = true
     };
 
@@ -356,7 +401,7 @@ internal sealed class PointOfSaleControl : UserControl
     {
         _searchBox.SearchTextChanged += (_, _) =>
         {
-            _searchText = _searchBox.Text.Trim();
+            _searchText = _searchBox.Text?.Trim() ?? string.Empty;
             _searchDebounce.Stop();
             _searchDebounce.Start();
         };
@@ -438,20 +483,35 @@ internal sealed class PointOfSaleControl : UserControl
     {
         var w = Math.Max(200, _catalogPanel.ClientSize.Width);
         var h = Math.Max(200, _catalogPanel.ClientSize.Height);
-        var searchH = Math.Max(SearchCardMinHeight, _searchFilterCard.PreferredSize.Height + 24);
-        if (_searchFilterCard.Controls.Count > 0)
+
+        _searchFilterCard.SetBounds(0, 0, w, SearchCardHeight);
+        _searchBox.SetBounds(16, 14, w - 32, 52);
+        var chipsH = Math.Max(44, _categoryChipsPanel.PreferredSize.Height);
+        _categoryChipsPanel.SetBounds(16, _searchBox.Bottom + 10, w - 32, chipsH);
+
+        _productsScrollPanel.SetBounds(0, SearchCardHeight + 16, w, Math.Max(120, h - SearchCardHeight - 16));
+        LayoutProductsStatePanel();
+    }
+
+    private void LayoutProductsStatePanel()
+    {
+        if (_productsStatePanel is null || _productsScrollPanel is null)
         {
-            searchH = Math.Max(SearchCardMinHeight, 56 + 12 + _categoryChipsPanel.PreferredSize.Height + 20);
+            return;
         }
 
-        _searchFilterCard.SetBounds(0, 0, w, searchH);
-        _searchBox.Width = w - 32;
-        _searchBox.Location = new Point(16, 16);
-        _categoryChipsPanel.SetBounds(16, _searchBox.Bottom + 8, w - 32, Math.Max(48, _categoryChipsPanel.PreferredSize.Height));
+        var area = _productsScrollPanel.ClientRectangle;
+        var panelW = Math.Min(360, Math.Max(260, area.Width - 48));
+        var panelH = 160;
+        _productsStatePanel.SetBounds(
+            Math.Max(0, (area.Width - panelW) / 2),
+            Math.Max(40, (area.Height - panelH) / 2),
+            panelW,
+            panelH);
 
-        var statusH = _catalogStatusLabel.Visible ? 30 : 0;
-        _catalogStatusLabel.SetBounds(0, searchH + 8, w, statusH);
-        _productsScrollPanel.SetBounds(0, searchH + 8 + statusH, w, Math.Max(120, h - searchH - 8 - statusH));
+        _productsStateTitle.SetBounds(0, 8, panelW, 28);
+        _productsStateDetail.SetBounds(12, 40, panelW - 24, 48);
+        _productsRetryButton.SetBounds((panelW - 140) / 2, 98, 140, 36);
     }
 
     private void LayoutCartInternals()
@@ -460,46 +520,46 @@ internal sealed class PointOfSaleControl : UserControl
         var h = Math.Max(400, _cartPanel.ClientSize.Height);
         _cartCard.SetBounds(0, 0, w, h);
 
-        const int headerH = 96;
-        const int footerH = 250;
-        _customerHeader.SetBounds(0, 0, w, headerH);
+        var footerH = CartFooterMinHeight;
+        _customerHeader.SetBounds(0, 0, w, CartHeaderHeight);
         LayoutCustomerHeader();
         _totalsFooter.SetBounds(0, h - footerH, w, footerH);
         _messageLabel.SetBounds(16, h - footerH - 28, w - 32, 24);
 
-        var itemsTop = headerH;
-        var itemsH = Math.Max(80, h - headerH - footerH);
+        var itemsTop = CartHeaderHeight;
+        var itemsH = Math.Max(80, h - CartHeaderHeight - footerH);
         _cartItemsScrollPanel.SetBounds(0, itemsTop, w, itemsH);
-        _emptyCartLabel.SetBounds(16, itemsTop + 40, w - 32, 80);
+        _emptyCartLabel.SetBounds(16, itemsTop + Math.Max(24, (itemsH - 90) / 2), w - 32, 90);
+        LayoutTotalsFooter();
     }
 
     private void LayoutCustomerHeader()
     {
         var w = _customerHeader.ClientSize.Width;
-        _customerAvatar.SetBounds(w - 60, 24, 44, 44);
-        _addCustomerBtn.SetBounds(12, 28, 36, 36);
-        var textW = Math.Max(120, w - 120);
-        _customerNameBox.SetBounds(56, 26, textW, 28);
-        _customerHint.SetBounds(56, 54, textW, 20);
+        _customerAvatar.SetBounds(w - 58, 20, 40, 40);
+        _addCustomerBtn.SetBounds(14, 24, 32, 32);
+        var textRight = w - 66;
+        var textW = Math.Max(160, textRight - 52);
+        _customerNameBox.SetBounds(52, 22, textW, 28);
+        _customerHint.SetBounds(52, 52, textW, 20);
     }
 
-    private void LayoutTotalsFooter(Label subtotalCaption, Label discountCaption, Label totalCaption, Label percentLabel)
+    private void LayoutTotalsFooter()
     {
         var w = _totalsFooter.ClientSize.Width;
         var pad = 16;
         var y = pad;
-        subtotalCaption.SetBounds(pad, y, w / 2, 22);
+        _subtotalCaptionLabel.SetBounds(pad, y, w / 2, 22);
         _subtotalValueLabel.SetBounds(w / 2, y, w / 2 - pad, 22);
         y += 28;
-        discountCaption.SetBounds(pad, y, 80, 22);
+        _discountCaptionLabel.SetBounds(pad, y, 80, 22);
         _discountInput.SetBounds(w - pad - 90, y - 2, 64, 26);
-        percentLabel.Location = new Point(w - pad - 24, y + 2);
-        y += 36;
-        y += 10;
-        totalCaption.SetBounds(pad, y, 100, 28);
-        _totalValueLabel.SetBounds(w / 2 - 40, y - 4, w / 2 + 30, 40);
-        y += 48;
-        var btnW = (w - pad * 2 - 16) / 3;
+        _percentLabel.SetBounds(w - pad - 24, y, 24, 22);
+        y += 38;
+        _totalCaptionLabel.SetBounds(pad, y, 100, 28);
+        _totalValueLabel.SetBounds(w / 2 - 20, y - 2, w / 2, 40);
+        y += 46;
+        var btnW = Math.Max(72, (w - pad * 2 - 16) / 3);
         _cashButton.SetBounds(pad, y, btnW, 44);
         _creditButton.SetBounds(pad + btnW + 8, y, btnW, 44);
         _cardButton.SetBounds(pad + (btnW + 8) * 2, y, btnW, 44);
@@ -511,8 +571,8 @@ internal sealed class PointOfSaleControl : UserControl
     {
         var w = _totalsFooter.ClientSize.Width;
         var pad = 16;
-        var y = pad + 28 + 36 + 10;
-        using var pen = new Pen(PharmaTheme.WithAlpha(PharmaTheme.Border, 80));
+        var y = pad + 28 + 38;
+        using var pen = new Pen(PharmaTheme.WithAlpha(PharmaTheme.BorderSoft, 120));
         e.Graphics.DrawLine(pen, pad, y, w - pad, y);
     }
 
@@ -522,7 +582,7 @@ internal sealed class PointOfSaleControl : UserControl
         _loadCts = new CancellationTokenSource();
         var token = _loadCts.Token;
 
-        SetCatalogStatus("جارٍ تحميل المنتجات...", visible: true);
+        SetProductsLoadingState(true);
         var result = await _posService.LoadProductsAsync(token).ConfigureAwait(true);
         if (IsDisposed || token.IsCancellationRequested)
         {
@@ -533,19 +593,17 @@ internal sealed class PointOfSaleControl : UserControl
         {
             _allProducts.Clear();
             _filteredProducts.Clear();
-            SetCatalogStatus(
-                result.IsConnectionError
-                    ? "تعذر تحميل المنتجات، تحقق من اتصال API"
-                    : result.ErrorMessage ?? "تعذر تحميل المنتجات.",
-                visible: true,
-                isError: true);
+            _productsLoadError = result.IsConnectionError
+                ? "تعذر الاتصال بالخادم. تحقق من تشغيل API."
+                : result.ErrorMessage ?? "تعذر تحميل المنتجات.";
+            SetProductsErrorState(_productsLoadError);
             RebuildProductGrid();
             return;
         }
 
         _allProducts.Clear();
         _allProducts.AddRange(result.Products);
-        SetCatalogStatus(string.Empty, visible: false);
+        SetProductsLoadingState(false);
         await ApplySearchFilterAsync().ConfigureAwait(true);
     }
 
@@ -648,6 +706,18 @@ internal sealed class PointOfSaleControl : UserControl
 
         _productGridPanel.SuspendLayout();
         _productGridPanel.Controls.Clear();
+
+        var showError = !string.IsNullOrWhiteSpace(_productsLoadError);
+        _productsStatePanel.Visible = showError;
+        _productGridPanel.Visible = !showError;
+        if (showError)
+        {
+            _productsStateDetail.Text = _productsLoadError;
+            LayoutProductsStatePanel();
+            _productGridPanel.Size = new Size(Math.Max(180, _productsScrollPanel.ClientSize.Width - 8), 80);
+            _productGridPanel.ResumeLayout(true);
+            return;
+        }
 
         var gridW = Math.Max(180, _productsScrollPanel.ClientSize.Width - 8);
         var columns = gridW >= 720 ? 3 : gridW >= 460 ? 2 : 1;
@@ -905,12 +975,34 @@ internal sealed class PointOfSaleControl : UserControl
         }
     }
 
-    private void SetCatalogStatus(string text, bool visible, bool isError = false)
+    private void SetProductsLoadingState(bool loading)
     {
-        _catalogStatusLabel.Text = text;
-        _catalogStatusLabel.Visible = visible;
-        _catalogStatusLabel.ForeColor = isError ? PharmaTheme.Danger : PharmaTheme.MutedText;
-        LayoutCatalogInternals();
+        if (loading)
+        {
+            _productsLoadError = null;
+            _productsStatePanel.Visible = true;
+            _productGridPanel.Visible = false;
+            _productsStateTitle.Text = "جارٍ تحميل المنتجات...";
+            _productsStateDetail.Text = string.Empty;
+            _productsRetryButton.Visible = false;
+            LayoutProductsStatePanel();
+            return;
+        }
+
+        _productsLoadError = null;
+        _productsStatePanel.Visible = false;
+        _productGridPanel.Visible = true;
+    }
+
+    private void SetProductsErrorState(string message)
+    {
+        _productsLoadError = message;
+        _productsStatePanel.Visible = true;
+        _productGridPanel.Visible = false;
+        _productsStateTitle.Text = "تعذر تحميل المنتجات";
+        _productsStateDetail.Text = message;
+        _productsRetryButton.Visible = true;
+        LayoutProductsStatePanel();
     }
 
     private void ShowMessage(string text, Color color, bool visible = true)
@@ -931,8 +1023,16 @@ internal sealed class PointOfSaleControl : UserControl
 
         _searchFilterCard.FillColor = PharmaTheme.SurfaceAlt;
         _searchFilterCard.BorderColor = PharmaTheme.BorderSoft;
+        _searchFilterCard.BackColor = PharmaTheme.SurfaceAlt;
         _searchFilterCard.ApplyThemeVisuals();
         _searchBox.ApplyThemeVisuals();
+        _categoryChipsPanel.BackColor = PharmaTheme.SurfaceAlt;
+
+        _productsStatePanel.BackColor = PharmaTheme.Background;
+        _productsStateTitle.ForeColor = PharmaTheme.TextDark;
+        _productsStateDetail.ForeColor = PharmaTheme.MutedText;
+        _productsRetryButton.BackColor = PharmaTheme.Primary;
+        _productsRetryButton.ForeColor = PharmaTheme.OnPrimary;
 
         foreach (var chip in _categoryChips)
         {
@@ -941,6 +1041,7 @@ internal sealed class PointOfSaleControl : UserControl
 
         _cartCard.FillColor = PharmaTheme.SurfaceAlt;
         _cartCard.BorderColor = PharmaTheme.BorderSoft;
+        _cartCard.BackColor = PharmaTheme.SurfaceAlt;
         _cartCard.ApplyThemeVisuals();
         _customerHeader.BackColor = PharmaTheme.SurfaceContainerHigh;
         _customerNameBox.BackColor = PharmaTheme.SurfaceContainerHigh;

@@ -4,27 +4,21 @@ namespace Pharmacy.WinForms.Ui;
 
 internal static class PosFormatting
 {
-    public static string FormatMoney(decimal value)
+    public static string CurrencySuffix
     {
-        var code = LocalAppSettingsStore.LoadOrDefault().CurrencyCode?.Trim().ToUpperInvariant();
-        var suffix = code switch
+        get
         {
-            "USD" => "USD",
-            "JD" or "JOD" => "JD",
-            _ => "ل.س"
-        };
-        return $"{value:N2} {suffix}";
+            var code = LocalAppSettingsStore.LoadOrDefault().CurrencyCode?.Trim().ToUpperInvariant();
+            return code switch
+            {
+                "USD" => "USD",
+                "JD" or "JOD" => "JD",
+                _ => "ل.س"
+            };
+        }
     }
 
-    public static string FormatMoneyCompact(decimal value)
-    {
-        var code = LocalAppSettingsStore.LoadOrDefault().CurrencyCode?.Trim().ToUpperInvariant();
-        var suffix = code switch
-        {
-            "USD" => "USD",
-            "JD" or "JOD" => "JD",
-            _ => "ل.س"
-        };
-        return $"{value:N2} {suffix}";
-    }
+    public static string FormatMoney(decimal value) => $"{value:N2} {CurrencySuffix}";
+
+    public static string FormatMoneyCompact(decimal value) => FormatMoney(value);
 }

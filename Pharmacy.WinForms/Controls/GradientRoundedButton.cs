@@ -71,8 +71,8 @@ public sealed class GradientRoundedButton : Control
             ? PharmaTheme.PrimaryContainer
             : _isHover
                 ? PharmaTheme.PrimaryDark
-                : PharmaTheme.PrimaryGreen;
-        var bottom = _isPressed ? PharmaTheme.PrimaryGreen : PharmaTheme.PrimaryContainer;
+                : PharmaTheme.Primary;
+        var bottom = _isPressed ? PharmaTheme.Primary : PharmaTheme.PrimaryContainer;
         using (var path = RoundedDrawing.CreateRoundedRect(bounds, PharmaTheme.DashboardButtonCornerRadius))
         using (var brush = new LinearGradientBrush(bounds, top, bottom, LinearGradientMode.ForwardDiagonal))
         {

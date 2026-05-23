@@ -15,6 +15,7 @@ internal class PosRoundedPanel : Panel
         _radius = radius;
         _drawShadow = drawShadow;
         DoubleBuffered = true;
+        BackColor = FillColor;
         SetStyle(
             ControlStyles.AllPaintingInWmPaint
                 | ControlStyles.UserPaint
@@ -33,15 +34,18 @@ internal class PosRoundedPanel : Panel
 
     public void ApplyThemeVisuals()
     {
+        BackColor = FillColor;
         Invalidate(true);
     }
 
-    protected override void OnPaintBackground(PaintEventArgs e)
+    protected override void OnPaint(PaintEventArgs e)
     {
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.Clear(Parent?.BackColor ?? PharmaTheme.Background);
+
         var bounds = ClientRectangle;
-        bounds.Inflate(-2, -2);
+        bounds.Inflate(-1, -1);
         if (bounds.Width <= 4 || bounds.Height <= 4)
         {
             return;
@@ -53,7 +57,17 @@ internal class PosRoundedPanel : Panel
         }
 
         RoundedDrawing.FillRounded(g, bounds, _radius, FillColor);
-        RoundedDrawing.DrawRoundedBorder(g, bounds, _radius, BorderColor);
+        RoundedDrawing.DrawRoundedBorder(
+            g,
+            bounds,
+            _radius,
+            PharmaTheme.WithAlpha(BorderColor, 90),
+            1f);
+    }
+
+    protected override void OnPaintBackground(PaintEventArgs e)
+    {
+        e.Graphics.Clear(Parent?.BackColor ?? PharmaTheme.Background);
     }
 }
 
@@ -110,7 +124,9 @@ internal sealed class PosCategoryChip : Control
             PharmaTheme.SmallFont,
             b,
             text,
-            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            TextFormatFlags.HorizontalCenter
+                | TextFormatFlags.VerticalCenter
+                | TextFormatFlags.RightToLeft);
     }
 }
 
@@ -167,7 +183,9 @@ internal sealed class PosPaymentButton : Control
             PharmaTheme.ArabicFont(10f, FontStyle.Bold),
             b,
             text,
-            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            TextFormatFlags.HorizontalCenter
+                | TextFormatFlags.VerticalCenter
+                | TextFormatFlags.RightToLeft);
     }
 }
 
@@ -185,10 +203,10 @@ internal sealed class PosSearchBox : UserControl
                 | ControlStyles.ResizeRedraw,
             true);
         DoubleBuffered = true;
-        Height = 56;
-        MinimumSize = new Size(200, 56);
-        Padding = new Padding(48, 0, 16, 0);
-        RightToLeft = RightToLeft.Yes;
+        Height = 52;
+        MinimumSize = new Size(200, 52);
+        Padding = new Padding(44, 0, 16, 0);
+        RightToLeft = RightToLeft.No;
 
         _box = new TextBox
         {
@@ -197,7 +215,8 @@ internal sealed class PosSearchBox : UserControl
             Font = PharmaTheme.ArabicFont(11f),
             BackColor = PharmaTheme.InputSurface,
             ForeColor = PharmaTheme.TextDark,
-            RightToLeft = RightToLeft.Yes
+            RightToLeft = RightToLeft.Yes,
+            TextAlign = HorizontalAlignment.Right
         };
         _box.GotFocus += (_, _) => { _focused = true; Invalidate(); };
         _box.LostFocus += (_, _) => { _focused = false; Invalidate(); };
@@ -209,13 +228,13 @@ internal sealed class PosSearchBox : UserControl
     public event EventHandler? SearchTextChanged;
     public event KeyEventHandler? SearchKeyDown;
 
-#pragma warning disable CS8765
+#pragma warning disable CS8765, CS8764
     public override string? Text
     {
         get => _box.Text;
         set => _box.Text = value ?? string.Empty;
     }
-#pragma warning restore CS8765
+#pragma warning restore CS8765, CS8764
 
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
@@ -247,7 +266,7 @@ internal sealed class PosSearchBox : UserControl
             _focused ? PharmaTheme.Primary : PharmaTheme.BorderSoft,
             _focused ? 1.75f : 1f);
 
-        var iconRect = new Rectangle(r.Right - 40, r.Y + (r.Height - 28) / 2, 28, 28);
+        var iconRect = new Rectangle(r.X + 10, r.Y + (r.Height - 28) / 2, 28, 28);
         TextRenderer.DrawText(
             g,
             SegoeMdl2Icons.Search,
@@ -255,6 +274,18 @@ internal sealed class PosSearchBox : UserControl
             iconRect,
             PharmaTheme.OnSurfaceVariant,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+    }
+
+    protected override void OnLayout(LayoutEventArgs levent)
+    {
+        base.OnLayout(levent);
+        if (_box.IsDisposed)
+        {
+            return;
+        }
+
+        var innerH = Math.Max(24, ClientSize.Height - 8);
+        _box.SetBounds(Padding.Left, (ClientSize.Height - innerH) / 2, Math.Max(40, ClientSize.Width - Padding.Horizontal), innerH);
     }
 }
 
@@ -336,7 +367,10 @@ internal sealed class PosProductCard : Control
             PharmaTheme.ArabicFont(11.5f, FontStyle.Bold),
             nameRect,
             PharmaTheme.TextDark,
-            TextFormatFlags.Right | TextFormatFlags.EndEllipsis | TextFormatFlags.VerticalCenter);
+            TextFormatFlags.Right
+                | TextFormatFlags.EndEllipsis
+                | TextFormatFlags.VerticalCenter
+                | TextFormatFlags.RightToLeft);
 
         var sciRect = new Rectangle(bounds.X + 12, nameRect.Bottom + 2, textW, 22);
         TextRenderer.DrawText(
@@ -345,7 +379,10 @@ internal sealed class PosProductCard : Control
             PharmaTheme.SmallFont,
             sciRect,
             PharmaTheme.OnSurfaceVariant,
-            TextFormatFlags.Right | TextFormatFlags.EndEllipsis | TextFormatFlags.VerticalCenter);
+            TextFormatFlags.Right
+                | TextFormatFlags.EndEllipsis
+                | TextFormatFlags.VerticalCenter
+                | TextFormatFlags.RightToLeft);
 
         var priceText = PosFormatting.FormatMoneyCompact(_product.SellingPrice);
         var priceRect = new Rectangle(bounds.X + 12, bounds.Bottom - 44, textW / 2 + 40, 28);
@@ -453,7 +490,10 @@ internal sealed class PosCartItemControl : Control
             PharmaTheme.ArabicFont(10f, FontStyle.Bold),
             nameRect,
             PharmaTheme.TextDark,
-            TextFormatFlags.Right | TextFormatFlags.EndEllipsis | TextFormatFlags.VerticalCenter);
+            TextFormatFlags.Right
+                | TextFormatFlags.EndEllipsis
+                | TextFormatFlags.VerticalCenter
+                | TextFormatFlags.RightToLeft);
 
         var unitRect = new Rectangle(bounds.X + 36, nameRect.Bottom, bounds.Width / 2, 20);
         TextRenderer.DrawText(
