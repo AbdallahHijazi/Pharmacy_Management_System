@@ -141,6 +141,12 @@ internal static class PharmaTheme
     public const int PosProductCardHeight = 160;
     public const int PosLowStockThreshold = 5;
 
+    public const int InventoryCardCornerRadius = 18;
+    public const int InventorySearchCornerRadius = 14;
+    public const int InventoryButtonCornerRadius = 14;
+    public const int InventoryDetailsWidth = 380;
+    public const int InventoryRowHeight = 52;
+
 
 
     private static readonly string[] ArabicFontCandidates = ["Cairo", "Segoe UI", "Tahoma"];

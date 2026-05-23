@@ -37,4 +37,8 @@ internal static class SegoeMdl2Icons
     public const string PersonAdd = "\uE8FA";
     public const string Person = "\uE77B";
     public const string Close = "\uE711";
+    public const string Filter = "\uE71C";
+    public const string ChevronLeft = "\uE76B";
+    public const string ChevronRight = "\uE76C";
+    public const string Edit = "\uE70F";
 }
