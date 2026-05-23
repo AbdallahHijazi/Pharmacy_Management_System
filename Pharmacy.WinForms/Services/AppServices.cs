@@ -8,4 +8,5 @@ internal static class AppServices
     public static SettingsService SettingsService { get; } = new(ApiClient);
     public static PointOfSaleService PointOfSaleService { get; } = new(ApiClient);
     public static InventoryService InventoryService { get; } = new(ApiClient);
+    public static PurchaseService PurchaseService { get; } = new(ApiClient);
 }
