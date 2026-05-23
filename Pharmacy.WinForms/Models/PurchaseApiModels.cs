@@ -65,3 +65,23 @@ internal sealed class PagedSuppliersApiModel
     public List<SupplierListApiModel> Items { get; set; } = new();
     public int TotalCount { get; set; }
 }
+
+internal sealed class CreatePurchaseInvoiceApiRequest
+{
+    public string InvoiceNumber { get; set; } = string.Empty;
+    public Guid SupplierId { get; set; }
+    public decimal TaxRate { get; set; }
+    public decimal PaidAmount { get; set; }
+    public string PaymentMethod { get; set; } = string.Empty;
+    public List<CreatePurchaseInvoiceItemApiRequest> Items { get; set; } = new();
+}
+
+internal sealed class CreatePurchaseInvoiceItemApiRequest
+{
+    public Guid ProductId { get; set; }
+    public string BatchNumber { get; set; } = string.Empty;
+    public DateTime ExpiryDate { get; set; }
+    public int Quantity { get; set; }
+    public int BonusQuantity { get; set; }
+    public decimal UnitPrice { get; set; }
+}

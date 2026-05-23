@@ -215,6 +215,24 @@ internal sealed class PurchasesControl : UserControl
         Controls.Add(_rootPanel);
     }
 
+    private async Task OpenCreateInvoiceDialogAsync()
+    {
+        var owner = FindForm();
+        using var dialog = new CreatePurchaseInvoiceDialog(_purchaseService);
+        var result = owner is null
+            ? dialog.ShowDialog()
+            : dialog.ShowDialog(owner);
+
+        if (result != DialogResult.OK)
+        {
+            return;
+        }
+
+        _pageNumber = 1;
+        ClearDetails();
+        await LoadPageAsync();
+    }
+
     private void WireEvents()
     {
         _searchBox.SearchTextChanged += (_, _) =>
@@ -222,13 +240,7 @@ internal sealed class PurchasesControl : UserControl
             _searchDebounce.Stop();
             _searchDebounce.Start();
         };
-        _addPurchaseButton.Click += (_, _) =>
-            MessageBox.Show(
-                this,
-                "سيتم تنفيذ شاشة إضافة فاتورة الشراء في خطوة لاحقة",
-                "إضافة فاتورة شراء",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+        _addPurchaseButton.Click += async (_, _) => await OpenCreateInvoiceDialogAsync();
         _retryButton.Click += async (_, _) => await LoadPageAsync();
         _paginationBar.PageChangeRequested += async (_, page) => await ChangePageAsync(page);
         _detailsPanel.CloseRequested += (_, _) => ClearDetails();
