@@ -16,28 +16,42 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
     private bool _isSaving;
 
     private Panel _rootPanel = null!;
+    private Panel _headerPanel = null!;
     private Label _titleLabel = null!;
+    private Label _subtitleLabel = null!;
     private Label _closeButton = null!;
-    private PurRoundedPanel _infoCard = null!;
+    private Panel _contentScroll = null!;
+    private Panel _contentHost = null!;
+    private Panel _mainColumn = null!;
+    private Panel _summaryColumn = null!;
+    private PurSectionCard _infoCard = null!;
+    private Panel _infoFieldsPanel = null!;
+    private PurInputHost _supplierHost = null!;
+    private PurInputHost _invoiceNumberHost = null!;
+    private PurInputHost _paymentHost = null!;
+    private PurInputHost _taxHost = null!;
+    private PurInputHost _paidHost = null!;
     private ComboBox _supplierCombo = null!;
     private TextBox _invoiceNumberBox = null!;
-    private Label _invoiceDateLabel = null!;
     private ComboBox _paymentMethodCombo = null!;
     private NumericUpDown _taxRateInput = null!;
     private NumericUpDown _paidAmountInput = null!;
-    private PurRoundedPanel _itemsCard = null!;
+    private Label _invoiceDateValue = null!;
+    private PurSectionCard _itemsCard = null!;
     private Panel _linesScrollPanel = null!;
     private Panel _linesHost = null!;
     private GradientRoundedButton _addLineButton = null!;
-    private PurRoundedPanel _totalsCard = null!;
-    private Label _subtotalValueLabel = null!;
-    private Label _taxValueLabel = null!;
-    private Label _grandTotalValueLabel = null!;
-    private Label _remainingValueLabel = null!;
-    private Label _itemsCountLabel = null!;
+    private PurSectionCard _summaryCard = null!;
+    private PurSummaryRow _itemsCountRow = null!;
+    private PurSummaryRow _subtotalRow = null!;
+    private PurSummaryRow _taxRow = null!;
+    private PurSummaryRow _grandTotalRow = null!;
+    private PurSummaryRow _paidRow = null!;
+    private PurSummaryRow _remainingRow = null!;
+    private Panel _footerPanel = null!;
     private Label _statusLabel = null!;
     private GradientRoundedButton _saveButton = null!;
-    private Button _cancelButton = null!;
+    private PurCancelButton _cancelButton = null!;
 
     public CreatePurchaseInvoiceDialog() : this(AppServices.PurchaseService)
     {
@@ -54,8 +68,8 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         RightToLeftLayout = true;
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.Sizable;
-        MinimumSize = new Size(980, 720);
-        Size = new Size(1100, 780);
+        MinimumSize = new Size(1024, 680);
+        Size = new Size(1180, 800);
         Text = "إضافة فاتورة شراء";
         BackColor = PharmaTheme.Background;
         Font = PharmaTheme.BodyFont;
@@ -72,38 +86,120 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
 
     private void BuildUi()
     {
-        _rootPanel = new Panel { Dock = DockStyle.Fill, BackColor = PharmaTheme.Background, Padding = new Padding(24) };
+        _rootPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = PharmaTheme.Background,
+            Padding = new Padding(20, 16, 20, 12)
+        };
 
+        _headerPanel = new Panel { Dock = DockStyle.Top, Height = 64, BackColor = Color.Transparent };
         _titleLabel = new Label
         {
             Text = "إضافة فاتورة شراء",
             AutoSize = false,
+            Height = 28,
             TextAlign = ContentAlignment.MiddleRight,
-            Font = PharmaTheme.DashboardHeadlineFont,
+            Font = PharmaTheme.ArabicFont(15f, FontStyle.Bold),
             ForeColor = PharmaTheme.PrimaryDark,
-            Dock = DockStyle.Fill
+            Dock = DockStyle.Top
+        };
+        _subtitleLabel = new Label
+        {
+            Text = "أدخل بيانات المورد والأصناف لإنشاء فاتورة شراء جديدة",
+            AutoSize = false,
+            Height = 22,
+            TextAlign = ContentAlignment.MiddleRight,
+            Font = PharmaTheme.SmallFont,
+            ForeColor = PharmaTheme.OnSurfaceVariant,
+            Dock = DockStyle.Top
         };
         _closeButton = new Label
         {
             Text = SegoeMdl2Icons.Close,
-            Font = PharmaTheme.IconFont(12f),
+            Font = PharmaTheme.IconFont(11f),
             AutoSize = true,
             Cursor = Cursors.Hand,
-            ForeColor = PharmaTheme.OnSurfaceVariant
+            ForeColor = PharmaTheme.OnSurfaceVariant,
+            Size = new Size(32, 32),
+            TextAlign = ContentAlignment.MiddleCenter
         };
+        _headerPanel.Controls.Add(_closeButton);
+        _headerPanel.Controls.Add(_subtitleLabel);
+        _headerPanel.Controls.Add(_titleLabel);
+        _headerPanel.Resize += (_, _) => _closeButton.Location = new Point(0, 4);
 
-        _infoCard = new PurRoundedPanel(PharmaTheme.PurchasesCardCornerRadius) { FillColor = PharmaTheme.Surface, Height = 200 };
-        _supplierCombo = CreateCombo();
-        _invoiceNumberBox = CreateTextField();
-        _invoiceDateLabel = new Label
+        _footerPanel = new Panel { Dock = DockStyle.Bottom, Height = 76, BackColor = Color.Transparent, Padding = new Padding(0, 8, 0, 4) };
+        _statusLabel = new Label
         {
-            Text = $"تاريخ الفاتورة: {DateTime.Today:yyyy-MM-dd}",
-            AutoSize = false,
-            Height = 32,
+            Dock = DockStyle.Top,
+            Height = 22,
             TextAlign = ContentAlignment.MiddleRight,
-            Font = PharmaTheme.BodyFont,
-            ForeColor = PharmaTheme.OnSurfaceVariant
+            ForeColor = PharmaTheme.Danger,
+            Font = PharmaTheme.SmallFont,
+            Visible = false
         };
+        var footerButtons = new Panel { Dock = DockStyle.Bottom, Height = 52, BackColor = Color.Transparent };
+        _saveButton = new GradientRoundedButton
+        {
+            Text = "حفظ الفاتورة",
+            IconGlyph = SegoeMdl2Icons.Save,
+            Width = 200,
+            Height = 48
+        };
+        _cancelButton = new PurCancelButton { Width = 128, Height = 48 };
+        footerButtons.Controls.Add(_cancelButton);
+        footerButtons.Controls.Add(_saveButton);
+        footerButtons.Resize += (_, _) => LayoutFooterButtons(footerButtons);
+        _footerPanel.Controls.Add(footerButtons);
+        _footerPanel.Controls.Add(_statusLabel);
+
+        _contentScroll = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            BackColor = Color.Transparent
+        };
+        _contentHost = new Panel
+        {
+            BackColor = Color.Transparent,
+            MinimumSize = new Size(900, 560)
+        };
+        _mainColumn = new Panel { BackColor = Color.Transparent };
+        _summaryColumn = new Panel { BackColor = Color.Transparent };
+
+        BuildInfoCard();
+        BuildItemsCard();
+        BuildSummaryCard();
+
+        _mainColumn.Controls.Add(_itemsCard);
+        _mainColumn.Controls.Add(_infoCard);
+        _summaryColumn.Controls.Add(_summaryCard);
+        _contentHost.Controls.Add(_summaryColumn);
+        _contentHost.Controls.Add(_mainColumn);
+        _contentScroll.Controls.Add(_contentHost);
+        _contentScroll.Resize += (_, _) => LayoutContent();
+        _contentHost.Resize += (_, _) => LayoutContent();
+
+        _rootPanel.Controls.Add(_contentScroll);
+        _rootPanel.Controls.Add(_footerPanel);
+        _rootPanel.Controls.Add(_headerPanel);
+        Controls.Add(_rootPanel);
+
+        _invoiceNumberBox.Text = GenerateInvoiceNumber();
+        AddLine();
+        LayoutFooterButtons(footerButtons);
+        LayoutContent();
+        ApplyThemeVisuals();
+    }
+
+    private void BuildInfoCard()
+    {
+        _infoCard = new PurSectionCard("معلومات الفاتورة");
+        _infoFieldsPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
+
+        _supplierCombo = CreateCombo();
+        _invoiceNumberBox = CreateInnerTextBox();
         _paymentMethodCombo = CreateCombo();
         _paymentMethodCombo.Items.AddRange(
         [
@@ -123,25 +219,54 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         _taxRateInput = CreateNumeric(0, 100, 0, 2);
         _paidAmountInput = CreateNumeric(0, 99999999, 0, 2);
 
-        _infoCard.Controls.AddRange([
-            CreateCaption("المورد"), _supplierCombo,
-            CreateCaption("رقم الفاتورة"), _invoiceNumberBox,
-            CreateCaption("طريقة الدفع"), _paymentMethodCombo,
-            CreateCaption("نسبة الضريبة %"), _taxRateInput,
-            CreateCaption("المبلغ المدفوع"), _paidAmountInput,
-            _invoiceDateLabel
+        _supplierHost = new PurInputHost(_supplierCombo);
+        _invoiceNumberHost = new PurInputHost(_invoiceNumberBox);
+        _paymentHost = new PurInputHost(_paymentMethodCombo);
+        _taxHost = new PurInputHost(_taxRateInput);
+        _paidHost = new PurInputHost(_paidAmountInput);
+
+        _invoiceDateValue = new Label
+        {
+            Text = DateTime.Today.ToString("yyyy-MM-dd"),
+            TextAlign = ContentAlignment.MiddleRight,
+            Font = PharmaTheme.BodyFont,
+            ForeColor = PharmaTheme.TextDark,
+            Dock = DockStyle.Fill
+        };
+        var dateHost = new PurInputHost(_invoiceDateValue) { Enabled = false };
+
+        _infoFieldsPanel.Controls.AddRange([
+            StackField("المورد", _supplierHost),
+            StackField("رقم الفاتورة", _invoiceNumberHost),
+            StackField("طريقة الدفع", _paymentHost),
+            StackField("نسبة الضريبة %", _taxHost),
+            StackField("المبلغ المدفوع", _paidHost),
+            StackField("تاريخ اليوم", dateHost)
         ]);
 
-        _itemsCard = new PurRoundedPanel(PharmaTheme.PurchasesCardCornerRadius) { FillColor = PharmaTheme.Surface };
-        var itemsHeader = new Label
+        _infoCard.Body.Controls.Add(_infoFieldsPanel);
+        _infoCard.Dock = DockStyle.Top;
+        _infoCard.Margin = new Padding(0, 0, 0, 14);
+    }
+
+    private void BuildItemsCard()
+    {
+        _itemsCard = new PurSectionCard("الأصناف");
+        _itemsCard.Dock = DockStyle.Fill;
+
+        var itemsToolbar = new Panel { Dock = DockStyle.Top, Height = 48, BackColor = Color.Transparent, Padding = new Padding(0, 0, 0, 8) };
+        _addLineButton = new GradientRoundedButton
         {
-            Text = "الأصناف",
-            Height = 32,
-            Dock = DockStyle.Top,
-            TextAlign = ContentAlignment.MiddleRight,
-            Font = PharmaTheme.SectionFont,
-            ForeColor = PharmaTheme.TextDark
+            Text = "+ إضافة صنف",
+            IconGlyph = SegoeMdl2Icons.Add,
+            Width = 160,
+            Height = 40,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right
         };
+        itemsToolbar.Controls.Add(_addLineButton);
+        itemsToolbar.Resize += (_, _) => _addLineButton.Location = new Point(itemsToolbar.Width - _addLineButton.Width, 4);
+
+        var header = new PurItemsHeaderRow();
         _linesScrollPanel = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Color.Transparent };
         _linesHost = new Panel
         {
@@ -149,93 +274,37 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Dock = DockStyle.Top,
             BackColor = Color.Transparent,
-            Width = 10
+            Padding = new Padding(0, 4, 0, 8)
         };
         _linesScrollPanel.Controls.Add(_linesHost);
-        _addLineButton = new GradientRoundedButton
-        {
-            Text = "إضافة صنف",
-            IconGlyph = SegoeMdl2Icons.Add,
-            Height = 44,
-            Dock = DockStyle.Bottom
-        };
-        _itemsCard.Controls.Add(_linesScrollPanel);
-        _itemsCard.Controls.Add(_addLineButton);
-        _itemsCard.Controls.Add(itemsHeader);
 
-        _totalsCard = new PurRoundedPanel(PharmaTheme.PurchasesCardCornerRadius) { FillColor = PharmaTheme.SurfaceAlt, Height = 150 };
-        _subtotalValueLabel = CreateValueLabel();
-        _taxValueLabel = CreateValueLabel();
-        _grandTotalValueLabel = CreateValueLabel();
-        _remainingValueLabel = CreateValueLabel();
-        _itemsCountLabel = CreateValueLabel();
-        AddTotalRow("عدد الأصناف", _itemsCountLabel, 0);
-        AddTotalRow("المجموع الفرعي", _subtotalValueLabel, 34);
-        AddTotalRow("الضريبة", _taxValueLabel, 68);
-        AddTotalRow("الإجمالي", _grandTotalValueLabel, 102);
-        AddTotalRow("المتبقي", _remainingValueLabel, 136);
+        _itemsCard.Body.Controls.Add(_linesScrollPanel);
+        _itemsCard.Body.Controls.Add(header);
+        _itemsCard.Body.Controls.Add(itemsToolbar);
+    }
 
-        _statusLabel = new Label
-        {
-            Dock = DockStyle.Bottom,
-            Height = 28,
-            TextAlign = ContentAlignment.MiddleRight,
-            ForeColor = PharmaTheme.Danger,
-            Font = PharmaTheme.SmallFont,
-            Visible = false
-        };
+    private void BuildSummaryCard()
+    {
+        _summaryCard = new PurSectionCard("ملخص الفاتورة");
+        _summaryCard.Dock = DockStyle.Fill;
 
-        var footer = new Panel { Dock = DockStyle.Bottom, Height = 64, BackColor = Color.Transparent };
-        _saveButton = new GradientRoundedButton
-        {
-            Text = "حفظ الفاتورة",
-            IconGlyph = SegoeMdl2Icons.Save,
-            Width = 180,
-            Height = 48
-        };
-        _cancelButton = new Button
-        {
-            Text = "إلغاء",
-            Width = 120,
-            Height = 48,
-            FlatStyle = FlatStyle.Flat,
-            BackColor = PharmaTheme.Surface,
-            ForeColor = PharmaTheme.TextDark,
-            Font = PharmaTheme.ArabicFont(10.5f, FontStyle.Bold),
-            Cursor = Cursors.Hand
-        };
-        footer.Controls.Add(_cancelButton);
-        footer.Controls.Add(_saveButton);
-        footer.Resize += (_, _) => LayoutFooter(footer);
+        _itemsCountRow = new PurSummaryRow("عدد الأصناف");
+        _subtotalRow = new PurSummaryRow("المجموع الفرعي");
+        _taxRow = new PurSummaryRow("الضريبة");
+        _grandTotalRow = new PurSummaryRow("الإجمالي", emphasize: true);
+        _paidRow = new PurSummaryRow("المدفوع");
+        _remainingRow = new PurSummaryRow("المتبقي");
 
-        var body = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
-        _infoCard.Dock = DockStyle.Top;
-        _totalsCard.Dock = DockStyle.Top;
-        _itemsCard.Dock = DockStyle.Fill;
-        body.Controls.Add(_itemsCard);
-        body.Controls.Add(_totalsCard);
-        body.Controls.Add(_infoCard);
+        var rowsPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent, Padding = new Padding(0, 8, 0, 0) };
+        rowsPanel.Controls.Add(_remainingRow);
+        rowsPanel.Controls.Add(_paidRow);
+        rowsPanel.Controls.Add(_grandTotalRow);
+        rowsPanel.Controls.Add(_taxRow);
+        rowsPanel.Controls.Add(_subtotalRow);
+        rowsPanel.Controls.Add(_itemsCountRow);
 
-        var header = new Panel { Dock = DockStyle.Top, Height = 48, BackColor = Color.Transparent };
-        header.Controls.Add(_closeButton);
-        header.Controls.Add(_titleLabel);
-        header.Resize += (_, _) =>
-        {
-            _closeButton.Location = new Point(8, 10);
-            _titleLabel.SetBounds(48, 0, header.Width - 56, header.Height);
-        };
-
-        _rootPanel.Controls.Add(_statusLabel);
-        _rootPanel.Controls.Add(footer);
-        _rootPanel.Controls.Add(body);
-        _rootPanel.Controls.Add(header);
-        Controls.Add(_rootPanel);
-
-        _invoiceNumberBox.Text = GenerateInvoiceNumber();
-        AddLine();
-        LayoutInfoCard();
-        LayoutFooter(footer);
-        ApplyThemeVisuals();
+        _summaryCard.Body.Controls.Add(rowsPanel);
+        _summaryCard.FillColor = PharmaTheme.SurfaceAlt;
     }
 
     private void WireEvents()
@@ -246,6 +315,7 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         _saveButton.Click += async (_, _) => await SaveAsync();
         _taxRateInput.ValueChanged += (_, _) => UpdateTotals();
         _paidAmountInput.ValueChanged += (_, _) => UpdateTotals();
+        Resize += (_, _) => LayoutContent();
     }
 
     private async Task LoadLookupsAsync()
@@ -270,7 +340,7 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
             else
             {
                 _supplierCombo.DataSource = _suppliers.ToList();
-                _supplierCombo.DisplayMember = nameof(SupplierOptionView.Name);
+                _supplierCombo.DisplayMember = nameof(SupplierOptionView.DisplayName);
                 _supplierCombo.ValueMember = nameof(SupplierOptionView.SupplierId);
             }
 
@@ -339,8 +409,11 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         }
 
         _isSaving = true;
+        var previousSaveText = _saveButton.Text;
         _saveButton.Enabled = false;
+        _saveButton.Text = "جارٍ الحفظ...";
         _cancelButton.Enabled = false;
+        _addLineButton.Enabled = false;
         SetStatus("جارٍ حفظ الفاتورة...", false);
 
         try
@@ -374,8 +447,10 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         finally
         {
             _isSaving = false;
-            _saveButton.Enabled = true;
+            _saveButton.Text = previousSaveText;
+            _saveButton.Enabled = _suppliers.Count > 0 && _products.Count > 0;
             _cancelButton.Enabled = true;
+            _addLineButton.Enabled = _products.Count > 0;
         }
     }
 
@@ -469,12 +544,13 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         var paid = _paidAmountInput.Value;
         var remaining = Math.Max(0, grandTotal - paid);
 
-        _itemsCountLabel.Text = _lines.Count.ToString("N0");
-        _subtotalValueLabel.Text = PosFormatting.FormatMoneyCompact(subtotal);
-        _taxValueLabel.Text = PosFormatting.FormatMoneyCompact(taxAmount);
-        _grandTotalValueLabel.Text = PosFormatting.FormatMoneyCompact(grandTotal);
-        _remainingValueLabel.Text = PosFormatting.FormatMoneyCompact(remaining);
-        _remainingValueLabel.ForeColor = remaining > 0 ? PharmaTheme.Danger : PharmaTheme.TextDark;
+        _itemsCountRow.ValueLabel.Text = _lines.Count.ToString("N0");
+        _subtotalRow.ValueLabel.Text = PosFormatting.FormatMoneyCompact(subtotal);
+        _taxRow.ValueLabel.Text = PosFormatting.FormatMoneyCompact(taxAmount);
+        _grandTotalRow.ValueLabel.Text = PosFormatting.FormatMoneyCompact(grandTotal);
+        _paidRow.ValueLabel.Text = PosFormatting.FormatMoneyCompact(paid);
+        _remainingRow.ValueLabel.Text = PosFormatting.FormatMoneyCompact(remaining);
+        _remainingRow.ValueLabel.ForeColor = remaining > 0 ? PharmaTheme.Danger : PharmaTheme.TextDark;
     }
 
     private void SetStatus(string message, bool isError)
@@ -489,66 +565,118 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         BackColor = PharmaTheme.Background;
         _rootPanel.BackColor = PharmaTheme.Background;
         _titleLabel.ForeColor = PharmaTheme.PrimaryDark;
-        _titleLabel.Font = PharmaTheme.DashboardHeadlineFont;
-        _infoCard.FillColor = PharmaTheme.Surface;
+        _titleLabel.Font = PharmaTheme.ArabicFont(15f, FontStyle.Bold);
+        _subtitleLabel.ForeColor = PharmaTheme.OnSurfaceVariant;
+        _closeButton.ForeColor = PharmaTheme.OnSurfaceVariant;
+
         _infoCard.ApplyThemeVisuals();
-        _itemsCard.FillColor = PharmaTheme.Surface;
         _itemsCard.ApplyThemeVisuals();
-        _totalsCard.FillColor = PharmaTheme.SurfaceAlt;
-        _totalsCard.ApplyThemeVisuals();
+        _summaryCard.FillColor = PharmaTheme.SurfaceAlt;
+        _summaryCard.ApplyThemeVisuals();
+
+        _supplierHost.ApplyThemeVisuals();
+        _invoiceNumberHost.ApplyThemeVisuals();
+        _paymentHost.ApplyThemeVisuals();
+        _taxHost.ApplyThemeVisuals();
+        _paidHost.ApplyThemeVisuals();
+
+        _itemsCountRow.ApplyThemeVisuals(false);
+        _subtotalRow.ApplyThemeVisuals(false);
+        _taxRow.ApplyThemeVisuals(false);
+        _grandTotalRow.ApplyThemeVisuals(true);
+        _paidRow.ApplyThemeVisuals(false);
+        _remainingRow.ApplyThemeVisuals(false);
+
         _saveButton.ForeColor = PharmaTheme.OnPrimary;
         _saveButton.Invalidate();
+        _cancelButton.ApplyThemeVisuals();
+
         foreach (var line in _lines)
         {
             line.ApplyThemeVisuals();
         }
+
         Invalidate(true);
     }
 
-    private void LayoutInfoCard()
+    private void LayoutContent()
     {
-        const int pad = 16;
-        const int labelW = 120;
-        const int rowH = 36;
-        const int gap = 10;
-        var y = pad;
-        var contentW = Math.Max(200, _infoCard.ClientSize.Width - pad * 2 - labelW - 8);
-
-        LayoutField(_infoCard, "المورد", _supplierCombo, ref y, pad, labelW, contentW, rowH, gap);
-        LayoutField(_infoCard, "رقم الفاتورة", _invoiceNumberBox, ref y, pad, labelW, contentW, rowH, gap);
-        _invoiceDateLabel.SetBounds(pad + labelW + 8, y, contentW, rowH);
-        y += rowH + gap;
-        LayoutField(_infoCard, "طريقة الدفع", _paymentMethodCombo, ref y, pad, labelW, contentW, rowH, gap);
-        LayoutField(_infoCard, "نسبة الضريبة %", _taxRateInput, ref y, pad, labelW, contentW / 2, rowH, gap);
-        LayoutField(_infoCard, "المبلغ المدفوع", _paidAmountInput, ref y, pad, labelW, contentW / 2, rowH, gap);
-        _infoCard.Height = y + pad;
-    }
-
-    private static void LayoutField(
-        Control parent,
-        string caption,
-        Control field,
-        ref int y,
-        int pad,
-        int labelW,
-        int fieldW,
-        int rowH,
-        int gap)
-    {
-        var cap = parent.Controls.OfType<Label>().FirstOrDefault(l => l.Text == caption);
-        if (cap is not null)
+        var viewport = _contentScroll.ClientSize;
+        if (viewport.Width <= 0 || viewport.Height <= 0)
         {
-            cap.SetBounds(pad, y + 8, labelW, 20);
+            return;
         }
 
-        field.SetBounds(pad + labelW + 8, y, fieldW, rowH);
-        y += rowH + gap;
+        var gap = 16;
+        var hostW = Math.Max(viewport.Width - SystemInformation.VerticalScrollBarWidth - 4, 880);
+        var hostH = Math.Max(viewport.Height, 560);
+        _contentHost.Size = new Size(hostW, hostH);
+
+        var stacked = hostW < 980;
+        if (stacked)
+        {
+            var y = 0;
+            _mainColumn.SetBounds(0, y, hostW, hostH - 280);
+            y += _mainColumn.Height + gap;
+            _summaryColumn.SetBounds(0, y, hostW, 260);
+            _contentHost.Height = y + _summaryColumn.Height;
+        }
+        else
+        {
+            var summaryW = (int)(hostW * 0.30);
+            var mainW = hostW - summaryW - gap;
+            _mainColumn.SetBounds(0, 0, mainW, hostH);
+            _summaryColumn.SetBounds(mainW + gap, 0, summaryW, hostH);
+            _contentHost.Height = hostH;
+        }
+
+        LayoutInfoFields(_mainColumn.Width);
+        LayoutMainColumn();
     }
 
-    private void LayoutFooter(Panel footer)
+    private void LayoutMainColumn()
     {
-        _saveButton.Location = new Point(footer.Width - _saveButton.Width - 8, 8);
-        _cancelButton.Location = new Point(_saveButton.Left - _cancelButton.Width - 12, 8);
+        var h = _mainColumn.ClientSize.Height;
+        var infoH = Math.Max(180, _infoFieldsPanel.Bottom + 56);
+
+        _infoCard.SetBounds(0, 0, _mainColumn.Width, infoH);
+        _itemsCard.SetBounds(0, infoH + 14, _mainColumn.Width, Math.Max(200, h - infoH - 14));
+    }
+
+    private void LayoutInfoFields(int availableWidth)
+    {
+        const int fieldH = 68;
+        const int gapX = 14;
+        const int gapY = 14;
+        var cols = availableWidth >= 900 ? 3 : 2;
+        var colW = (availableWidth - gapX * (cols - 1)) / cols;
+
+        var stacks = _infoFieldsPanel.Controls.OfType<PurFieldStack>().ToList();
+        for (var i = 0; i < stacks.Count; i++)
+        {
+            var col = i % cols;
+            var row = i / cols;
+            var x = col * (colW + gapX);
+            var y = row * (fieldH + gapY);
+            stacks[i].SetBounds(x, y, colW, fieldH);
+        }
+
+        var rows = (int)Math.Ceiling(stacks.Count / (double)cols);
+        _infoFieldsPanel.Height = rows * (fieldH + gapY);
+        _infoCard.Height = _infoFieldsPanel.Height + 72;
+        LayoutMainColumn();
+    }
+
+    private void LayoutFooterButtons(Panel footer)
+    {
+        _saveButton.Location = new Point(footer.Width - _saveButton.Width, 2);
+        _cancelButton.Location = new Point(_saveButton.Left - _cancelButton.Width - 12, 2);
+    }
+
+    private static PurFieldStack StackField(string label, Control input)
+    {
+        var stack = new PurFieldStack(label, input) { Tag = label, Dock = DockStyle.None };
+        return stack;
     }
 
     private static string GenerateInvoiceNumber() =>
@@ -558,17 +686,14 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
     {
         DropDownStyle = ComboBoxStyle.DropDownList,
         Font = PharmaTheme.BodyFont,
-        BackColor = PharmaTheme.InputSurface,
-        ForeColor = PharmaTheme.TextDark,
-        RightToLeft = RightToLeft.Yes
+        RightToLeft = RightToLeft.Yes,
+        IntegralHeight = false
     };
 
-    private static TextBox CreateTextField() => new()
+    private static TextBox CreateInnerTextBox() => new()
     {
-        BorderStyle = BorderStyle.FixedSingle,
+        BorderStyle = BorderStyle.None,
         Font = PharmaTheme.BodyFont,
-        BackColor = PharmaTheme.InputSurface,
-        ForeColor = PharmaTheme.TextDark,
         RightToLeft = RightToLeft.Yes
     };
 
@@ -579,56 +704,10 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         Value = value,
         DecimalPlaces = decimals,
         Font = PharmaTheme.BodyFont,
-        BackColor = PharmaTheme.InputSurface,
-        ForeColor = PharmaTheme.TextDark,
         ThousandsSeparator = true,
-        RightToLeft = RightToLeft.Yes
+        RightToLeft = RightToLeft.Yes,
+        BorderStyle = BorderStyle.None
     };
-
-    private static Label CreateCaption(string text) => new()
-    {
-        Text = text,
-        AutoSize = false,
-        Height = 20,
-        TextAlign = ContentAlignment.MiddleRight,
-        Font = PharmaTheme.SmallFont,
-        ForeColor = PharmaTheme.OnSurfaceVariant
-    };
-
-    private static Label CreateValueLabel() => new()
-    {
-        AutoSize = false,
-        Height = 24,
-        TextAlign = ContentAlignment.MiddleRight,
-        Font = PharmaTheme.ArabicFont(11f, FontStyle.Bold),
-        ForeColor = PharmaTheme.TextDark,
-        Text = "—"
-    };
-
-    private void AddTotalRow(string caption, Label value, int top)
-    {
-        var cap = new Label
-        {
-            Text = caption,
-            AutoSize = false,
-            Bounds = new Rectangle(16, top, 140, 24),
-            TextAlign = ContentAlignment.MiddleRight,
-            Font = PharmaTheme.SmallFont,
-            ForeColor = PharmaTheme.OnSurfaceVariant
-        };
-        value.Bounds = new Rectangle(170, top, 300, 24);
-        _totalsCard.Controls.Add(cap);
-        _totalsCard.Controls.Add(value);
-    }
-
-    protected override void OnResize(EventArgs e)
-    {
-        base.OnResize(e);
-        if (_infoCard is not null)
-        {
-            LayoutInfoCard();
-        }
-    }
 
     private sealed class PaymentMethodItem(string value, string display)
     {

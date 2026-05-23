@@ -172,6 +172,8 @@ internal sealed class SupplierOptionView
 {
     public Guid? SupplierId { get; init; }
     public string Name { get; init; } = "كل الموردين";
+    public string DisplayName { get; init; } = "كل الموردين";
+    public string Subtitle { get; init; } = string.Empty;
 
     public static SupplierOptionView All { get; } = new();
 }

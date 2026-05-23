@@ -1,4 +1,5 @@
 using Pharmacy.WinForms.Models;
+using Pharmacy.WinForms.Ui;
 
 namespace Pharmacy.WinForms.Services;
 
@@ -147,7 +148,18 @@ internal sealed class PurchaseService
         options.AddRange(collected
             .Where(s => !string.IsNullOrWhiteSpace(s.Name))
             .OrderBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase)
-            .Select(s => new SupplierOptionView { SupplierId = s.SupplierId, Name = s.Name.Trim() }));
+            .Select(s =>
+            {
+                var raw = s.Name.Trim();
+                var display = PurchaseDisplayHelper.ResolveSupplierDisplayName(raw);
+                return new SupplierOptionView
+                {
+                    SupplierId = s.SupplierId,
+                    Name = raw,
+                    DisplayName = display,
+                    Subtitle = PurchaseDisplayHelper.ResolveSupplierSubtitle(raw, display)
+                };
+            }));
 
         return options;
     }

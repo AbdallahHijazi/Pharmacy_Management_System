@@ -1,34 +1,38 @@
+using Pharmacy.WinForms.Controls.Purchases;
 using Pharmacy.WinForms.Models;
 using Pharmacy.WinForms.Ui;
 
 namespace Pharmacy.WinForms.Forms.Purchases;
 
-internal sealed class CreatePurchaseInvoiceLineControl : Panel
+internal sealed class CreatePurchaseInvoiceLineControl : PurRoundedPanel
 {
+    private readonly PurInputHost _productHost;
+    private readonly PurInputHost _batchHost;
+    private readonly PurInputHost _expiryHost;
+    private readonly PurInputHost _quantityHost;
+    private readonly PurInputHost _bonusHost;
+    private readonly PurInputHost _priceHost;
     private readonly ComboBox _productCombo;
     private readonly TextBox _batchBox;
     private readonly DateTimePicker _expiryPicker;
     private readonly NumericUpDown _quantityInput;
     private readonly NumericUpDown _bonusInput;
     private readonly NumericUpDown _unitPriceInput;
-    private readonly Button _removeButton;
-    private IReadOnlyList<PosProductView> _products = Array.Empty<PosProductView>();
+    private readonly Label _subtotalLabel;
+    private readonly PurRemoveLineButton _removeButton;
 
-    public CreatePurchaseInvoiceLineControl()
+    public CreatePurchaseInvoiceLineControl() : base(PharmaTheme.PurchasesCardCornerRadius, drawShadow: false)
     {
-        Height = 92;
+        FillColor = PharmaTheme.SurfaceAlt;
+        BorderColor = PharmaTheme.BorderSoft;
+        Height = 88;
         Dock = DockStyle.Top;
-        Margin = new Padding(0, 0, 0, 10);
-        BackColor = Color.Transparent;
+        Margin = new Padding(0, 0, 0, 12);
+        Padding = new Padding(12, 10, 12, 10);
         RightToLeft = RightToLeft.Yes;
 
-        _productCombo = new ComboBox
-        {
-            DropDownStyle = ComboBoxStyle.DropDownList,
-            Font = PharmaTheme.BodyFont,
-            RightToLeft = RightToLeft.Yes
-        };
-        _batchBox = CreateField();
+        _productCombo = CreateCombo();
+        _batchBox = CreateInnerTextBox();
         _expiryPicker = new DateTimePicker
         {
             Format = DateTimePickerFormat.Short,
@@ -41,41 +45,51 @@ internal sealed class CreatePurchaseInvoiceLineControl : Panel
         _quantityInput = CreateNumeric(1, 99999, 1);
         _bonusInput = CreateNumeric(0, 99999, 0);
         _unitPriceInput = CreateNumeric(0, 9999999, 0, 2);
-        _removeButton = new Button
+
+        _productHost = new PurInputHost(_productCombo);
+        _batchHost = new PurInputHost(_batchBox);
+        _expiryHost = new PurInputHost(_expiryPicker);
+        _quantityHost = new PurInputHost(_quantityInput);
+        _bonusHost = new PurInputHost(_bonusInput);
+        _priceHost = new PurInputHost(_unitPriceInput);
+
+        _subtotalLabel = new Label
         {
-            Text = "حذف",
-            FlatStyle = FlatStyle.Flat,
-            BackColor = PharmaTheme.ErrorContainer,
-            ForeColor = PharmaTheme.Danger,
-            Font = PharmaTheme.SmallFont,
-            Cursor = Cursors.Hand,
-            Height = 36
+            Text = "0.00",
+            TextAlign = ContentAlignment.MiddleCenter,
+            Font = PharmaTheme.NumberFont(10f, FontStyle.Bold),
+            ForeColor = PharmaTheme.Primary
         };
+        _removeButton = new PurRemoveLineButton();
         _removeButton.Click += (_, _) => RemoveRequested?.Invoke(this, EventArgs.Empty);
+
         _productCombo.SelectedIndexChanged += (_, _) => OnProductChanged();
-        _quantityInput.ValueChanged += (_, _) => LineChanged?.Invoke(this, EventArgs.Empty);
-        _bonusInput.ValueChanged += (_, _) => LineChanged?.Invoke(this, EventArgs.Empty);
-        _unitPriceInput.ValueChanged += (_, _) => LineChanged?.Invoke(this, EventArgs.Empty);
+        _quantityInput.ValueChanged += (_, _) => UpdateSubtotal();
+        _unitPriceInput.ValueChanged += (_, _) => UpdateSubtotal();
 
         Controls.AddRange([
             _removeButton,
-            _unitPriceInput,
-            _bonusInput,
-            _quantityInput,
-            _expiryPicker,
-            _batchBox,
-            _productCombo
+            _subtotalLabel,
+            _priceHost,
+            _bonusHost,
+            _quantityHost,
+            _expiryHost,
+            _batchHost,
+            _productHost
         ]);
 
         Resize += (_, _) => LayoutLine();
         LayoutLine();
+        UpdateSubtotal();
     }
 
     public event EventHandler? RemoveRequested;
+    public event EventHandler? LineChanged;
+
+    public decimal LineSubtotal => _quantityInput.Value * _unitPriceInput.Value;
 
     public void BindProducts(IReadOnlyList<PosProductView> products)
     {
-        _products = products;
         _productCombo.Items.Clear();
         foreach (var product in products)
         {
@@ -112,41 +126,68 @@ internal sealed class CreatePurchaseInvoiceLineControl : Panel
             return false;
         }
 
-        var unitPrice = _unitPriceInput.Value;
-        if (unitPrice < 0)
+        if (_unitPriceInput.Value < 0)
         {
             error = "سعر الشراء لا يمكن أن يكون سالبًا.";
             return false;
         }
 
-        var expiry = DateTime.SpecifyKind(_expiryPicker.Value.Date, DateTimeKind.Utc);
         item = new CreatePurchaseInvoiceItemApiRequest
         {
             ProductId = selected.Product.ProductId,
             BatchNumber = _batchBox.Text.Trim(),
-            ExpiryDate = expiry,
+            ExpiryDate = DateTime.SpecifyKind(_expiryPicker.Value.Date, DateTimeKind.Utc),
             Quantity = qty,
             BonusQuantity = (int)_bonusInput.Value,
-            UnitPrice = unitPrice
+            UnitPrice = _unitPriceInput.Value
         };
         return true;
     }
 
-    public decimal LineSubtotal => _quantityInput.Value * _unitPriceInput.Value;
-
-    public event EventHandler? LineChanged;
-
-    public void ApplyThemeVisuals()
+    public new void ApplyThemeVisuals()
     {
-        _productCombo.BackColor = PharmaTheme.InputSurface;
-        _productCombo.ForeColor = PharmaTheme.TextDark;
-        _batchBox.BackColor = PharmaTheme.InputSurface;
-        _batchBox.ForeColor = PharmaTheme.TextDark;
-        _quantityInput.BackColor = PharmaTheme.InputSurface;
-        _bonusInput.BackColor = PharmaTheme.InputSurface;
-        _unitPriceInput.BackColor = PharmaTheme.InputSurface;
-        _removeButton.BackColor = PharmaTheme.ErrorContainer;
-        _removeButton.ForeColor = PharmaTheme.Danger;
+        FillColor = PharmaTheme.SurfaceAlt;
+        BorderColor = PharmaTheme.BorderSoft;
+        _subtotalLabel.ForeColor = PharmaTheme.Primary;
+        _removeButton.ApplyThemeVisuals();
+        _productHost.ApplyThemeVisuals();
+        _batchHost.ApplyThemeVisuals();
+        _expiryHost.ApplyThemeVisuals();
+        _quantityHost.ApplyThemeVisuals();
+        _bonusHost.ApplyThemeVisuals();
+        _priceHost.ApplyThemeVisuals();
+        base.ApplyThemeVisuals();
+    }
+
+    internal static ColumnLayout GetColumnRects(Rectangle bounds)
+    {
+        const int pad = 8;
+        var removeW = 56;
+        var subtotalW = 88;
+        var priceW = 88;
+        var bonusW = 64;
+        var qtyW = 64;
+        var expiryW = 108;
+        var batchW = 108;
+        var productW = Math.Max(120, bounds.Width - pad * 2 - removeW - subtotalW - priceW - bonusW - qtyW - expiryW - batchW - pad * 6);
+
+        var x = bounds.Right - pad - productW;
+        var product = new Rectangle(x, bounds.Y, productW, bounds.Height);
+        x -= batchW + pad;
+        var batch = new Rectangle(x, bounds.Y, batchW, bounds.Height);
+        x -= expiryW + pad;
+        var expiry = new Rectangle(x, bounds.Y, expiryW, bounds.Height);
+        x -= qtyW + pad;
+        var quantity = new Rectangle(x, bounds.Y, qtyW, bounds.Height);
+        x -= bonusW + pad;
+        var bonus = new Rectangle(x, bounds.Y, bonusW, bounds.Height);
+        x -= priceW + pad;
+        var price = new Rectangle(x, bounds.Y, priceW, bounds.Height);
+        x -= subtotalW + pad;
+        var subtotal = new Rectangle(x, bounds.Y, subtotalW, bounds.Height);
+        var remove = new Rectangle(bounds.X + pad, bounds.Y, removeW, bounds.Height);
+
+        return new ColumnLayout(product, batch, expiry, quantity, bonus, price, subtotal, remove);
     }
 
     private void OnProductChanged()
@@ -156,71 +197,108 @@ internal sealed class CreatePurchaseInvoiceLineControl : Panel
             _unitPriceInput.Value = Math.Min(_unitPriceInput.Maximum, item.Product.SellingPrice);
         }
 
+        UpdateSubtotal();
+        LineChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void UpdateSubtotal()
+    {
+        _subtotalLabel.Text = PosFormatting.FormatMoneyCompact(LineSubtotal);
         LineChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void LayoutLine()
     {
-        var pad = 4;
-        var y = pad;
-        var h = 36;
-        var removeW = 72;
-        var priceW = 100;
-        var bonusW = 72;
-        var qtyW = 72;
-        var expiryW = 120;
-        var batchW = 120;
-        var productW = Math.Max(160, Width - removeW - priceW - bonusW - qtyW - expiryW - batchW - pad * 8);
+        var inner = ClientRectangle;
+        inner.Y += Padding.Top;
+        inner.X += Padding.Left;
+        inner.Width -= Padding.Horizontal;
+        inner.Height -= Padding.Vertical;
+        var cols = GetColumnRects(inner);
 
-        var x = pad;
-        _productCombo.SetBounds(x, y, productW, h);
-        x += productW + pad;
-        _batchBox.SetBounds(x, y, batchW, h);
-        x += batchW + pad;
-        _expiryPicker.SetBounds(x, y, expiryW, h);
-        x += expiryW + pad;
-        _quantityInput.SetBounds(x, y, qtyW, h);
-        x += qtyW + pad;
-        _bonusInput.SetBounds(x, y, bonusW, h);
-        x += bonusW + pad;
-        _unitPriceInput.SetBounds(x, y, priceW, h);
-        x += priceW + pad;
-        _removeButton.SetBounds(Width - removeW - pad, y, removeW, h);
+        _productHost.Bounds = cols.Product;
+        _batchHost.Bounds = cols.Batch;
+        _expiryHost.Bounds = cols.Expiry;
+        _quantityHost.Bounds = cols.Quantity;
+        _bonusHost.Bounds = cols.Bonus;
+        _priceHost.Bounds = cols.Price;
+        _subtotalLabel.Bounds = cols.Subtotal;
+        _removeButton.Bounds = cols.Remove;
     }
 
-    private void OnLineValueChanged(object? sender, EventArgs e) => LineChanged?.Invoke(this, EventArgs.Empty);
-
-    private static TextBox CreateField() => new()
+    private static ComboBox CreateCombo() => new()
     {
-        BorderStyle = BorderStyle.FixedSingle,
+        DropDownStyle = ComboBoxStyle.DropDownList,
         Font = PharmaTheme.BodyFont,
-        BackColor = PharmaTheme.InputSurface,
-        ForeColor = PharmaTheme.TextDark,
+        RightToLeft = RightToLeft.Yes,
+        IntegralHeight = false
+    };
+
+    private static TextBox CreateInnerTextBox() => new()
+    {
+        BorderStyle = BorderStyle.None,
+        Font = PharmaTheme.BodyFont,
         RightToLeft = RightToLeft.Yes
     };
 
-    private static NumericUpDown CreateNumeric(decimal min, decimal max, decimal value, int decimals = 0)
+    private static NumericUpDown CreateNumeric(decimal min, decimal max, decimal value, int decimals = 0) => new()
     {
-        var nud = new NumericUpDown
-        {
-            Minimum = min,
-            Maximum = max,
-            Value = value,
-            DecimalPlaces = decimals,
-            Font = PharmaTheme.BodyFont,
-            BackColor = PharmaTheme.InputSurface,
-            ForeColor = PharmaTheme.TextDark,
-            ThousandsSeparator = true,
-            RightToLeft = RightToLeft.Yes
-        };
-        nud.ValueChanged += (_, _) => { };
-        return nud;
-    }
+        Minimum = min,
+        Maximum = max,
+        Value = value,
+        DecimalPlaces = decimals,
+        Font = PharmaTheme.BodyFont,
+        ThousandsSeparator = true,
+        RightToLeft = RightToLeft.Yes,
+        BorderStyle = BorderStyle.None
+    };
 
     private sealed class ProductComboItem
     {
         public ProductComboItem(PosProductView product) => Product = product;
         public PosProductView Product { get; }
-        public override string ToString() => Product.DisplayName;
+        public override string ToString()
+        {
+            var subtitle = string.IsNullOrWhiteSpace(Product.Subtitle) ? string.Empty : $" — {Product.Subtitle}";
+            return $"{Product.DisplayName}{subtitle}";
+        }
+    }
+
+    internal readonly record struct ColumnLayout(
+        Rectangle Product,
+        Rectangle Batch,
+        Rectangle Expiry,
+        Rectangle Quantity,
+        Rectangle Bonus,
+        Rectangle Price,
+        Rectangle Subtotal,
+        Rectangle Remove);
+}
+
+internal sealed class PurRemoveLineButton : Control
+{
+    public PurRemoveLineButton()
+    {
+        Text = "حذف";
+        Cursor = Cursors.Hand;
+        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.StandardClick, true);
+    }
+
+    public void ApplyThemeVisuals() => Invalidate();
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        var b = ClientRectangle;
+        b.Inflate(-1, -1);
+        RoundedDrawing.FillRounded(g, b, 10, PharmaTheme.ErrorContainer);
+        TextRenderer.DrawText(
+            g,
+            Text,
+            PharmaTheme.ArabicFont(9f, FontStyle.Bold),
+            b,
+            PharmaTheme.Danger,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
     }
 }
