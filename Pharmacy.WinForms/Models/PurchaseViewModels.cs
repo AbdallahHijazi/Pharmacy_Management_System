@@ -44,7 +44,7 @@ internal sealed class PurchaseInvoiceListItemView
         {
             Id = api.PurchaseInvoiceId,
             InvoiceNumber = string.IsNullOrWhiteSpace(api.InvoiceNumber) ? "بدون رقم" : api.InvoiceNumber.Trim(),
-            SupplierName = string.IsNullOrWhiteSpace(api.SupplierName) ? "مورد غير معروف" : api.SupplierName.Trim(),
+            SupplierName = ResolveSupplierDisplayName(api.SupplierName),
             SupplierId = api.SupplierId,
             InvoiceDate = api.CreatedAt,
             FormattedDate = FormatInvoiceDate(api.CreatedAt),
@@ -65,7 +65,7 @@ internal sealed class PurchaseInvoiceListItemView
         {
             Id = api.PurchaseInvoiceId,
             InvoiceNumber = string.IsNullOrWhiteSpace(api.InvoiceNumber) ? "بدون رقم" : api.InvoiceNumber.Trim(),
-            SupplierName = string.IsNullOrWhiteSpace(api.SupplierName) ? "مورد غير معروف" : api.SupplierName.Trim(),
+            SupplierName = ResolveSupplierDisplayName(api.SupplierName),
             SupplierId = api.SupplierId,
             InvoiceDate = api.CreatedAt,
             FormattedDate = FormatInvoiceDate(api.CreatedAt),
@@ -111,6 +111,16 @@ internal sealed class PurchaseInvoiceListItemView
         }
 
         return PurchaseInvoiceStatusKind.Unknown;
+    }
+
+    private static string ResolveSupplierDisplayName(string? rawName)
+    {
+        if (string.IsNullOrWhiteSpace(rawName))
+        {
+            return "مورد غير معروف";
+        }
+
+        return PurchaseDisplayHelper.ResolveSupplierDisplayName(rawName);
     }
 
     private static string ToDisplayStatus(PurchaseInvoiceStatusKind kind) => kind switch

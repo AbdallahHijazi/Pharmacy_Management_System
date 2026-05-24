@@ -100,7 +100,9 @@ internal static class PurItemColumnLayout
 
         var subtotal = new Rectangle(x, bounds.Y, SubtotalWidth, bounds.Height);
 
-        var remove = new Rectangle(bounds.X + pad, bounds.Y, RemoveWidth, bounds.Height);
+        var removeH = 36;
+        var removeY = bounds.Y + Math.Max(0, (bounds.Height - removeH) / 2);
+        var remove = new Rectangle(bounds.X + pad, removeY, RemoveWidth, removeH);
 
 
 

@@ -165,7 +165,7 @@ internal sealed class PurchasesControl : UserControl
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Dock = DockStyle.Top,
-            BackColor = Color.Transparent,
+            BackColor = PharmaTheme.Background,
             Width = 10
         };
         _invoicesScrollPanel.Controls.Add(_invoicesListPanel);

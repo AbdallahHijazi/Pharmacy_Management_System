@@ -256,8 +256,18 @@ internal sealed class PurRemoveLineButton : Control
         Text = "حذف";
         Size = new Size(56, 36);
         Cursor = Cursors.Hand;
-        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.StandardClick, true);
+        TabStop = false;
+        SetStyle(
+            ControlStyles.AllPaintingInWmPaint
+                | ControlStyles.UserPaint
+                | ControlStyles.OptimizedDoubleBuffer
+                | ControlStyles.StandardClick
+                | ControlStyles.ResizeRedraw,
+            true);
+        SetStyle(ControlStyles.Selectable, false);
     }
+
+    protected override bool ShowFocusCues => false;
 
     public void ApplyThemeVisuals() => Invalidate();
 
@@ -268,15 +278,19 @@ internal sealed class PurRemoveLineButton : Control
     {
         var g = e.Graphics;
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+        g.Clear(Parent?.BackColor ?? PharmaTheme.Surface);
+
         var b = ClientRectangle;
         b.Inflate(-1, -1);
         RoundedDrawing.FillRounded(g, b, 10, PharmaTheme.ErrorContainer);
+        RoundedDrawing.DrawRoundedBorder(g, b, 10, PharmaTheme.BorderSoft, 1f);
         TextRenderer.DrawText(
             g,
             Text,
             PharmaTheme.ArabicFont(8.5f, FontStyle.Bold),
             b,
             PharmaTheme.Danger,
-            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
     }
 }

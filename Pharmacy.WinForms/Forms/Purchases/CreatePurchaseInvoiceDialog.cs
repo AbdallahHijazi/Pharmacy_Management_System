@@ -10,7 +10,7 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
 {
     private const int SummaryPanelWidth = 320;
     private const int ColumnGap = 16;
-    private const int InfoCardMaxHeight = 220;
+    private const int InfoCardBodyPadding = 84;
     private const int SummaryContentHeight = 292;
     private const int StackedLayoutBreakpoint = 980;
 
@@ -201,7 +201,7 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
     private void BuildInfoCard()
     {
         _infoCard = new PurSectionCard("معلومات الفاتورة");
-        _infoFieldsPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
+        _infoFieldsPanel = new Panel { BackColor = Color.Transparent, Dock = DockStyle.None };
 
         _supplierCombo = CreateCombo();
         _invoiceNumberBox = CreateInnerTextBox();
@@ -698,17 +698,21 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
     private void LayoutMainColumn()
     {
         var h = _mainColumn.ClientSize.Height;
-        var infoH = Math.Min(InfoCardMaxHeight, Math.Max(196, _infoFieldsPanel.Height + 56));
+        var infoH = ComputeInfoCardHeight(_infoFieldsPanel.Height);
 
         _infoCard.SetBounds(0, 0, _mainColumn.Width, infoH);
+        _infoFieldsPanel.Width = Math.Max(200, _infoCard.Body.ClientSize.Width);
         _itemsCard.SetBounds(0, infoH + 14, _mainColumn.Width, Math.Max(160, h - infoH - 14));
     }
 
+    private static int ComputeInfoCardHeight(int fieldsPanelHeight) =>
+        Math.Max(280, fieldsPanelHeight + InfoCardBodyPadding);
+
     private void LayoutInfoFields(int availableWidth)
     {
-        const int fieldH = 70;
+        const int fieldH = 68;
         const int gapX = 18;
-        const int gapY = 14;
+        const int gapY = 12;
         const int cols = 2;
         var colW = Math.Max(160, (availableWidth - gapX) / cols);
 
@@ -723,8 +727,9 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         }
 
         var rows = (int)Math.Ceiling(stacks.Count / (double)cols);
-        _infoFieldsPanel.Height = rows * (fieldH + gapY) - gapY;
-        _infoCard.Height = Math.Min(InfoCardMaxHeight, _infoFieldsPanel.Height + 64);
+        var fieldsHeight = rows * (fieldH + gapY) - gapY;
+        _infoFieldsPanel.SetBounds(0, 0, availableWidth, fieldsHeight);
+        _infoCard.Height = ComputeInfoCardHeight(fieldsHeight);
     }
 
     private void LayoutFooterButtons(Panel footer)

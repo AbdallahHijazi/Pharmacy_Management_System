@@ -274,7 +274,7 @@ internal sealed class PurPurchaseInvoiceCard : Control
         _invoice = invoice;
         Height = PharmaTheme.PurchasesInvoiceCardHeight;
         Dock = DockStyle.Top;
-        Margin = new Padding(0, 0, 0, 18);
+        Margin = new Padding(0, 0, 0, 16);
         Cursor = Cursors.Hand;
         RightToLeft = RightToLeft.Yes;
         SetStyle(
@@ -333,13 +333,13 @@ internal sealed class PurPurchaseInvoiceCard : Control
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+        g.Clear(Parent?.BackColor ?? PharmaTheme.Background);
 
         var bounds = ClientRectangle;
-        bounds.Inflate(-2, -2);
+        bounds.Inflate(-1, -1);
         var fill = _hover ? PharmaTheme.SurfaceContainerLow : PharmaTheme.Surface;
-        RoundedDrawing.DrawSoftShadow(g, bounds, PharmaTheme.PurchasesCardCornerRadius, PharmaTheme.DashboardCardShadow);
         RoundedDrawing.FillRounded(g, bounds, PharmaTheme.PurchasesCardCornerRadius, fill);
-        RoundedDrawing.DrawRoundedBorder(g, bounds, PharmaTheme.PurchasesCardCornerRadius, PharmaTheme.BorderSoft);
+        RoundedDrawing.DrawRoundedBorder(g, bounds, PharmaTheme.PurchasesCardCornerRadius, PharmaTheme.BorderSoft, 1f);
 
         var accent = new Rectangle(bounds.Right - 5, bounds.Y + 12, 4, bounds.Height - 24);
         RoundedDrawing.FillRounded(g, accent, 2, PharmaTheme.Primary);
@@ -379,7 +379,7 @@ internal sealed class PurPurchaseInvoiceCard : Control
     private void DrawSupplierBlock(Graphics g, Rectangle rect)
     {
         DrawCaption(g, rect, "المورد", 0, 18);
-        DrawValue(g, rect, _invoice.SupplierName, 20, PharmaTheme.ArabicFont(11f, FontStyle.Bold), PharmaTheme.TextDark);
+        DrawValue(g, rect, ResolveSupplierDisplayName(_invoice.SupplierName), 20, PharmaTheme.ArabicFont(11f, FontStyle.Bold), PharmaTheme.TextDark);
         if (_invoice.ItemsCount.HasValue)
         {
             DrawValue(g, rect, $"عدد الأصناف: {_invoice.ItemsCount.Value:N0}", 44, PharmaTheme.SmallFont, PharmaTheme.OnSurfaceVariant);
@@ -480,6 +480,9 @@ internal sealed class PurPurchaseInvoiceCard : Control
             color,
             TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
     }
+
+    private static string ResolveSupplierDisplayName(string? rawName) =>
+        PurchaseDisplayHelper.ResolveSupplierDisplayName(rawName);
 
     private CardLayout BuildLayout(Rectangle bounds)
     {
