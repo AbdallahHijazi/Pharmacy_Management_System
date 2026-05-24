@@ -9,12 +9,19 @@ namespace Pharmacy.WinForms.Forms.Customers;
 internal sealed class AddCustomerDialog : Form
 {
     private readonly CustomerService _customerService;
-  private TextBox _nameBox = null!;
+    private TextBox _nameBox = null!;
     private TextBox _phoneBox = null!;
     private TextBox _addressBox = null!;
     private GradientRoundedButton _saveButton = null!;
-    private CusRoundedPanel _cancelButton = null!;
+    private CusDialogCancelButton _cancelButton = null!;
     private Label _statusLabel = null!;
+    private Label _titleLabel = null!;
+    private Label _subtitleLabel = null!;
+    private CusRoundedPanel _fieldsCard = null!;
+    private CusFieldStack _nameStack = null!;
+    private CusFieldStack _phoneStack = null!;
+    private CusFieldStack _addressStack = null!;
+    private Panel _footerPanel = null!;
     private bool _isSaving;
 
     public AddCustomerDialog() : this(AppServices.CustomerService)
@@ -32,41 +39,118 @@ internal sealed class AddCustomerDialog : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
-        ClientSize = new Size(460, 420);
+        ClientSize = new Size(480, 460);
         Text = "إضافة زبون";
         BackColor = PharmaTheme.Background;
         BuildUi();
+        ThemeManager.ThemeChanged += OnThemeChanged;
+        FormClosed += (_, _) => ThemeManager.ThemeChanged -= OnThemeChanged;
         ResumeLayout(false);
     }
 
     private void BuildUi()
     {
-        var title = new Label
+        var headerPanel = new Panel
         {
-            Text = "إضافة زبون جديد",
-            AutoSize = false,
-            Bounds = new Rectangle(24, 20, 412, 32),
-            TextAlign = ContentAlignment.MiddleRight,
-            Font = PharmaTheme.ArabicFont(14f, FontStyle.Bold),
-            ForeColor = PharmaTheme.PrimaryDark
+            Dock = DockStyle.Top,
+            Height = 88,
+            Padding = new Padding(24, 20, 24, 0),
+            BackColor = PharmaTheme.Background
         };
 
-        _nameBox = CreateField();
-        _phoneBox = CreateField();
-        _addressBox = CreateField(multiline: true);
-        _addressBox.Height = 72;
+        _titleLabel = new Label
+        {
+            Text = "إضافة زبون جديد",
+            Dock = DockStyle.Top,
+            Height = 32,
+            TextAlign = ContentAlignment.MiddleRight,
+            Font = PharmaTheme.ArabicFont(14f, FontStyle.Bold),
+            ForeColor = PharmaTheme.PrimaryDark,
+            BackColor = PharmaTheme.Background
+        };
 
-        var nameStack = CreateFieldStack("الاسم *", _nameBox, 24, 68);
-        var phoneStack = CreateFieldStack("رقم الهاتف", _phoneBox, 24, 148);
-        var addressStack = CreateFieldStack("العنوان", _addressBox, 24, 228);
+        _subtitleLabel = new Label
+        {
+            Text = "أدخل بيانات الزبون لإضافته إلى السجلات",
+            Dock = DockStyle.Top,
+            Height = 24,
+            TextAlign = ContentAlignment.MiddleRight,
+            Font = PharmaTheme.SmallFont,
+            ForeColor = PharmaTheme.MutedText,
+            BackColor = PharmaTheme.Background
+        };
+
+        var closeButton = new Button
+        {
+            Text = SegoeMdl2Icons.Close,
+            Font = new Font("Segoe MDL2 Assets", 11f),
+            FlatStyle = FlatStyle.Flat,
+            Size = new Size(32, 32),
+            Location = new Point(8, 12),
+            TabStop = false,
+            Cursor = Cursors.Hand,
+            BackColor = PharmaTheme.Background,
+            ForeColor = PharmaTheme.MutedText
+        };
+        closeButton.FlatAppearance.BorderSize = 0;
+        closeButton.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
+
+        headerPanel.Controls.Add(closeButton);
+        headerPanel.Controls.Add(_subtitleLabel);
+        headerPanel.Controls.Add(_titleLabel);
+
+        _fieldsCard = new CusRoundedPanel(14)
+        {
+            FillColor = PharmaTheme.Surface,
+            BorderColor = PharmaTheme.BorderSoft,
+            Padding = new Padding(20, 18, 20, 20)
+        };
+
+        _nameBox = CreateTextBox(rtl: true);
+        _phoneBox = CreateTextBox(rtl: false);
+        _addressBox = CreateTextBox(rtl: true, multiline: true);
+
+        _nameStack = new CusFieldStack("الاسم *", _nameBox, 44);
+        _phoneStack = new CusFieldStack("رقم الهاتف", _phoneBox, 44);
+        _addressStack = new CusFieldStack("العنوان", _addressBox, 80);
+
+        WireFieldFocus(_nameStack, _nameBox);
+        WireFieldFocus(_phoneStack, _phoneBox);
+        WireFieldFocus(_addressStack, _addressBox);
+
+        var fieldsLayout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 3,
+            BackColor = PharmaTheme.Surface
+        };
+        fieldsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        fieldsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        fieldsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        fieldsLayout.Controls.Add(_nameStack, 0, 0);
+        fieldsLayout.Controls.Add(_phoneStack, 0, 1);
+        fieldsLayout.Controls.Add(_addressStack, 0, 2);
+        _fieldsCard.Controls.Add(fieldsLayout);
 
         _statusLabel = new Label
         {
-            Bounds = new Rectangle(24, 310, 412, 22),
+            Dock = DockStyle.Top,
+            Height = 24,
             TextAlign = ContentAlignment.MiddleRight,
             ForeColor = PharmaTheme.Danger,
             Font = PharmaTheme.SmallFont,
-            Visible = false
+            Visible = false,
+            Padding = new Padding(24, 0, 24, 0),
+            BackColor = PharmaTheme.Background
+        };
+
+        _footerPanel = new Panel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 78,
+            Padding = new Padding(24, 12, 24, 20),
+            BackColor = PharmaTheme.Background
         };
 
         _saveButton = new GradientRoundedButton
@@ -75,37 +159,51 @@ internal sealed class AddCustomerDialog : Form
             IconGlyph = SegoeMdl2Icons.Save,
             Width = 150,
             Height = 46,
-            Location = new Point(286, 348)
+            Anchor = AnchorStyles.Top | AnchorStyles.Right
         };
         _saveButton.Click += async (_, _) => await SaveAsync();
 
-        _cancelButton = new CusRoundedPanel(12)
+        _cancelButton = new CusDialogCancelButton
         {
-            Width = 110,
-            Height = 46,
-            Location = new Point(168, 348),
-            Cursor = Cursors.Hand
-        };
-        _cancelButton.Paint += (_, e) =>
-        {
-            var g = e.Graphics;
-            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            var b = _cancelButton.ClientRectangle;
-            b.Inflate(-1, -1);
-            RoundedDrawing.FillRounded(g, b, 12, PharmaTheme.Surface);
-            RoundedDrawing.DrawRoundedBorder(g, b, 12, PharmaTheme.BorderSoft, 1f);
-            TextRenderer.DrawText(g, "إلغاء", PharmaTheme.ArabicFont(10f, FontStyle.Bold), b, PharmaTheme.TextDark,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            Anchor = AnchorStyles.Top | AnchorStyles.Right
         };
         _cancelButton.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
 
-        Controls.Add(_cancelButton);
-        Controls.Add(_saveButton);
+        _footerPanel.Resize += (_, _) => LayoutFooter();
+        _footerPanel.Controls.Add(_cancelButton);
+        _footerPanel.Controls.Add(_saveButton);
+
+        var contentPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(24, 0, 24, 0),
+            BackColor = PharmaTheme.Background
+        };
+        _fieldsCard.Dock = DockStyle.Fill;
+        contentPanel.Controls.Add(_fieldsCard);
+
+        Controls.Add(contentPanel);
+        Controls.Add(_footerPanel);
         Controls.Add(_statusLabel);
-        Controls.Add(addressStack);
-        Controls.Add(phoneStack);
-        Controls.Add(nameStack);
-        Controls.Add(title);
+        Controls.Add(headerPanel);
+
+        LayoutFooter();
+        ApplyThemeVisuals();
+    }
+
+    private void LayoutFooter()
+    {
+        const int gap = 12;
+        var right = _footerPanel.ClientSize.Width - _footerPanel.Padding.Right;
+        _saveButton.Location = new Point(right - _saveButton.Width, _footerPanel.Padding.Top);
+        _cancelButton.Location = new Point(_saveButton.Left - gap - _cancelButton.Width, _footerPanel.Padding.Top);
+    }
+
+    private static void WireFieldFocus(CusFieldStack stack, TextBox box)
+    {
+        box.GotFocus += (_, _) => stack.Host.SetFocused(true);
+        box.LostFocus += (_, _) => stack.Host.SetFocused(false);
+        box.Enter += (_, _) => box.BringToFront();
     }
 
     private async Task SaveAsync()
@@ -118,11 +216,15 @@ internal sealed class AddCustomerDialog : Form
         if (string.IsNullOrWhiteSpace(_nameBox.Text))
         {
             SetStatus("الاسم مطلوب.", true);
+            _nameBox.Focus();
             return;
         }
 
         _isSaving = true;
+        var previousSaveText = _saveButton.Text;
         _saveButton.Enabled = false;
+        _saveButton.Text = "جارٍ الحفظ...";
+        _cancelButton.Enabled = false;
         SetStatus("جارٍ الحفظ...", false);
 
         try
@@ -156,6 +258,8 @@ internal sealed class AddCustomerDialog : Form
         {
             _isSaving = false;
             _saveButton.Enabled = true;
+            _saveButton.Text = previousSaveText;
+            _cancelButton.Enabled = true;
         }
     }
 
@@ -166,39 +270,41 @@ internal sealed class AddCustomerDialog : Form
         _statusLabel.ForeColor = isError ? PharmaTheme.Danger : PharmaTheme.OnSurfaceVariant;
     }
 
-    private static TextBox CreateField(bool multiline = false) => new()
+    private void OnThemeChanged(object? sender, EventArgs e) => ApplyThemeVisuals();
+
+    private void ApplyThemeVisuals()
+    {
+        BackColor = PharmaTheme.Background;
+        _titleLabel.ForeColor = PharmaTheme.PrimaryDark;
+        _subtitleLabel.ForeColor = PharmaTheme.MutedText;
+        _fieldsCard.FillColor = PharmaTheme.Surface;
+        _fieldsCard.BorderColor = PharmaTheme.BorderSoft;
+        _fieldsCard.ApplyThemeVisuals();
+        _nameStack.ApplyThemeVisuals();
+        _phoneStack.ApplyThemeVisuals();
+        _addressStack.ApplyThemeVisuals();
+        ApplyTextBoxTheme(_nameBox);
+        ApplyTextBoxTheme(_phoneBox);
+        ApplyTextBoxTheme(_addressBox);
+        _cancelButton.ApplyThemeVisuals();
+    }
+
+    private static void ApplyTextBoxTheme(TextBox box)
+    {
+        box.BackColor = PharmaTheme.SurfaceContainerHigh;
+        box.ForeColor = PharmaTheme.TextDark;
+    }
+
+    private static TextBox CreateTextBox(bool rtl, bool multiline = false) => new()
     {
         BorderStyle = BorderStyle.None,
         Font = PharmaTheme.BodyFont,
         BackColor = PharmaTheme.SurfaceContainerHigh,
         ForeColor = PharmaTheme.TextDark,
-        RightToLeft = RightToLeft.Yes,
-        Multiline = multiline
+        RightToLeft = rtl ? RightToLeft.Yes : RightToLeft.No,
+        TextAlign = rtl ? HorizontalAlignment.Right : HorizontalAlignment.Left,
+        Multiline = multiline,
+        ScrollBars = multiline ? ScrollBars.Vertical : ScrollBars.None,
+        WordWrap = multiline
     };
-
-    private static Panel CreateFieldStack(string label, Control field, int x, int y)
-    {
-        var panel = new Panel { Location = new Point(x, y), Size = new Size(412, multilineHeight(field) ? 108 : 68), BackColor = PharmaTheme.Background };
-        var caption = new Label
-        {
-            Text = label,
-            Bounds = new Rectangle(0, 0, 412, 20),
-            TextAlign = ContentAlignment.MiddleRight,
-            Font = PharmaTheme.SmallFont,
-            ForeColor = PharmaTheme.MutedText
-        };
-        var host = new CusRoundedPanel(10)
-        {
-            Bounds = new Rectangle(0, 24, 412, field.Height),
-            FillColor = PharmaTheme.SurfaceContainerHigh,
-            Padding = new Padding(12, 8, 12, 8)
-        };
-        field.Dock = DockStyle.Fill;
-        host.Controls.Add(field);
-        panel.Controls.Add(host);
-        panel.Controls.Add(caption);
-        return panel;
-
-        static bool multilineHeight(Control c) => c is TextBox { Multiline: true };
-    }
 }

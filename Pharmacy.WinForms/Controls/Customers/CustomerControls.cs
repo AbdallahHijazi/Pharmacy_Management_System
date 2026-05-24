@@ -657,3 +657,168 @@ internal sealed class CusPaginationBar : CusRoundedPanel
         _infoLabel.SetBounds((Width - 160) / 2, 14, 160, 24);
     }
 }
+
+internal sealed class CusFieldLabel : Label
+{
+    public CusFieldLabel(string text)
+    {
+        Text = text;
+        AutoSize = false;
+        Height = 22;
+        Dock = DockStyle.Top;
+        TextAlign = ContentAlignment.MiddleRight;
+        Font = PharmaTheme.SmallFont;
+        ForeColor = PharmaTheme.MutedText;
+        BackColor = PharmaTheme.Surface;
+        Padding = new Padding(0, 0, 0, 6);
+    }
+
+    public void ApplyThemeVisuals() => ForeColor = PharmaTheme.MutedText;
+}
+
+internal sealed class CusInputHost : Panel
+{
+    private readonly int _radius;
+    private bool _focused;
+
+    public CusInputHost(int radius = 12)
+    {
+        _radius = radius;
+        DoubleBuffered = true;
+        BackColor = PharmaTheme.Surface;
+        Height = 44;
+        Padding = new Padding(12, 0, 12, 0);
+        SetStyle(
+            ControlStyles.AllPaintingInWmPaint
+                | ControlStyles.UserPaint
+                | ControlStyles.OptimizedDoubleBuffer
+                | ControlStyles.ResizeRedraw,
+            true);
+    }
+
+    public void ApplyThemeVisuals() => Invalidate(true);
+
+    public void SetFocused(bool focused)
+    {
+        if (_focused == focused)
+        {
+            return;
+        }
+
+        _focused = focused;
+        Invalidate();
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        var bounds = ClientRectangle;
+        bounds.Inflate(-1, -1);
+        if (bounds.Width <= 4 || bounds.Height <= 4)
+        {
+            return;
+        }
+
+        RoundedDrawing.FillRounded(g, bounds, _radius, PharmaTheme.SurfaceContainerHigh);
+        RoundedDrawing.DrawRoundedBorder(
+            g,
+            bounds,
+            _radius,
+            _focused ? PharmaTheme.Primary : PharmaTheme.BorderSoft,
+            _focused ? 1.5f : 1f);
+    }
+
+    protected override void OnPaintBackground(PaintEventArgs e) =>
+        e.Graphics.Clear(Parent?.BackColor ?? PharmaTheme.Surface);
+}
+
+internal sealed class CusFieldStack : Panel
+{
+    private readonly CusFieldLabel _label;
+    private readonly CusInputHost _host;
+
+    public CusFieldStack(string label, Control inner, int hostHeight = 44)
+    {
+        BackColor = PharmaTheme.Surface;
+        _label = new CusFieldLabel(label);
+        _host = new CusInputHost { Height = hostHeight, Dock = DockStyle.Top };
+        inner.Dock = DockStyle.Fill;
+        inner.Margin = new Padding(0);
+        _host.Controls.Add(inner);
+        _host.BringToFront();
+        inner.BringToFront();
+        Controls.Add(_host);
+        Controls.Add(_label);
+        Height = 22 + 6 + hostHeight;
+    }
+
+    public CusInputHost Host => _host;
+
+    public void ApplyThemeVisuals()
+    {
+        _label.ApplyThemeVisuals();
+        _host.ApplyThemeVisuals();
+    }
+}
+
+internal sealed class CusDialogCancelButton : Control
+{
+    public CusDialogCancelButton()
+    {
+        SetStyle(
+            ControlStyles.AllPaintingInWmPaint
+                | ControlStyles.UserPaint
+                | ControlStyles.OptimizedDoubleBuffer
+                | ControlStyles.ResizeRedraw
+                | ControlStyles.Selectable,
+            true);
+        TabStop = true;
+        Cursor = Cursors.Hand;
+        Size = new Size(120, 46);
+        Font = PharmaTheme.ArabicFont(10f, FontStyle.Bold);
+        BackColor = PharmaTheme.Surface;
+        ForeColor = PharmaTheme.TextDark;
+    }
+
+    public void ApplyThemeVisuals()
+    {
+        BackColor = PharmaTheme.Surface;
+        ForeColor = PharmaTheme.TextDark;
+        Invalidate();
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        var bounds = ClientRectangle;
+        bounds.Inflate(-1, -1);
+        RoundedDrawing.FillRounded(g, bounds, 12, PharmaTheme.Surface);
+        RoundedDrawing.DrawRoundedBorder(g, bounds, 12, PharmaTheme.BorderSoft, 1f);
+        TextRenderer.DrawText(
+            g,
+            "إلغاء",
+            Font,
+            bounds,
+            ForeColor,
+            TextFormatFlags.HorizontalCenter
+                | TextFormatFlags.VerticalCenter
+                | TextFormatFlags.RightToLeft);
+    }
+
+    protected override void OnPaintBackground(PaintEventArgs e) =>
+        e.Graphics.Clear(Parent?.BackColor ?? PharmaTheme.Background);
+
+    protected override void OnMouseEnter(EventArgs e)
+    {
+        base.OnMouseEnter(e);
+        Invalidate();
+    }
+
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        base.OnMouseLeave(e);
+        Invalidate();
+    }
+}
