@@ -292,6 +292,15 @@ internal sealed class PurPurchaseInvoiceCard : Control
 
     public void ApplyThemeVisuals() => Invalidate();
 
+    protected override void OnResize(EventArgs e)
+    {
+        base.OnResize(e);
+        Invalidate();
+    }
+
+    protected override void OnPaintBackground(PaintEventArgs e) =>
+        e.Graphics.Clear(Parent?.BackColor ?? PharmaTheme.Background);
+
     protected override void OnMouseEnter(EventArgs e)
     {
         base.OnMouseEnter(e);
@@ -475,25 +484,38 @@ internal sealed class PurPurchaseInvoiceCard : Control
     private CardLayout BuildLayout(Rectangle bounds)
     {
         const int pad = 16;
-        var actionsW = 110;
-        var statusW = 100;
-        var paidW = 150;
-        var totalW = 120;
-        var supplierW = Math.Max(140, (int)(bounds.Width * 0.18));
-        var invoiceW = Math.Max(140, (int)(bounds.Width * 0.16));
-        var iconSize = 52;
+        const int gap = 10;
+        var actionsW = 96;
+        var statusW = 92;
+        var paidW = 128;
+        var totalW = 108;
+        var iconSize = 48;
+
+        var available = bounds.Width - pad * 2 - iconSize - actionsW - gap * 6;
+        var invoiceW = Math.Max(96, (int)(available * 0.22));
+        var supplierW = Math.Max(96, (int)(available * 0.28));
+        var used = invoiceW + supplierW + totalW + paidW + statusW;
+        if (used > available && available > 0)
+        {
+            var scale = available / (double)used;
+            invoiceW = Math.Max(88, (int)(invoiceW * scale));
+            supplierW = Math.Max(88, (int)(supplierW * scale));
+            totalW = Math.Max(80, (int)(totalW * scale));
+            paidW = Math.Max(88, (int)(paidW * scale));
+            statusW = Math.Max(72, (int)(statusW * scale));
+        }
 
         var x = bounds.Right - pad - iconSize;
         var iconRect = new Rectangle(x, bounds.Y + (bounds.Height - iconSize) / 2, iconSize, iconSize);
-        x -= invoiceW + 12;
+        x -= invoiceW + gap;
         var invoiceRect = new Rectangle(x, bounds.Y + 12, invoiceW, bounds.Height - 24);
-        x -= supplierW + 12;
+        x -= supplierW + gap;
         var supplierRect = new Rectangle(x, bounds.Y + 12, supplierW, bounds.Height - 24);
-        x -= totalW + 12;
+        x -= totalW + gap;
         var totalRect = new Rectangle(x, bounds.Y + 12, totalW, bounds.Height - 24);
-        x -= paidW + 12;
+        x -= paidW + gap;
         var paidRect = new Rectangle(x, bounds.Y + 12, paidW, bounds.Height - 24);
-        x -= statusW + 12;
+        x -= statusW + gap;
         var statusRect = new Rectangle(x, bounds.Y + 12, statusW, bounds.Height - 24);
 
         var actionsX = bounds.X + pad;
@@ -658,11 +680,18 @@ internal sealed class PurInvoiceDetailsPanel : PurRoundedPanel
         _closeButton.Click += (_, _) => CloseRequested?.Invoke(this, EventArgs.Empty);
 
         _contentPanel.AutoScroll = true;
-        _contentPanel.BackColor = Color.Transparent;
+        _contentPanel.BackColor = PharmaTheme.Surface;
         _contentPanel.Dock = DockStyle.Fill;
 
         Controls.Add(_contentPanel);
         Controls.Add(_closeButton);
+        Resize += (_, _) =>
+        {
+            if (_details is not null && Visible)
+            {
+                Render();
+            }
+        };
     }
 
     public event EventHandler? CloseRequested;
@@ -691,6 +720,7 @@ internal sealed class PurInvoiceDetailsPanel : PurRoundedPanel
             return;
         }
 
+        var contentW = Math.Max(280, ClientSize.Width - 24);
         var host = new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.TopDown,
@@ -699,24 +729,24 @@ internal sealed class PurInvoiceDetailsPanel : PurRoundedPanel
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             BackColor = Color.Transparent,
             RightToLeft = RightToLeft.Yes,
-            Width = Math.Max(300, ClientSize.Width - 24),
+            Width = contentW,
             Padding = new Padding(8, 36, 8, 12)
         };
 
         host.Controls.Add(MakeTitle(_details.Summary.InvoiceNumber));
-        host.Controls.Add(MakeRow("المورد", _details.Summary.SupplierName));
-        host.Controls.Add(MakeRow("التاريخ", _details.Summary.FormattedDate));
-        host.Controls.Add(MakeRow("الحالة", _details.Summary.DisplayStatus));
-        host.Controls.Add(MakeRow("الإجمالي", PosFormatting.FormatMoneyCompact(_details.Summary.GrandTotal)));
-        host.Controls.Add(MakeRow("المدفوع", PosFormatting.FormatMoneyCompact(_details.Summary.PaidAmount)));
-        host.Controls.Add(MakeRow("المتبقي", PosFormatting.FormatMoneyCompact(_details.Summary.RemainingAmount)));
+        host.Controls.Add(MakeRow("المورد", _details.Summary.SupplierName, contentW));
+        host.Controls.Add(MakeRow("التاريخ", _details.Summary.FormattedDate, contentW));
+        host.Controls.Add(MakeRow("الحالة", _details.Summary.DisplayStatus, contentW));
+        host.Controls.Add(MakeRow("الإجمالي", PosFormatting.FormatMoneyCompact(_details.Summary.GrandTotal), contentW));
+        host.Controls.Add(MakeRow("المدفوع", PosFormatting.FormatMoneyCompact(_details.Summary.PaidAmount), contentW));
+        host.Controls.Add(MakeRow("المتبقي", PosFormatting.FormatMoneyCompact(_details.Summary.RemainingAmount), contentW));
 
         if (_details.Lines.Count > 0)
         {
             host.Controls.Add(MakeSectionTitle("البنود"));
             foreach (var line in _details.Lines)
             {
-                host.Controls.Add(MakeLineCard(line));
+                host.Controls.Add(MakeLineCard(line, contentW));
             }
         }
         else
@@ -747,14 +777,14 @@ internal sealed class PurInvoiceDetailsPanel : PurRoundedPanel
             Margin = new Padding(0, 12, 0, 6)
         };
 
-    private static Control MakeRow(string caption, string value)
+    private static Control MakeRow(string caption, string value, int width)
     {
-        var panel = new Panel { Height = 30, Width = 320, Margin = new Padding(0, 0, 0, 2), BackColor = Color.Transparent };
+        var panel = new Panel { Height = 30, Width = width, Margin = new Padding(0, 0, 0, 4), BackColor = Color.Transparent };
         var cap = new Label
         {
             Text = caption,
             Dock = DockStyle.Right,
-            Width = 110,
+            Width = 112,
             ForeColor = PharmaTheme.OnSurfaceVariant,
             Font = PharmaTheme.SmallFont,
             TextAlign = ContentAlignment.MiddleRight
@@ -765,19 +795,21 @@ internal sealed class PurInvoiceDetailsPanel : PurRoundedPanel
             Dock = DockStyle.Fill,
             ForeColor = PharmaTheme.TextDark,
             Font = PharmaTheme.BodyFont,
-            TextAlign = ContentAlignment.MiddleRight
+            TextAlign = ContentAlignment.MiddleRight,
+            AutoEllipsis = true
         };
         panel.Controls.Add(val);
         panel.Controls.Add(cap);
         return panel;
     }
 
-    private static Control MakeLineCard(PurchaseInvoiceLineView line)
+    private static Control MakeLineCard(PurchaseInvoiceLineView line, int width)
     {
         var card = new PurRoundedPanel(10, drawShadow: false)
         {
             FillColor = PharmaTheme.SurfaceAlt,
-            Width = 320,
+            BorderColor = PharmaTheme.BorderSoft,
+            Width = width,
             Height = 52,
             Margin = new Padding(0, 0, 0, 6)
         };

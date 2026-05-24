@@ -166,7 +166,7 @@ internal sealed class CreatePurchaseInvoiceLineControl : Panel
     }
 
     internal static ColumnLayout GetColumnRects(Rectangle bounds) =>
-        PurItemColumnLayout.GetColumnRects(bounds);
+        PurItemColumnLayout.GetColumnRects(bounds, PurItemColumnLayout.MinTableWidth);
 
     private void OnProductChanged()
     {
@@ -201,6 +201,9 @@ internal sealed class CreatePurchaseInvoiceLineControl : Panel
         _subtotalLabel.Bounds = cols.Subtotal;
         _removeButton.Bounds = cols.Remove;
     }
+
+    protected override void OnPaintBackground(PaintEventArgs e) =>
+        e.Graphics.Clear(Parent?.BackColor ?? PharmaTheme.Surface);
 
     private static ComboBox CreateCombo() => new()
     {
@@ -257,6 +260,9 @@ internal sealed class PurRemoveLineButton : Control
     }
 
     public void ApplyThemeVisuals() => Invalidate();
+
+    protected override void OnPaintBackground(PaintEventArgs e) =>
+        e.Graphics.Clear(Parent?.BackColor ?? PharmaTheme.Surface);
 
     protected override void OnPaint(PaintEventArgs e)
     {

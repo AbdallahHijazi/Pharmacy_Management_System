@@ -8,6 +8,12 @@ namespace Pharmacy.WinForms.Forms.Purchases;
 
 internal sealed class CreatePurchaseInvoiceDialog : Form
 {
+    private const int SummaryPanelWidth = 320;
+    private const int ColumnGap = 16;
+    private const int InfoCardMaxHeight = 220;
+    private const int SummaryContentHeight = 292;
+    private const int StackedLayoutBreakpoint = 980;
+
     private readonly PurchaseService _purchaseService;
     private readonly List<CreatePurchaseInvoiceLineControl> _lines = new();
 
@@ -20,7 +26,7 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
     private Label _titleLabel = null!;
     private Label _subtitleLabel = null!;
     private Label _closeButton = null!;
-    private Panel _contentScroll = null!;
+    private Panel _bodyPanel = null!;
     private Panel _contentHost = null!;
     private Panel _mainColumn = null!;
     private Panel _summaryColumn = null!;
@@ -156,19 +162,17 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         _footerPanel.Controls.Add(footerButtons);
         _footerPanel.Controls.Add(_statusLabel);
 
-        _contentScroll = new Panel
+        _bodyPanel = new Panel
         {
             Dock = DockStyle.Fill,
-            AutoScroll = true,
-            BackColor = Color.Transparent
+            BackColor = PharmaTheme.Background
         };
         _contentHost = new Panel
         {
-            BackColor = Color.Transparent,
-            MinimumSize = new Size(900, 560)
+            BackColor = PharmaTheme.Background
         };
-        _mainColumn = new Panel { BackColor = Color.Transparent };
-        _summaryColumn = new Panel { BackColor = Color.Transparent };
+        _mainColumn = new Panel { BackColor = PharmaTheme.Background };
+        _summaryColumn = new Panel { BackColor = PharmaTheme.Background };
 
         BuildInfoCard();
         BuildItemsCard();
@@ -179,11 +183,10 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         _summaryColumn.Controls.Add(_summaryCard);
         _contentHost.Controls.Add(_summaryColumn);
         _contentHost.Controls.Add(_mainColumn);
-        _contentScroll.Controls.Add(_contentHost);
-        _contentScroll.Resize += (_, _) => LayoutContent();
-        _contentHost.Resize += (_, _) => LayoutContent();
+        _bodyPanel.Controls.Add(_contentHost);
+        _bodyPanel.Resize += (_, _) => LayoutContent();
 
-        _rootPanel.Controls.Add(_contentScroll);
+        _rootPanel.Controls.Add(_bodyPanel);
         _rootPanel.Controls.Add(_footerPanel);
         _rootPanel.Controls.Add(_headerPanel);
         Controls.Add(_rootPanel);
@@ -271,24 +274,18 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         _itemsTableHost = new PurItemsTableHost();
         _itemsTableInner = new Panel
         {
-            BackColor = Color.Transparent,
-            AutoSize = true,
-            AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Dock = DockStyle.Top
+            BackColor = PharmaTheme.Surface
         };
         _itemsHeader = new PurItemsHeaderRow();
         _linesHost = new Panel
         {
-            AutoSize = true,
-            AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Dock = DockStyle.Top,
-            BackColor = Color.Transparent,
+            BackColor = PharmaTheme.Surface,
             Padding = new Padding(0, 0, 0, 8)
         };
         _itemsTableInner.Controls.Add(_linesHost);
         _itemsTableInner.Controls.Add(_itemsHeader);
         _itemsTableHost.Controls.Add(_itemsTableInner);
-        _itemsTableHost.Resize += (_, _) => SyncItemsTableWidth();
+        _itemsTableHost.Resize += (_, _) => SyncItemsTableLayout();
 
         _itemsCard.Body.Controls.Add(_itemsTableHost);
         _itemsCard.Body.Controls.Add(itemsToolbar);
@@ -297,7 +294,8 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
     private void BuildSummaryCard()
     {
         _summaryCard = new PurSectionCard("ملخص الفاتورة");
-        _summaryCard.Dock = DockStyle.Fill;
+        _summaryCard.Dock = DockStyle.None;
+        _summaryCard.FillColor = PharmaTheme.SurfaceAlt;
 
         _itemsCountRow = new PurSummaryRow("عدد الأصناف");
         _subtotalRow = new PurSummaryRow("المجموع الفرعي");
@@ -306,7 +304,15 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         _paidRow = new PurSummaryRow("المدفوع");
         _remainingRow = new PurSummaryRow("المتبقي");
 
-        var rowsPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent, Padding = new Padding(4, 12, 4, 8) };
+        var rowsPanel = new Panel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            BackColor = Color.Transparent,
+            Padding = new Padding(4, 12, 4, 8),
+            Width = SummaryPanelWidth - 48
+        };
         rowsPanel.Controls.Add(_remainingRow);
         rowsPanel.Controls.Add(_paidRow);
         rowsPanel.Controls.Add(_grandTotalRow);
@@ -396,7 +402,7 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
             _lines.Remove(line);
             _linesHost.Controls.Remove(line);
             line.Dispose();
-            SyncItemsTableWidth();
+            SyncItemsTableLayout();
             UpdateTotals();
         };
         line.LineChanged += (_, _) => UpdateTotals();
@@ -405,7 +411,7 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         _lines.Add(line);
         _linesHost.Controls.Add(line);
         _linesHost.Controls.SetChildIndex(line, 0);
-        SyncItemsTableWidth();
+        SyncItemsTableLayout();
         UpdateTotals();
     }
 
@@ -579,6 +585,12 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
     {
         BackColor = PharmaTheme.Background;
         _rootPanel.BackColor = PharmaTheme.Background;
+        _bodyPanel.BackColor = PharmaTheme.Background;
+        _contentHost.BackColor = PharmaTheme.Background;
+        _mainColumn.BackColor = PharmaTheme.Background;
+        _summaryColumn.BackColor = PharmaTheme.Background;
+        _itemsTableInner.BackColor = PharmaTheme.Surface;
+        _linesHost.BackColor = PharmaTheme.Surface;
         _titleLabel.ForeColor = PharmaTheme.PrimaryDark;
         _titleLabel.Font = PharmaTheme.ArabicFont(15f, FontStyle.Bold);
         _subtitleLabel.ForeColor = PharmaTheme.OnSurfaceVariant;
@@ -615,53 +627,68 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
 
     private void LayoutContent()
     {
-        var viewport = _contentScroll.ClientSize;
+        var viewport = _bodyPanel.ClientSize;
         if (viewport.Width <= 0 || viewport.Height <= 0)
         {
             return;
         }
 
-        var gap = 16;
-        var hostW = Math.Max(viewport.Width - SystemInformation.VerticalScrollBarWidth - 4, 880);
-        var hostH = Math.Max(viewport.Height, 560);
-        _contentHost.Size = new Size(hostW, hostH);
+        var stacked = viewport.Width < StackedLayoutBreakpoint;
+        _bodyPanel.AutoScroll = stacked;
 
-        var stacked = hostW < 980;
         if (stacked)
         {
-            var y = 0;
-            _mainColumn.SetBounds(0, y, hostW, hostH - 280);
-            y += _mainColumn.Height + gap;
-            _summaryColumn.SetBounds(0, y, hostW, 260);
-            _contentHost.Height = y + _summaryColumn.Height;
+            var mainH = Math.Max(420, viewport.Height - SummaryContentHeight - ColumnGap);
+            _mainColumn.SetBounds(0, 0, viewport.Width, mainH);
+            _summaryColumn.SetBounds(0, mainH + ColumnGap, viewport.Width, SummaryContentHeight);
+            _contentHost.SetBounds(0, 0, viewport.Width, mainH + ColumnGap + SummaryContentHeight);
         }
         else
         {
-            var summaryW = (int)(hostW * 0.30);
-            var mainW = hostW - summaryW - gap;
-            _mainColumn.SetBounds(0, 0, mainW, hostH);
-            _summaryColumn.SetBounds(mainW + gap, 0, summaryW, hostH);
-            _contentHost.Height = hostH;
+            _contentHost.SetBounds(0, 0, viewport.Width, viewport.Height);
+            var mainW = Math.Max(480, viewport.Width - SummaryPanelWidth - ColumnGap);
+            _mainColumn.SetBounds(0, 0, mainW, viewport.Height);
+            _summaryColumn.SetBounds(mainW + ColumnGap, 0, SummaryPanelWidth, viewport.Height);
         }
 
         LayoutInfoFields(_mainColumn.Width);
         LayoutMainColumn();
-        SyncItemsTableWidth();
+        LayoutSummaryCard();
+        SyncItemsTableLayout();
     }
 
-    private void SyncItemsTableWidth()
+    private void LayoutSummaryCard()
+    {
+        var cardW = _summaryColumn.Width;
+        _summaryCard.SetBounds(0, 0, cardW, SummaryContentHeight);
+    }
+
+    private void SyncItemsTableLayout()
     {
         if (_itemsTableHost is null || _itemsHeader is null)
         {
             return;
         }
 
-        var viewport = Math.Max(_itemsTableHost.ClientSize.Width, PurItemColumnLayout.MinTableWidth);
-        _itemsTableHost.SyncTableWidth(viewport);
+        var viewportW = Math.Max(1, _itemsTableHost.ClientSize.Width);
+        _itemsTableHost.SyncTableWidth(viewportW);
         var tableW = _itemsTableHost.TableWidth;
-        _itemsTableInner.Width = tableW;
+
+        var linesH = 0;
+        foreach (Control control in _linesHost.Controls)
+        {
+            linesH += control.Height + control.Margin.Bottom;
+        }
+        linesH += _linesHost.Padding.Vertical;
+
+        var headerBlock = PurItemColumnLayout.HeaderHeight + _itemsHeader.Margin.Bottom + 10;
+        var innerH = Math.Max(headerBlock + linesH, headerBlock + PurItemColumnLayout.RowHeight);
+
+        _itemsTableInner.SetBounds(0, 0, tableW, innerH);
         _itemsHeader.SetTableWidth(tableW);
-        _linesHost.Width = tableW;
+        _itemsHeader.SetBounds(0, 0, tableW, PurItemColumnLayout.HeaderHeight);
+        _linesHost.SetBounds(0, _itemsHeader.Bottom + _itemsHeader.Margin.Bottom, tableW, linesH);
+
         foreach (var line in _lines)
         {
             line.SetTableWidth(tableW);
@@ -671,10 +698,10 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
     private void LayoutMainColumn()
     {
         var h = _mainColumn.ClientSize.Height;
-        var infoH = Math.Max(180, _infoFieldsPanel.Bottom + 56);
+        var infoH = Math.Min(InfoCardMaxHeight, Math.Max(196, _infoFieldsPanel.Height + 56));
 
         _infoCard.SetBounds(0, 0, _mainColumn.Width, infoH);
-        _itemsCard.SetBounds(0, infoH + 14, _mainColumn.Width, Math.Max(200, h - infoH - 14));
+        _itemsCard.SetBounds(0, infoH + 14, _mainColumn.Width, Math.Max(160, h - infoH - 14));
     }
 
     private void LayoutInfoFields(int availableWidth)
@@ -683,7 +710,7 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
         const int gapX = 18;
         const int gapY = 14;
         const int cols = 2;
-        var colW = (availableWidth - gapX) / cols;
+        var colW = Math.Max(160, (availableWidth - gapX) / cols);
 
         var stacks = _infoFieldsPanel.Controls.OfType<PurFieldStack>().ToList();
         for (var i = 0; i < stacks.Count; i++)
@@ -697,8 +724,7 @@ internal sealed class CreatePurchaseInvoiceDialog : Form
 
         var rows = (int)Math.Ceiling(stacks.Count / (double)cols);
         _infoFieldsPanel.Height = rows * (fieldH + gapY) - gapY;
-        _infoCard.Height = _infoFieldsPanel.Height + 64;
-        LayoutMainColumn();
+        _infoCard.Height = Math.Min(InfoCardMaxHeight, _infoFieldsPanel.Height + 64);
     }
 
     private void LayoutFooterButtons(Panel footer)

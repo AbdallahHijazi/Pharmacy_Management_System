@@ -14,7 +14,8 @@ internal sealed class PurchasesControl : UserControl
     private const int SearchHeight = 104;
     private const int PaginationHeight = 64;
     private const int DetailsGap = 16;
-    private const int OverlayBreakpoint = 980;
+    private const int OverlayBreakpoint = 1100;
+    private const int MinMainWithDetails = 540;
 
     private readonly PurchaseService _purchaseService;
     private readonly System.Windows.Forms.Timer _searchDebounce = new() { Interval = 300 };
@@ -338,8 +339,18 @@ internal sealed class PurchasesControl : UserControl
         _detailsOverlay = showDetails && bounds.Width < OverlayBreakpoint;
 
         var detailsW = showDetails && !_detailsOverlay
-            ? Math.Clamp(PharmaTheme.PurchasesDetailsWidth, 340, 420)
+            ? Math.Clamp(PharmaTheme.PurchasesDetailsWidth, 320, 380)
             : 0;
+
+        if (showDetails && !_detailsOverlay)
+        {
+            var tentativeMain = contentW - detailsW - DetailsGap;
+            if (tentativeMain < MinMainWithDetails)
+            {
+                _detailsOverlay = true;
+                detailsW = 0;
+            }
+        }
 
         if (_detailsOverlay && showDetails)
         {
@@ -403,6 +414,14 @@ internal sealed class PurchasesControl : UserControl
         _invoicesScrollPanel.SetBounds(0, y, mainW, listH);
         _statePanel.SetBounds(0, y, mainW, listH);
         _paginationBar.SetBounds(Math.Max(0, (mainW - 360) / 2), contentH - PaginationHeight, Math.Min(360, mainW), PaginationHeight);
+
+        var listW = Math.Max(320, _invoicesScrollPanel.ClientSize.Width);
+        _invoicesListPanel.Width = listW;
+        foreach (var card in _invoiceCards)
+        {
+            card.Width = listW;
+            card.Invalidate();
+        }
     }
 
     private async Task LoadPageAsync()
