@@ -183,13 +183,15 @@ internal sealed class ReportCardControl : Control
 
 internal sealed class ReportDetailsPanel : Panel
 {
-    private readonly Label _closeButton = new();
+    private readonly Panel _headerPanel = new();
+    private readonly ReportDetailsBackButton _backButton = new();
     private readonly Label _titleLabel = new();
     private readonly Label _periodLabel = new();
     private readonly Panel _contentPanel = new();
     private readonly Label _statusLabel = new();
-    private readonly Button _refreshButton = new();
-    private readonly Button _exportButton = new();
+    private readonly Panel _footerPanel = new();
+    private readonly ReportDetailsOutlineButton _refreshButton = new();
+    private readonly GradientRoundedButton _exportButton = new();
     private ReportCardViewModel? _card;
     private ReportLoadResult? _lastLoadedResult;
 
@@ -200,27 +202,31 @@ internal sealed class ReportDetailsPanel : Panel
         Width = PharmaTheme.ReportsDetailsWidth;
         BackColor = PharmaTheme.Surface;
         RightToLeft = RightToLeft.Yes;
-        Padding = new Padding(20, 16, 20, 16);
+        Padding = new Padding(0);
 
-        _closeButton.Text = SegoeMdl2Icons.Close;
-        _closeButton.Font = PharmaTheme.IconFont(11f);
-        _closeButton.AutoSize = true;
-        _closeButton.Cursor = Cursors.Hand;
-        _closeButton.Click += (_, _) => CloseRequested?.Invoke(this, EventArgs.Empty);
+        _headerPanel.BackColor = PharmaTheme.Surface;
+        _headerPanel.Dock = DockStyle.Top;
+        _headerPanel.Height = 96;
+        _headerPanel.Padding = new Padding(16, 14, 16, 8);
+
+        _backButton.Click += (_, _) => CloseRequested?.Invoke(this, EventArgs.Empty);
 
         _titleLabel.Font = PharmaTheme.ArabicFont(15f, FontStyle.Bold);
         _titleLabel.ForeColor = PharmaTheme.TextDark;
         _titleLabel.AutoSize = false;
-        _titleLabel.Height = 32;
+        _titleLabel.Height = 30;
         _titleLabel.TextAlign = ContentAlignment.MiddleRight;
-        _titleLabel.Dock = DockStyle.Top;
 
         _periodLabel.Font = PharmaTheme.SmallFont;
         _periodLabel.ForeColor = PharmaTheme.OnSurfaceVariant;
         _periodLabel.AutoSize = false;
         _periodLabel.Height = 22;
         _periodLabel.TextAlign = ContentAlignment.MiddleRight;
-        _periodLabel.Dock = DockStyle.Top;
+
+        _headerPanel.Controls.Add(_periodLabel);
+        _headerPanel.Controls.Add(_titleLabel);
+        _headerPanel.Controls.Add(_backButton);
+        _headerPanel.Resize += (_, _) => LayoutHeader();
 
         _statusLabel.Font = PharmaTheme.BodyFont;
         _statusLabel.ForeColor = PharmaTheme.OnSurfaceVariant;
@@ -233,41 +239,28 @@ internal sealed class ReportDetailsPanel : Panel
         _contentPanel.AutoScroll = true;
         _contentPanel.BackColor = PharmaTheme.Surface;
         _contentPanel.Dock = DockStyle.Fill;
+        _contentPanel.Padding = new Padding(16, 8, 16, 8);
 
         _refreshButton.Text = "تحديث";
-        _refreshButton.AutoSize = true;
-        _refreshButton.FlatStyle = FlatStyle.Flat;
-        _refreshButton.BackColor = PharmaTheme.Primary;
-        _refreshButton.ForeColor = PharmaTheme.OnPrimary;
-        _refreshButton.Font = PharmaTheme.ArabicFont(10f, FontStyle.Bold);
-        _refreshButton.Cursor = Cursors.Hand;
         _refreshButton.Click += (_, _) => RefreshRequested?.Invoke(this, EventArgs.Empty);
 
-        _exportButton.Text = "تصدير";
-        _exportButton.AutoSize = true;
-        _exportButton.FlatStyle = FlatStyle.Flat;
-        _exportButton.BackColor = PharmaTheme.SurfaceContainerHigh;
-        _exportButton.ForeColor = PharmaTheme.TextDark;
-        _exportButton.Font = PharmaTheme.ArabicFont(10f, FontStyle.Bold);
-        _exportButton.Cursor = Cursors.Hand;
+        _exportButton.Text = "تصدير التقرير";
+        _exportButton.IconGlyph = SegoeMdl2Icons.Download;
+        _exportButton.Height = 44;
         _exportButton.Click += (_, _) => ExportRequested?.Invoke(this, EventArgs.Empty);
 
-        var footer = new Panel { Height = 44, Dock = DockStyle.Bottom, BackColor = PharmaTheme.Surface };
-        footer.Controls.Add(_exportButton);
-        footer.Controls.Add(_refreshButton);
-        footer.Resize += (_, _) =>
-        {
-            _refreshButton.Location = new Point(footer.Width - _refreshButton.Width - 8, 8);
-            _exportButton.Location = new Point(_refreshButton.Left - _exportButton.Width - 8, 8);
-        };
+        _footerPanel.BackColor = PharmaTheme.Surface;
+        _footerPanel.Dock = DockStyle.Bottom;
+        _footerPanel.Height = 64;
+        _footerPanel.Padding = new Padding(16, 10, 16, 10);
+        _footerPanel.Controls.Add(_exportButton);
+        _footerPanel.Controls.Add(_refreshButton);
+        _footerPanel.Resize += (_, _) => LayoutFooter();
 
         Controls.Add(_contentPanel);
         Controls.Add(_statusLabel);
-        Controls.Add(_periodLabel);
-        Controls.Add(_titleLabel);
-        Controls.Add(footer);
-        Controls.Add(_closeButton);
-        Resize += (_, _) => _closeButton.Location = new Point(12, 12);
+        Controls.Add(_footerPanel);
+        Controls.Add(_headerPanel);
     }
 
     public event EventHandler? CloseRequested;
@@ -281,7 +274,7 @@ internal sealed class ReportDetailsPanel : Panel
     public void SetExportBusy(bool busy)
     {
         _exportButton.Enabled = !busy;
-        _exportButton.Text = busy ? "جارٍ التصدير..." : "تصدير";
+        _exportButton.Text = busy ? "جارٍ التصدير..." : "تصدير التقرير";
     }
 
     public void BindCard(ReportCardViewModel? card)
@@ -361,11 +354,36 @@ internal sealed class ReportDetailsPanel : Panel
     public void ApplyThemeVisuals()
     {
         BackColor = PharmaTheme.Surface;
+        _headerPanel.BackColor = PharmaTheme.Surface;
+        _footerPanel.BackColor = PharmaTheme.Surface;
         _titleLabel.ForeColor = PharmaTheme.TextDark;
         _periodLabel.ForeColor = PharmaTheme.OnSurfaceVariant;
-        _closeButton.ForeColor = PharmaTheme.OnSurfaceVariant;
         _contentPanel.BackColor = PharmaTheme.Surface;
+        _backButton.ApplyThemeVisuals();
+        _refreshButton.ApplyThemeVisuals();
+        _exportButton.Invalidate();
         Invalidate(true);
+    }
+
+    private void LayoutHeader()
+    {
+        const int pad = 16;
+        var w = Math.Max(240, _headerPanel.ClientSize.Width - pad * 2);
+        _backButton.SetBounds(_headerPanel.ClientSize.Width - pad - _backButton.Width, 0, _backButton.Width, _backButton.Height);
+        _titleLabel.SetBounds(pad, _backButton.Bottom + 10, w, 30);
+        _periodLabel.SetBounds(pad, _titleLabel.Bottom + 2, w, 22);
+    }
+
+    private void LayoutFooter()
+    {
+        const int gap = 12;
+        const int buttonH = 44;
+        const int exportW = 168;
+        const int refreshW = 120;
+        var y = Math.Max(0, (_footerPanel.ClientSize.Height - buttonH) / 2);
+        var right = _footerPanel.ClientSize.Width - _footerPanel.Padding.Right;
+        _exportButton.SetBounds(right - exportW, y, exportW, buttonH);
+        _refreshButton.SetBounds(_exportButton.Left - gap - refreshW, y, refreshW, buttonH);
     }
 
     private static Control MakeSummaryRow(string label, string value, int width)
@@ -456,5 +474,197 @@ internal sealed class ReportDetailsPanel : Panel
 
         panel.Height = y + 4;
         return panel;
+    }
+}
+
+internal sealed class ReportDetailsBackButton : Control
+{
+    private bool _hover;
+    private bool _pressed;
+
+    public ReportDetailsBackButton()
+    {
+        Size = new Size(104, 40);
+        MinimumSize = new Size(96, 38);
+        Cursor = Cursors.Hand;
+        RightToLeft = RightToLeft.Yes;
+        SetStyle(
+            ControlStyles.AllPaintingInWmPaint
+                | ControlStyles.UserPaint
+                | ControlStyles.OptimizedDoubleBuffer
+                | ControlStyles.StandardClick,
+            true);
+    }
+
+    public void ApplyThemeVisuals() => Invalidate();
+
+    protected override void OnMouseEnter(EventArgs e)
+    {
+        base.OnMouseEnter(e);
+        _hover = true;
+        Invalidate();
+    }
+
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        base.OnMouseLeave(e);
+        _hover = false;
+        _pressed = false;
+        Invalidate();
+    }
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        base.OnMouseDown(e);
+        if (e.Button == MouseButtons.Left)
+        {
+            _pressed = true;
+            Invalidate();
+        }
+    }
+
+    protected override void OnMouseUp(MouseEventArgs e)
+    {
+        base.OnMouseUp(e);
+        if (_pressed && e.Button == MouseButtons.Left && ClientRectangle.Contains(e.Location))
+        {
+            OnClick(EventArgs.Empty);
+        }
+
+        _pressed = false;
+        Invalidate();
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        var bounds = ClientRectangle;
+        bounds.Inflate(-1, -1);
+        const int radius = 12;
+
+        var fill = _pressed
+            ? PharmaTheme.SurfaceContainerHigh
+            : _hover
+                ? PharmaTheme.SurfaceAlt
+                : PharmaTheme.SurfaceContainerHigh;
+        RoundedDrawing.FillRounded(g, bounds, radius, fill);
+        RoundedDrawing.DrawRoundedBorder(g, bounds, radius, PharmaTheme.BorderSoft, 1f);
+
+        var iconRect = new Rectangle(bounds.Right - 30, bounds.Y, 24, bounds.Height);
+        TextRenderer.DrawText(
+            g,
+            SegoeMdl2Icons.ChevronRight,
+            PharmaTheme.IconFont(11f),
+            iconRect,
+            PharmaTheme.Primary,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+
+        var textRect = new Rectangle(bounds.X + 8, bounds.Y, bounds.Width - 36, bounds.Height);
+        TextRenderer.DrawText(
+            g,
+            "رجوع",
+            PharmaTheme.ArabicFont(10f, FontStyle.Bold),
+            textRect,
+            PharmaTheme.Primary,
+            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+    }
+}
+
+internal sealed class ReportDetailsOutlineButton : Control
+{
+    private bool _hover;
+    private bool _pressed;
+
+    public ReportDetailsOutlineButton()
+    {
+        Height = 44;
+        MinimumSize = new Size(112, 42);
+        Cursor = Cursors.Hand;
+        RightToLeft = RightToLeft.Yes;
+        SetStyle(
+            ControlStyles.AllPaintingInWmPaint
+                | ControlStyles.UserPaint
+                | ControlStyles.OptimizedDoubleBuffer
+                | ControlStyles.StandardClick,
+            true);
+    }
+
+    public void ApplyThemeVisuals() => Invalidate();
+
+    protected override void OnEnabledChanged(EventArgs e)
+    {
+        base.OnEnabledChanged(e);
+        Cursor = Enabled ? Cursors.Hand : Cursors.Default;
+        Invalidate();
+    }
+
+    protected override void OnMouseEnter(EventArgs e)
+    {
+        base.OnMouseEnter(e);
+        if (Enabled)
+        {
+            _hover = true;
+            Invalidate();
+        }
+    }
+
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        base.OnMouseLeave(e);
+        _hover = false;
+        _pressed = false;
+        Invalidate();
+    }
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        base.OnMouseDown(e);
+        if (Enabled && e.Button == MouseButtons.Left)
+        {
+            _pressed = true;
+            Invalidate();
+        }
+    }
+
+    protected override void OnMouseUp(MouseEventArgs e)
+    {
+        base.OnMouseUp(e);
+        if (_pressed && Enabled && e.Button == MouseButtons.Left && ClientRectangle.Contains(e.Location))
+        {
+            OnClick(EventArgs.Empty);
+        }
+
+        _pressed = false;
+        Invalidate();
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        var bounds = ClientRectangle;
+        bounds.Inflate(-1, -1);
+        const int radius = 12;
+
+        var fill = !Enabled
+            ? PharmaTheme.SurfaceContainerHigh
+            : _pressed
+                ? PharmaTheme.SurfaceAlt
+                : _hover
+                    ? PharmaTheme.SurfaceAlt
+                    : PharmaTheme.Surface;
+        var border = !Enabled ? PharmaTheme.BorderSoft : PharmaTheme.Primary;
+        var text = !Enabled ? PharmaTheme.MutedText : PharmaTheme.Primary;
+
+        RoundedDrawing.FillRounded(g, bounds, radius, fill);
+        RoundedDrawing.DrawRoundedBorder(g, bounds, radius, border, 1.5f);
+        TextRenderer.DrawText(
+            g,
+            Text,
+            PharmaTheme.ArabicFont(10.5f, FontStyle.Bold),
+            bounds,
+            text,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.RightToLeft);
     }
 }

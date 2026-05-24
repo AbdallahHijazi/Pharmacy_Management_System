@@ -308,6 +308,11 @@ internal sealed class ReportsControl : UserControl
         try
         {
             var result = await _reportsService.LoadReportAsync(kind, token).ConfigureAwait(true);
+            if (token.IsCancellationRequested || _activeKind != kind)
+            {
+                return;
+            }
+
             if (!result.IsAvailable)
             {
                 _detailsPanel.ShowError(
@@ -336,9 +341,21 @@ internal sealed class ReportsControl : UserControl
 
     private void CloseDetails()
     {
+        _loadCts?.Cancel();
         _activeKind = null;
         _detailsPanel.BindCard(null);
         LayoutReportsPage();
+    }
+
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        if (keyData == Keys.Escape && _activeKind.HasValue)
+        {
+            CloseDetails();
+            return true;
+        }
+
+        return base.ProcessCmdKey(ref msg, keyData);
     }
 
     private async Task ExportSingleReportAsync(ReportKind kind, bool useCachedDetails = false)
