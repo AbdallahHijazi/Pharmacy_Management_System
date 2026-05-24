@@ -103,28 +103,32 @@ internal sealed class AddCustomerDialog : Form
         {
             FillColor = PharmaTheme.Surface,
             BorderColor = PharmaTheme.BorderSoft,
-            Padding = new Padding(20, 18, 20, 20)
+            Padding = new Padding(24)
         };
 
         _nameBox = CreateTextBox(rtl: true);
         _phoneBox = CreateTextBox(rtl: false);
         _addressBox = CreateTextBox(rtl: true, multiline: true);
 
-        _nameStack = new CusFieldStack("الاسم *", _nameBox, 44);
-        _phoneStack = new CusFieldStack("رقم الهاتف", _phoneBox, 44);
-        _addressStack = new CusFieldStack("العنوان", _addressBox, 80);
+        _nameStack = new CusFieldStack("الاسم *", _nameBox, 44) { Margin = new Padding(0, 0, 0, 16) };
+        _phoneStack = new CusFieldStack("رقم الهاتف", _phoneBox, 44) { Margin = new Padding(0, 0, 0, 16) };
+        _addressStack = new CusFieldStack("العنوان", _addressBox, 84, multilineHost: true);
 
         WireFieldFocus(_nameStack, _nameBox);
         WireFieldFocus(_phoneStack, _phoneBox);
         WireFieldFocus(_addressStack, _addressBox);
+        _addressBox.TextChanged += (_, _) => UpdateAddressScrollBars();
+        _addressStack.Resize += (_, _) => UpdateAddressScrollBars();
 
         var fieldsLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 3,
-            BackColor = PharmaTheme.Surface
+            BackColor = PharmaTheme.Surface,
+            AutoSize = false
         };
+        fieldsLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
         fieldsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         fieldsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         fieldsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -189,6 +193,7 @@ internal sealed class AddCustomerDialog : Form
 
         LayoutFooter();
         ApplyThemeVisuals();
+        Shown += (_, _) => UpdateAddressScrollBars();
     }
 
     private void LayoutFooter()
@@ -197,6 +202,24 @@ internal sealed class AddCustomerDialog : Form
         var right = _footerPanel.ClientSize.Width - _footerPanel.Padding.Right;
         _saveButton.Location = new Point(right - _saveButton.Width, _footerPanel.Padding.Top);
         _cancelButton.Location = new Point(_saveButton.Left - gap - _cancelButton.Width, _footerPanel.Padding.Top);
+    }
+
+    private void UpdateAddressScrollBars()
+    {
+        if (_addressBox.ClientSize.Width <= 0 || _addressBox.ClientSize.Height <= 0)
+        {
+            return;
+        }
+
+        var sample = string.IsNullOrWhiteSpace(_addressBox.Text) ? " " : _addressBox.Text;
+        var textHeight = TextRenderer.MeasureText(
+            sample,
+            _addressBox.Font,
+            new Size(_addressBox.ClientSize.Width, int.MaxValue),
+            TextFormatFlags.WordBreak | TextFormatFlags.RightToLeft).Height;
+        _addressBox.ScrollBars = textHeight > _addressBox.ClientSize.Height
+            ? ScrollBars.Vertical
+            : ScrollBars.None;
     }
 
     private static void WireFieldFocus(CusFieldStack stack, TextBox box)
@@ -304,7 +327,7 @@ internal sealed class AddCustomerDialog : Form
         RightToLeft = rtl ? RightToLeft.Yes : RightToLeft.No,
         TextAlign = rtl ? HorizontalAlignment.Right : HorizontalAlignment.Left,
         Multiline = multiline,
-        ScrollBars = multiline ? ScrollBars.Vertical : ScrollBars.None,
+        ScrollBars = ScrollBars.None,
         WordWrap = multiline
     };
 }

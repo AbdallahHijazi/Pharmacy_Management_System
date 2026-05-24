@@ -681,13 +681,13 @@ internal sealed class CusInputHost : Panel
     private readonly int _radius;
     private bool _focused;
 
-    public CusInputHost(int radius = 12)
+    public CusInputHost(int radius = 12, bool multiline = false)
     {
         _radius = radius;
         DoubleBuffered = true;
         BackColor = PharmaTheme.Surface;
-        Height = 44;
-        Padding = new Padding(12, 0, 12, 0);
+        Height = multiline ? 84 : 44;
+        Padding = multiline ? new Padding(12, 8, 12, 8) : new Padding(12, 0, 12, 0);
         SetStyle(
             ControlStyles.AllPaintingInWmPaint
                 | ControlStyles.UserPaint
@@ -735,22 +735,30 @@ internal sealed class CusInputHost : Panel
 
 internal sealed class CusFieldStack : Panel
 {
+    private const int LabelHeight = 22;
+    private const int LabelGap = 6;
+
     private readonly CusFieldLabel _label;
     private readonly CusInputHost _host;
+    private readonly int _hostHeight;
 
-    public CusFieldStack(string label, Control inner, int hostHeight = 44)
+    public CusFieldStack(string label, Control inner, int hostHeight = 44, bool multilineHost = false)
     {
         BackColor = PharmaTheme.Surface;
+        _hostHeight = hostHeight;
         _label = new CusFieldLabel(label);
-        _host = new CusInputHost { Height = hostHeight, Dock = DockStyle.Top };
+        _host = new CusInputHost(multiline: multilineHost) { Height = hostHeight };
         inner.Dock = DockStyle.Fill;
         inner.Margin = new Padding(0);
         _host.Controls.Add(inner);
-        _host.BringToFront();
         inner.BringToFront();
         Controls.Add(_host);
         Controls.Add(_label);
-        Height = 22 + 6 + hostHeight;
+        Dock = DockStyle.Fill;
+        MinimumSize = new Size(280, LabelHeight + LabelGap + hostHeight);
+        Height = LabelHeight + LabelGap + hostHeight;
+        Resize += (_, _) => LayoutStack();
+        LayoutStack();
     }
 
     public CusInputHost Host => _host;
@@ -759,6 +767,13 @@ internal sealed class CusFieldStack : Panel
     {
         _label.ApplyThemeVisuals();
         _host.ApplyThemeVisuals();
+    }
+
+    private void LayoutStack()
+    {
+        var width = Math.Max(Width, MinimumSize.Width);
+        _label.SetBounds(0, 0, width, LabelHeight);
+        _host.SetBounds(0, LabelHeight + LabelGap, width, _hostHeight);
     }
 }
 
