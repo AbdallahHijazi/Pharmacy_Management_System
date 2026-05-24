@@ -41,4 +41,9 @@ internal static class SegoeMdl2Icons
     public const string ChevronLeft = "\uE76B";
     public const string ChevronRight = "\uE76C";
     public const string Edit = "\uE70F";
+    public const string GridView = "\uE80A";
+    public const string ViewList = "\uE8FD";
+    public const string MoreVertical = "\uE712";
+    public const string Phone = "\uE717";
+    public const string CheckMark = "\uE73E";
 }
