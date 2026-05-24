@@ -6,6 +6,53 @@ using Pharmacy.WinForms.Ui;
 
 namespace Pharmacy.WinForms.Controls.Suppliers;
 
+internal static class SupColumnLayout
+{
+    internal readonly record struct Layout(
+        Rectangle Name,
+        Rectangle Contact,
+        Rectangle Phone,
+        Rectangle Purchases,
+        Rectangle Payable,
+        Rectangle Actions,
+        bool Compact);
+
+    internal static Layout Calculate(Rectangle bounds, bool compact)
+    {
+        const int pad = 12;
+        var actionsW = Math.Max(96, (int)(bounds.Width * 0.11));
+        var payableW = Math.Max(96, (int)(bounds.Width * 0.13));
+        var purchasesW = compact ? 0 : Math.Max(96, (int)(bounds.Width * 0.14));
+        var phoneW = Math.Max(96, (int)(bounds.Width * 0.13));
+        var contactW = compact ? 0 : Math.Max(96, (int)(bounds.Width * 0.16));
+        var fixedW = pad * 2 + actionsW + payableW + purchasesW + phoneW + contactW;
+        var nameW = Math.Max(160, bounds.Width - fixedW);
+
+        var x = bounds.X + pad;
+        var name = new Rectangle(x, bounds.Y, nameW, bounds.Height);
+        x += nameW;
+        var contact = compact ? Rectangle.Empty : new Rectangle(x, bounds.Y, contactW, bounds.Height);
+        if (!compact)
+        {
+            x += contactW;
+        }
+
+        var phone = new Rectangle(x, bounds.Y, phoneW, bounds.Height);
+        x += phoneW;
+        var purchases = compact ? Rectangle.Empty : new Rectangle(x, bounds.Y, purchasesW, bounds.Height);
+        if (!compact)
+        {
+            x += purchasesW;
+        }
+
+        var payable = new Rectangle(x, bounds.Y, payableW, bounds.Height);
+        x += payableW;
+        var actions = new Rectangle(x, bounds.Y, actionsW, bounds.Height);
+
+        return new Layout(name, contact, phone, purchases, payable, actions, compact);
+    }
+}
+
 internal class SupRoundedPanel : Panel
 {
     private readonly int _radius;
@@ -173,7 +220,7 @@ internal sealed class SupStatCard : Control
     {
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
         DoubleBuffered = true;
-        MinimumSize = new Size(180, 120);
+        MinimumSize = new Size(200, 128);
         Height = 128;
         RightToLeft = RightToLeft.Yes;
     }
@@ -219,12 +266,15 @@ internal sealed class SupStatCard : Control
     {
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
         var bounds = ClientRectangle;
         bounds.Inflate(-1, -1);
         RoundedDrawing.FillRounded(g, bounds, PharmaTheme.SuppliersStatCornerRadius, PharmaTheme.Surface);
         RoundedDrawing.DrawRoundedBorder(g, bounds, PharmaTheme.SuppliersStatCornerRadius, PharmaTheme.BorderSoft, 1f);
 
-        var iconRect = new Rectangle(bounds.Right - 22 - 44, bounds.Y + 22, 44, 44);
+        const int innerPad = 22;
+        var iconSize = 44;
+        var iconRect = new Rectangle(bounds.Right - innerPad - iconSize, bounds.Y + innerPad, iconSize, iconSize);
         RoundedDrawing.FillRounded(g, iconRect, 12, PharmaTheme.WithAlpha(PharmaTheme.PrimaryContainer, 120));
         TextRenderer.DrawText(
             g,
@@ -234,24 +284,44 @@ internal sealed class SupStatCard : Control
             _dangerTone ? PharmaTheme.Danger : PharmaTheme.Primary,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
-        var textX = bounds.X + 22;
-        var textW = iconRect.X - textX - 12;
+        var textX = bounds.X + innerPad;
+        var textW = Math.Max(80, iconRect.X - textX - 12);
+        var titleRect = new Rectangle(textX, bounds.Y + innerPad, textW, 40);
         TextRenderer.DrawText(
             g,
             _title,
             PharmaTheme.StatTitleFont,
-            new Rectangle(textX, bounds.Y + 24, textW, 20),
+            titleRect,
             PharmaTheme.OnSurfaceVariant,
-            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+            TextFormatFlags.Right | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);
 
+        var valueRect = new Rectangle(textX, bounds.Y + innerPad + 44, textW, 36);
         var valueColor = _dangerTone ? PharmaTheme.Danger : PharmaTheme.TextDark;
+        DrawStatValue(g, valueRect, _value, valueColor);
+    }
+
+    private static void DrawStatValue(Graphics g, Rectangle rect, string value, Color color)
+    {
+        if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "غير متوفر", StringComparison.Ordinal))
+        {
+            TextRenderer.DrawText(
+                g,
+                "غير متوفر",
+                PharmaTheme.ArabicFont(11f, FontStyle.Bold),
+                rect,
+                color,
+                TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+            return;
+        }
+
+        var display = SupplierDisplayHelper.FormatStatDisplay(value);
         TextRenderer.DrawText(
             g,
-            _value,
-            PharmaTheme.StatValueFont,
-            new Rectangle(textX, bounds.Y + 52, textW, 34),
-            valueColor,
-            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+            display,
+            PharmaTheme.NumberFont(20f, FontStyle.Bold),
+            rect,
+            color,
+            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
     }
 }
 
@@ -260,8 +330,7 @@ internal sealed class SupTableHeader : Control
     public SupTableHeader()
     {
         Height = 48;
-        Dock = DockStyle.Top;
-        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
+        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
     }
 
     public void ApplyThemeVisuals() => Invalidate();
@@ -276,17 +345,27 @@ internal sealed class SupTableHeader : Control
         var bounds = ClientRectangle;
         RoundedDrawing.FillRounded(g, bounds, 12, PharmaTheme.SurfaceAlt);
 
-        var columns = GetColumns(bounds);
+        var compact = bounds.Width < 980;
+        var columns = SupColumnLayout.Calculate(bounds, compact);
         DrawHeader(g, columns.Name, "اسم المورد");
-        DrawHeader(g, columns.Contact, "الشخص المسؤول");
+        if (!compact)
+        {
+            DrawHeader(g, columns.Contact, "الشخص المسؤول");
+            DrawHeader(g, columns.Purchases, "إجمالي المشتريات");
+        }
+
         DrawHeader(g, columns.Phone, "الهاتف");
-        DrawHeader(g, columns.Purchases, "إجمالي المشتريات");
         DrawHeader(g, columns.Payable, "المستحقات");
         DrawHeader(g, columns.Actions, "إجراءات");
     }
 
     private static void DrawHeader(Graphics g, Rectangle rect, string text)
     {
+        if (rect.Width <= 0)
+        {
+            return;
+        }
+
         TextRenderer.DrawText(
             g,
             text,
@@ -295,50 +374,6 @@ internal sealed class SupTableHeader : Control
             PharmaTheme.MutedText,
             TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
     }
-
-    internal static SupTableColumnLayout GetColumns(Rectangle bounds, bool compact = false)
-    {
-        const int pad = 12;
-        var actionsW = Math.Max(96, (int)(bounds.Width * 0.11));
-        var payableW = Math.Max(96, (int)(bounds.Width * 0.13));
-        var purchasesW = compact ? 0 : Math.Max(96, (int)(bounds.Width * 0.14));
-        var phoneW = Math.Max(96, (int)(bounds.Width * 0.13));
-        var contactW = compact ? 0 : Math.Max(96, (int)(bounds.Width * 0.16));
-        var fixedW = pad * 2 + actionsW + payableW + purchasesW + phoneW + contactW;
-        var nameW = Math.Max(140, bounds.Width - fixedW);
-
-        var x = bounds.X + pad;
-        var name = new Rectangle(x, bounds.Y, nameW, bounds.Height);
-        x += nameW;
-        var contact = compact ? Rectangle.Empty : new Rectangle(x, bounds.Y, contactW, bounds.Height);
-        if (!compact)
-        {
-            x += contactW;
-        }
-
-        var phone = new Rectangle(x, bounds.Y, phoneW, bounds.Height);
-        x += phoneW;
-        var purchases = compact ? Rectangle.Empty : new Rectangle(x, bounds.Y, purchasesW, bounds.Height);
-        if (!compact)
-        {
-            x += purchasesW;
-        }
-
-        var payable = new Rectangle(x, bounds.Y, payableW, bounds.Height);
-        x += payableW;
-        var actions = new Rectangle(x, bounds.Y, actionsW, bounds.Height);
-
-        return new SupTableColumnLayout(name, contact, phone, purchases, payable, actions, compact);
-    }
-
-    internal readonly record struct SupTableColumnLayout(
-        Rectangle Name,
-        Rectangle Contact,
-        Rectangle Phone,
-        Rectangle Purchases,
-        Rectangle Payable,
-        Rectangle Actions,
-        bool Compact);
 }
 
 internal sealed class SupSupplierRow : Control
@@ -410,7 +445,7 @@ internal sealed class SupSupplierRow : Control
         RoundedDrawing.DrawRoundedBorder(g, bounds, PharmaTheme.SuppliersRowCornerRadius, PharmaTheme.BorderSoft, 1f);
 
         var compact = Width < 980;
-        var columns = SupTableHeader.GetColumns(bounds, compact);
+        var columns = SupColumnLayout.Calculate(bounds, compact);
         DrawNameCell(g, columns.Name);
         if (!compact)
         {
@@ -420,11 +455,11 @@ internal sealed class SupSupplierRow : Control
         DrawPhoneCell(g, columns.Phone, _supplier.PhoneNumber);
         if (!compact)
         {
-            DrawCell(g, columns.Purchases, _supplier.FormattedTotalPurchases, PharmaTheme.TableAmountFont, PharmaTheme.TextDark);
+            DrawMoneyCell(g, columns.Purchases, _supplier.FormattedTotalPurchases, PharmaTheme.TextDark);
         }
 
         var payableColor = _supplier.HasUnpaidDues ? PharmaTheme.Danger : PharmaTheme.Success;
-        DrawCell(g, columns.Payable, _supplier.FormattedPayableAmount, PharmaTheme.TableAmountFont, payableColor);
+        DrawMoneyCell(g, columns.Payable, _supplier.FormattedPayableAmount, payableColor);
         LayoutButtons();
     }
 
@@ -486,6 +521,11 @@ internal sealed class SupSupplierRow : Control
 
     private static void DrawCell(Graphics g, Rectangle rect, string text, Font font, Color color)
     {
+        if (rect.Width <= 0)
+        {
+            return;
+        }
+
         TextRenderer.DrawText(
             g,
             text,
@@ -495,9 +535,38 @@ internal sealed class SupSupplierRow : Control
             TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
     }
 
+    private static void DrawMoneyCell(Graphics g, Rectangle rect, string text, Color color)
+    {
+        if (rect.Width <= 0)
+        {
+            return;
+        }
+
+        if (string.Equals(text, "غير متوفر", StringComparison.Ordinal)
+            || string.Equals(text, "لا توجد مستحقات", StringComparison.Ordinal))
+        {
+            DrawCell(g, rect, text, PharmaTheme.TableCellFont, PharmaTheme.OnSurfaceVariant);
+            return;
+        }
+
+        var display = SupplierDisplayHelper.FormatStatDisplay(text);
+        TextRenderer.DrawText(
+            g,
+            display,
+            PharmaTheme.TableAmountFont,
+            Rectangle.Inflate(rect, -8, 0),
+            color,
+            TextFormatFlags.Right | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+    }
+
     private void LayoutButtons()
     {
-        var columns = SupTableHeader.GetColumns(ClientRectangle, Width < 980);
+        var columns = SupColumnLayout.Calculate(ClientRectangle, Width < 980);
+        if (columns.Actions.Width <= 0)
+        {
+            return;
+        }
+
         var y = (Height - 32) / 2;
         _moreButton.SetBounds(columns.Actions.Right - 36, y, 32, 32);
         _editButton.SetBounds(columns.Actions.Right - 72, y, 32, 32);
@@ -624,9 +693,10 @@ internal sealed class SupPaginationBar : SupRoundedPanel
 
     private void LayoutBar()
     {
-        _prevButton.Location = new Point(16, 16);
-        _nextButton.Location = new Point(Width - _nextButton.Width - 16, 16);
-        _infoLabel.SetBounds((Width - 260) / 2, 16, 260, 24);
+        _prevButton.Location = new Point(20, 16);
+        _nextButton.Location = new Point(Width - _nextButton.Width - 20, 16);
+        var infoW = Math.Min(420, Math.Max(240, Width - 220));
+        _infoLabel.SetBounds((Width - infoW) / 2, 16, infoW, 24);
     }
 }
 

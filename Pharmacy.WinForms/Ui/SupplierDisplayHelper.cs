@@ -45,4 +45,21 @@ internal static class SupplierDisplayHelper
         payableAmount > 0
             ? PosFormatting.FormatMoneyCompact(payableAmount)
             : "لا توجد مستحقات";
+
+    public static string FormatCount(int count) => $"\u200E{count:N0}";
+
+    public static string FormatStatDisplay(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "غير متوفر", StringComparison.Ordinal))
+        {
+            return "غير متوفر";
+        }
+
+        return value.StartsWith("\u200E", StringComparison.Ordinal) ? value : "\u200E" + value;
+    }
+
+    public static bool IsNumericDisplay(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && value != "غير متوفر"
+        && value != "لا توجد مستحقات";
 }

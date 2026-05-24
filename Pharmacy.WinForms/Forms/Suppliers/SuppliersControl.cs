@@ -10,8 +10,8 @@ internal sealed class SuppliersControl : UserControl
 {
     private const int WorkspacePadding = 32;
     private const int SectionGap = 16;
-    private const int HeaderHeight = 100;
-    private const int StatsHeight = 140;
+    private const int HeaderHeight = 104;
+    private const int StatsHeight = 136;
     private const int PaginationHeight = 64;
     private const int DetailsGap = 16;
     private const int OverlayBreakpoint = 980;
@@ -128,7 +128,9 @@ internal sealed class SuppliersControl : UserControl
             AutoSize = false,
             TextAlign = ContentAlignment.MiddleRight,
             Font = PharmaTheme.DashboardHeadlineFont,
-            ForeColor = PharmaTheme.PrimaryDark
+            ForeColor = PharmaTheme.PrimaryDark,
+            RightToLeft = RightToLeft.Yes,
+            BackColor = PharmaTheme.Background
         };
         _subtitleLabel = new Label
         {
@@ -136,7 +138,9 @@ internal sealed class SuppliersControl : UserControl
             AutoSize = false,
             TextAlign = ContentAlignment.MiddleRight,
             Font = PharmaTheme.DashboardSubtitleFont,
-            ForeColor = PharmaTheme.OnSurfaceVariant
+            ForeColor = PharmaTheme.OnSurfaceVariant,
+            RightToLeft = RightToLeft.Yes,
+            BackColor = PharmaTheme.Background
         };
         _addSupplierButton = new GradientRoundedButton
         {
@@ -178,11 +182,17 @@ internal sealed class SuppliersControl : UserControl
 
         _tablePanel = new Panel { BackColor = PharmaTheme.Background };
         _tableHeader = new SupTableHeader();
-        _rowsScrollPanel = new Panel { AutoScroll = true, BackColor = PharmaTheme.Background };
+        _rowsScrollPanel = new Panel
+        {
+            AutoScroll = true,
+            BackColor = PharmaTheme.Background
+        };
         _rowsHostPanel = new Panel { BackColor = PharmaTheme.Background };
         _rowsScrollPanel.Controls.Add(_rowsHostPanel);
         _tablePanel.Controls.Add(_rowsScrollPanel);
         _tablePanel.Controls.Add(_tableHeader);
+        _tablePanel.Resize += (_, _) => LayoutTableInternals();
+        _rowsScrollPanel.Resize += (_, _) => LayoutSupplierRows();
 
         _paginationBar = new SupPaginationBar();
 
@@ -338,26 +348,11 @@ internal sealed class SuppliersControl : UserControl
         _mainContentPanel.SetBounds(mainX, pad, mainW, contentH);
 
         var y = 0;
-        _headerPanel.SetBounds(0, y, mainW, HeaderHeight);
-        if (mainW < 900)
-        {
-            _titleLabel.SetBounds(0, 0, mainW, 34);
-            _subtitleLabel.SetBounds(0, 34, mainW, 22);
-            _searchBox.SetBounds(0, 62, Math.Max(180, mainW - 210), 50);
-            _addSupplierButton.SetBounds(0, 118, Math.Min(190, mainW), 52);
-            _headerPanel.Height = 178;
-        }
-        else
-        {
-            _titleLabel.SetBounds(0, 0, mainW - 420, 36);
-            _subtitleLabel.SetBounds(0, 38, mainW - 420, 22);
-            _addSupplierButton.SetBounds(mainW - 190, 18, 190, 52);
-            _searchBox.SetBounds(mainW - 460, 20, 240, 50);
-            _headerPanel.Height = HeaderHeight;
-        }
+        LayoutHeader(mainW);
+        _headerPanel.SetBounds(0, y, mainW, _headerPanel.Height);
 
         y = _headerPanel.Height + SectionGap;
-        _statsPanel.SetBounds(0, y, mainW, StatsHeight);
+        _statsPanel.SetBounds(0, y, mainW, _statsPanel.Height);
         LayoutStatsCards(mainW);
 
         y += _statsPanel.Height + SectionGap;
@@ -366,7 +361,32 @@ internal sealed class SuppliersControl : UserControl
         _statePanel.SetBounds(0, y, mainW, tableH);
         _paginationBar.SetBounds(0, contentH - PaginationHeight, mainW, PaginationHeight);
 
-        LayoutSupplierRows();
+        LayoutTableInternals();
+    }
+
+    private void LayoutHeader(int mainW)
+    {
+        const int buttonW = 190;
+        const int searchW = 260;
+        const int gap = 16;
+        const int actionBlockW = buttonW + gap + searchW;
+
+        if (mainW < 900)
+        {
+            _headerPanel.Height = 176;
+            _titleLabel.SetBounds(0, 0, mainW, 38);
+            _subtitleLabel.SetBounds(0, 40, mainW, 24);
+            _searchBox.SetBounds(0, 72, mainW, 50);
+            _addSupplierButton.SetBounds(0, 128, Math.Min(buttonW, mainW), 52);
+            return;
+        }
+
+        _headerPanel.Height = HeaderHeight;
+        var textW = Math.Max(360, mainW - actionBlockW - gap);
+        _titleLabel.SetBounds(0, 0, textW, 38);
+        _subtitleLabel.SetBounds(0, 40, textW, 24);
+        _addSupplierButton.SetBounds(mainW - buttonW, 16, buttonW, 52);
+        _searchBox.SetBounds(mainW - buttonW - gap - searchW, 20, searchW, 50);
     }
 
     private void LayoutStatsCards(int mainW)
@@ -374,7 +394,7 @@ internal sealed class SuppliersControl : UserControl
         var gap = 16;
         var cols = mainW >= 1100 ? 3 : mainW >= 720 ? 2 : 1;
         var cardW = cols == 1 ? mainW : (mainW - gap * (cols - 1)) / cols;
-        var cardH = StatsHeight - 8;
+        var cardH = 128;
         var cards = new[] { _totalSuppliersCard, _monthlyPurchasesCard, _unpaidDuesCard };
 
         for (var i = 0; i < cards.Length; i++)
@@ -402,31 +422,48 @@ internal sealed class SuppliersControl : UserControl
             }
         }
 
-        if (cols == 1)
+        _statsPanel.Height = cols switch
         {
-            _statsPanel.Height = cards.Length * (cardH + gap);
-        }
-        else if (cols == 2)
+            1 => cards.Length * (cardH + gap) - gap,
+            2 => 2 * (cardH + gap) - gap,
+            _ => cardH
+        };
+    }
+
+    private void LayoutTableInternals()
+    {
+        if (_tablePanel.ClientSize.Width <= 0 || _tablePanel.ClientSize.Height <= 0)
         {
-            _statsPanel.Height = 2 * (cardH + gap);
+            return;
         }
-        else
-        {
-            _statsPanel.Height = StatsHeight;
-        }
+
+        var tableW = _tablePanel.ClientSize.Width;
+        var tableH = _tablePanel.ClientSize.Height;
+        var headerH = _tableHeader.Height;
+        _tableHeader.SetBounds(0, 0, tableW, headerH);
+        _rowsScrollPanel.SetBounds(0, headerH, tableW, Math.Max(0, tableH - headerH));
+        _tableHeader.Invalidate();
+        LayoutSupplierRows();
     }
 
     private void LayoutSupplierRows()
     {
-        var availableW = Math.Max(280, _rowsScrollPanel.ClientSize.Width);
+        var tableW = _tablePanel.ClientSize.Width;
+        if (tableW <= 0)
+        {
+            return;
+        }
+
         var y = 0;
         foreach (Control row in _rowsHostPanel.Controls)
         {
-            row.SetBounds(0, y, availableW, PharmaTheme.SuppliersRowHeight);
+            row.SetBounds(0, y, tableW, PharmaTheme.SuppliersRowHeight);
+            row.Invalidate();
             y += PharmaTheme.SuppliersRowHeight + RowGap;
         }
 
-        _rowsHostPanel.Size = new Size(availableW, Math.Max(y, 0));
+        _rowsHostPanel.Size = new Size(tableW, Math.Max(y, 0));
+        _rowsHostPanel.MinimumSize = new Size(tableW, 0);
     }
 
     private async Task LoadPageAsync()
@@ -458,7 +495,7 @@ internal sealed class SuppliersControl : UserControl
             _allSuppliers.Clear();
             _allSuppliers.AddRange(result.Suppliers);
 
-            _totalSuppliersCard.CardValue = stats.TotalSuppliers.ToString("N0");
+            _totalSuppliersCard.CardValue = SupplierDisplayHelper.FormatCount(stats.TotalSuppliers);
             _monthlyPurchasesCard.CardValue = stats.MonthlyPurchasesText;
             _unpaidDuesCard.CardValue = stats.UnpaidDuesText;
 
