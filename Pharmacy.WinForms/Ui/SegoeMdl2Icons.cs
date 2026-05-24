@@ -46,4 +46,5 @@ internal static class SegoeMdl2Icons
     public const string MoreVertical = "\uE712";
     public const string Phone = "\uE717";
     public const string CheckMark = "\uE73E";
+    public const string Download = "\uE896";
 }
