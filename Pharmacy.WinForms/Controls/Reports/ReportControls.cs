@@ -191,6 +191,7 @@ internal sealed class ReportDetailsPanel : Panel
     private readonly Button _refreshButton = new();
     private readonly Button _exportButton = new();
     private ReportCardViewModel? _card;
+    private ReportLoadResult? _lastLoadedResult;
 
     public ReportDetailsPanel()
     {
@@ -275,9 +276,18 @@ internal sealed class ReportDetailsPanel : Panel
 
     public ReportKind? ActiveKind => _card?.Kind;
 
+    public ReportLoadResult? LastLoadedResult => _lastLoadedResult;
+
+    public void SetExportBusy(bool busy)
+    {
+        _exportButton.Enabled = !busy;
+        _exportButton.Text = busy ? "جارٍ التصدير..." : "تصدير";
+    }
+
     public void BindCard(ReportCardViewModel? card)
     {
         _card = card;
+        _lastLoadedResult = null;
         Visible = card is not null;
         _titleLabel.Text = card?.Title ?? string.Empty;
         _periodLabel.Text = string.Empty;
@@ -302,6 +312,7 @@ internal sealed class ReportDetailsPanel : Panel
 
     public void ShowContent(ReportLoadResult result)
     {
+        _lastLoadedResult = result;
         _periodLabel.Text = result.PeriodText;
         _statusLabel.Visible = false;
         _contentPanel.Controls.Clear();

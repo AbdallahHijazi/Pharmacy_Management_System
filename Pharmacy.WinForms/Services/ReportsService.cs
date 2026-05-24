@@ -245,13 +245,14 @@ internal sealed class ReportsService
                     ("عدد الزبائن المدينين", ReportDisplayHelper.FormatQuantity(debtors.Count)),
                     ("إجمالي الديون", ReportDisplayHelper.FormatMoney(totalDebt))
                 ],
-                TableHeaders = ["الزبون", "الهاتف", "الدين"],
+                TableHeaders = ["الزبون", "الهاتف", "إجمالي المشتريات", "الدين"],
                 TableRows = debtors.Select(c => new ReportDetailsRowView
                 {
                     Cells =
                     [
                         CustomerDisplayHelper.ResolveDisplayName(c.FullName),
                         CustomerDisplayHelper.ResolvePhone(c.Phone),
+                        ReportDisplayHelper.FormatMoney(c.TotalPurchases),
                         ReportDisplayHelper.FormatMoney(c.DebtAmount)
                     ]
                 }).ToList(),
@@ -308,13 +309,15 @@ internal sealed class ReportsService
                     ("عدد الموردين", ReportDisplayHelper.FormatQuantity(suppliers.Count)),
                     ("إجمالي المستحقات", ReportDisplayHelper.FormatMoney(totalPayable))
                 ],
-                TableHeaders = ["المورد", "الهاتف", "المستحقات"],
+                TableHeaders = ["المورد", "الشخص المسؤول", "الهاتف", "إجمالي المشتريات", "المستحقات"],
                 TableRows = suppliers.Select(s => new ReportDetailsRowView
                 {
                     Cells =
                     [
                         SupplierDisplayHelper.ResolveSupplierDisplayName(s.Name),
+                        SupplierDisplayHelper.ResolveContactPerson(s.ContactPerson),
                         SupplierDisplayHelper.ResolvePhone(s.Phone),
+                        ReportDisplayHelper.FormatMoney(s.TotalPurchases),
                         ReportDisplayHelper.FormatMoney(s.PayableAmount)
                     ]
                 }).ToList(),

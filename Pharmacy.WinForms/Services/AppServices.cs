@@ -12,4 +12,5 @@ internal static class AppServices
     public static CustomerService CustomerService { get; } = new(ApiClient);
     public static SupplierService SupplierService { get; } = new(ApiClient);
     public static ReportsService ReportsService { get; } = new(ApiClient);
+    public static ReportsExportService ReportsExportService { get; } = new(ReportsService);
 }

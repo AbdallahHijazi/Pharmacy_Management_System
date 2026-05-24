@@ -1,3 +1,5 @@
+using Pharmacy.WinForms.Models;
+
 namespace Pharmacy.WinForms.Ui;
 
 internal static class ReportDisplayHelper
@@ -16,4 +18,22 @@ internal static class ReportDisplayHelper
 
     public static string FormatMonthPeriod(int year, int month) =>
         $"{year}-{month:D2}";
+
+    public static string GetSingleExportDefaultFileName(ReportKind kind)
+    {
+        var stamp = DateTime.Now.ToString("yyyy-MM-dd");
+        return kind switch
+        {
+            ReportKind.Sales => $"sales-report-{stamp}.csv",
+            ReportKind.TopSellingProducts => $"top-selling-products-{stamp}.csv",
+            ReportKind.ProfitLoss => $"financial-monthly-report-{DateTime.Now:yyyy-MM}.csv",
+            ReportKind.ExpiringMedicines => $"inventory-expiry-report-{stamp}.csv",
+            ReportKind.CustomerDebts => $"customer-debts-{stamp}.csv",
+            ReportKind.SupplierPayables => $"supplier-payables-{stamp}.csv",
+            _ => $"report-{stamp}.csv"
+        };
+    }
+
+    public static string GetBulkExportDefaultFileName() =>
+        $"pharmacy-reports-export-{DateTime.Now:yyyyMMdd-HHmm}.zip";
 }

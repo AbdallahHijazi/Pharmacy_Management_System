@@ -17,9 +17,11 @@ internal sealed class ReportsControl : UserControl
     private const int OverlayBreakpoint = 980;
 
     private readonly ReportsService _reportsService;
+    private readonly ReportsExportService _exportService;
     private readonly List<ReportCardControl> _cards = new();
     private CancellationTokenSource? _loadCts;
     private ReportKind? _activeKind;
+    private bool _isExporting;
 
     private Panel _rootPanel = null!;
     private Panel _mainContentPanel = null!;
@@ -31,13 +33,14 @@ internal sealed class ReportsControl : UserControl
     private Panel _reportsGridPanel = null!;
     private ReportDetailsPanel _detailsPanel = null!;
 
-    public ReportsControl() : this(AppServices.ReportsService)
+    public ReportsControl() : this(AppServices.ReportsService, AppServices.ReportsExportService)
     {
     }
 
-    public ReportsControl(ReportsService reportsService)
+    public ReportsControl(ReportsService reportsService, ReportsExportService exportService)
     {
         _reportsService = reportsService;
+        _exportService = exportService;
 
         SuspendLayout();
         SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
@@ -128,7 +131,7 @@ internal sealed class ReportsControl : UserControl
         {
             var card = new ReportCardControl(cardModel);
             card.DetailsClicked += async (_, _) => await OpenDetailsAsync(cardModel);
-            card.ExportClicked += (_, _) => ShowExportPlaceholder(isFullExport: false);
+            card.ExportClicked += async (_, _) => await ExportSingleReportAsync(cardModel.Kind);
             _cards.Add(card);
             _reportsGridPanel.Controls.Add(card);
         }
@@ -143,7 +146,7 @@ internal sealed class ReportsControl : UserControl
 
     private void WireEvents()
     {
-        _exportAllButton.Click += (_, _) => ShowExportPlaceholder(isFullExport: true);
+        _exportAllButton.Click += async (_, _) => await ExportAllReportsAsync();
         _detailsPanel.CloseRequested += (_, _) => CloseDetails();
         _detailsPanel.RefreshRequested += async (_, _) =>
         {
@@ -152,7 +155,13 @@ internal sealed class ReportsControl : UserControl
                 await LoadDetailsAsync(_activeKind.Value);
             }
         };
-        _detailsPanel.ExportRequested += (_, _) => ShowExportPlaceholder(isFullExport: false);
+        _detailsPanel.ExportRequested += async (_, _) =>
+        {
+            if (_activeKind.HasValue)
+            {
+                await ExportSingleReportAsync(_activeKind.Value, useCachedDetails: true);
+            }
+        };
     }
 
     private void HandleThemeChanged(object? sender, EventArgs e)
@@ -332,12 +341,139 @@ internal sealed class ReportsControl : UserControl
         LayoutReportsPage();
     }
 
-    private static void ShowExportPlaceholder(bool isFullExport)
+    private async Task ExportSingleReportAsync(ReportKind kind, bool useCachedDetails = false)
     {
-        var message = isFullExport
-            ? "سيتم تنفيذ التصدير الشامل لاحقًا."
-            : "التصدير غير مفعل بعد.";
-        MessageBox.Show(message, "تصدير التقارير", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        if (_isExporting)
+        {
+            return;
+        }
+
+        using var dialog = new SaveFileDialog
+        {
+            Filter = "CSV files (*.csv)|*.csv",
+            FileName = ReportDisplayHelper.GetSingleExportDefaultFileName(kind),
+            Title = "تصدير التقرير"
+        };
+
+        if (dialog.ShowDialog(FindForm()) != DialogResult.OK)
+        {
+            return;
+        }
+
+        _isExporting = true;
+        SetExportBusy(true);
+        try
+        {
+            ReportLoadResult? cached = useCachedDetails && _detailsPanel.ActiveKind == kind
+                ? _detailsPanel.LastLoadedResult
+                : null;
+
+            var result = await _exportService.ExportSingleReportAsync(
+                kind,
+                dialog.FileName,
+                cached).ConfigureAwait(true);
+
+            if (result.IsCancelled)
+            {
+                return;
+            }
+
+            if (!result.Success)
+            {
+                MessageBox.Show(
+                    FindForm(),
+                    result.ErrorMessage ?? "تعذر تصدير التقرير.",
+                    "فشل التصدير",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return;
+            }
+
+            MessageBox.Show(
+                FindForm(),
+                $"تم تصدير التقرير بنجاح.{Environment.NewLine}{result.FilePath}",
+                "تم التصدير",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+        finally
+        {
+            _isExporting = false;
+            SetExportBusy(false);
+        }
+    }
+
+    private async Task ExportAllReportsAsync()
+    {
+        if (_isExporting)
+        {
+            return;
+        }
+
+        using var dialog = new SaveFileDialog
+        {
+            Filter = "ZIP files (*.zip)|*.zip",
+            FileName = ReportDisplayHelper.GetBulkExportDefaultFileName(),
+            Title = "تصدير التقرير الشامل"
+        };
+
+        if (dialog.ShowDialog(FindForm()) != DialogResult.OK)
+        {
+            return;
+        }
+
+        _isExporting = true;
+        SetExportBusy(true, bulkExport: true);
+        try
+        {
+            var result = await _exportService.ExportAllReportsAsync(dialog.FileName).ConfigureAwait(true);
+            if (result.IsCancelled)
+            {
+                return;
+            }
+
+            if (!result.Success)
+            {
+                MessageBox.Show(
+                    FindForm(),
+                    result.ErrorMessage ?? "تعذر إنشاء التصدير الشامل.",
+                    "فشل التصدير",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return;
+            }
+
+            var unavailableNote = result.UnavailableCount > 0
+                ? $"{Environment.NewLine}تقارير غير متاحة: {result.UnavailableCount} (راجع unavailable-reports.txt داخل الأرشيف)."
+                : string.Empty;
+
+            MessageBox.Show(
+                FindForm(),
+                $"تم إنشاء التصدير الشامل بنجاح.{Environment.NewLine}عدد التقارير: {result.ExportedCount}{unavailableNote}{Environment.NewLine}{result.FilePath}",
+                "تم التصدير",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+        finally
+        {
+            _isExporting = false;
+            SetExportBusy(false);
+        }
+    }
+
+    private void SetExportBusy(bool busy, bool bulkExport = false)
+    {
+        _exportAllButton.Enabled = !busy;
+        if (bulkExport && busy)
+        {
+            _exportAllButton.Text = "جارٍ تجهيز التصدير...";
+        }
+        else if (!busy)
+        {
+            _exportAllButton.Text = "تصدير التقرير الشامل";
+        }
+
+        _detailsPanel.SetExportBusy(busy);
     }
 
     protected override void Dispose(bool disposing)
