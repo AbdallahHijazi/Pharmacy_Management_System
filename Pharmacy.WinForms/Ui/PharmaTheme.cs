@@ -157,6 +157,13 @@ internal static class PharmaTheme
     public const int CustomersDetailsWidth = 360;
     public const int CustomersSearchCornerRadius = 12;
 
+    public const int SuppliersCardCornerRadius = 18;
+    public const int SuppliersStatCornerRadius = 20;
+    public const int SuppliersSearchCornerRadius = 14;
+    public const int SuppliersRowHeight = 76;
+    public const int SuppliersRowCornerRadius = 14;
+    public const int SuppliersDetailsWidth = 360;
+
 
 
     private static readonly string[] ArabicFontCandidates = ["Cairo", "Segoe UI", "Tahoma"];
