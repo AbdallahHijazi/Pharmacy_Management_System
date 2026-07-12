@@ -50,12 +50,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await AppDbContextSeeder.SeedAsync(context);
-    await PermissionSeeder.SeedAsync(context);
-}
+//using (var scope = app.Services.CreateScope())
+//{
+//    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+//    await AppDbContextSeeder.SeedAsync(context);
+//    await PermissionSeeder.SeedAsync(context);
+//}
 
 app.UseHttpsRedirection();
 
