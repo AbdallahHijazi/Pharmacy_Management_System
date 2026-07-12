@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Pharmacy.API.Infrastructure;
 using Pharmacy.Application.Features.Auth.Commands.Login;
@@ -14,7 +14,14 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
-    builder.Services.AddMediatR(cfg =>
+// --- أضف هذه الأسطر هنا لضمان قراءة الرابط ---
+var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
+                      ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
+// سنقوم بتخزين الرابط في الإعدادات يدوياً لضمان وصول الـ Infrastructure له
+builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
+
+builder.Services.AddMediatR(cfg =>
     {
         cfg.RegisterServicesFromAssembly(typeof(LoginCommand).Assembly);
     });
