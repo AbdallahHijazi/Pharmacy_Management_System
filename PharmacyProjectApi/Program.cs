@@ -52,14 +52,21 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-using (var scope = app.Services.CreateScope())
+try
 {
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await AppDbContextSeeder.SeedAsync(context);
-    await PermissionSeeder.SeedAsync(context);
-}
 
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await AppDbContextSeeder.SeedAsync(context);
+        await PermissionSeeder.SeedAsync(context);
+    }
+
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Error during DB Seed: {ex.Message}");
+}
 app.UseHttpsRedirection();
 
 app.UseAuthentication();

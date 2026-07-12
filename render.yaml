@@ -4,15 +4,3 @@ services:
     env: docker
     plan: free
     region: oregon
-    envVars:
-      - key: ASPNETCORE_ENVIRONMENT
-        value: Development
-      - key: ConnectionStrings__DefaultConnection
-        fromDatabase:
-          name: pharmacy-db
-          property: connectionString
-
-databases:
-  - name: pharmacy-db
-    plan: free
-    region: oregon
