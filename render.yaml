@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: pharmacy-backend
+    env: docker
+    buildCommand: docker build -t pharmacy-backend .
+    startCommand: dotnet PharmacyProjectApi.dll
+    port: 8080
+    pullRequestDeploy: true
+    autoDeploy: true
+    envVars:
+      - key: ConnectionStrings__DefaultConnection
+        value: "Server=your_db_server;Database=your_db_name;User Id=your_db_user;Password=your_db_password;"
+      - key: Jwt__Secret
+        value: "YOUR_JWT_SECRET_KEY_HERE"
+      - key: Jwt__Issuer
+        value: "PharmacySystem"
+      - key: Jwt__Audience
+        value: "PharmacySystemUsers"

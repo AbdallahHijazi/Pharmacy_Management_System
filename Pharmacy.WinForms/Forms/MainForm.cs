@@ -7,6 +7,7 @@ using Pharmacy.WinForms.Forms.Purchases;
 using Pharmacy.WinForms.Forms.Reports;
 using Pharmacy.WinForms.Forms.Settings;
 using Pharmacy.WinForms.Forms.Suppliers;
+using Pharmacy.WinForms.Forms.Users;
 using Pharmacy.WinForms.Models;
 using Pharmacy.WinForms.Services;
 using Pharmacy.WinForms.Ui;
@@ -69,6 +70,9 @@ public sealed partial class MainForm : Form
                     break;
                 case ReportsControl reports:
                     reports.ApplyThemeVisuals();
+                    break;
+                case UsersControl users:
+                    users.ApplyThemeVisuals();
                     break;
                 case PlaceholderPageControl placeholder:
                     placeholder.ApplyThemeVisuals();
@@ -178,6 +182,10 @@ public sealed partial class MainForm : Form
         {
             reports.ApplyThemeVisuals();
         }
+        else if (page is UsersControl users)
+        {
+            users.ApplyThemeVisuals();
+        }
         else if (page is PlaceholderPageControl placeholder)
         {
             placeholder.ApplyThemeVisuals();
@@ -214,7 +222,7 @@ public sealed partial class MainForm : Form
             AppNavigation.Customers => new CustomersControl(),
             AppNavigation.Suppliers => new SuppliersControl(),
             AppNavigation.Reports => new ReportsControl(),
-            AppNavigation.Users => new PlaceholderPageControl(NavigationLabels.Get(AppNavigation.Users)),
+            AppNavigation.Users => new UsersControl(),
             AppNavigation.Settings => new SettingsControl(),
             _ => new PlaceholderPageControl("الصفحة")
         };

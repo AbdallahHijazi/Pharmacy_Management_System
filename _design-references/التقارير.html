@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>التقارير - نظام الصيدلية</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "tertiary-fixed": "#83f9c0",
+                        "on-tertiary-fixed": "#002113",
+                        "inverse-primary": "#88d7ad",
+                        "on-tertiary-fixed-variant": "#005235",
+                        "on-surface": "#0b1f17",
+                        "on-primary-fixed": "#002113",
+                        "secondary-fixed-dim": "#74daa4",
+                        "secondary-container": "#8df4bc",
+                        "tertiary-fixed-dim": "#66dca5",
+                        "inverse-surface": "#20342b",
+                        "on-surface-variant": "#3f4943",
+                        "surface-container-high": "#d6eee0",
+                        "error-container": "#ffdad6",
+                        "outline-variant": "#bec9c0",
+                        "surface-dim": "#c8e0d2",
+                        "on-secondary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#e1f9eb",
+                        "primary": "#076443",
+                        "outline": "#6f7a72",
+                        "surface-bright": "#e7fff1",
+                        "on-background": "#0b1f17",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#90f7bf",
+                        "primary-fixed": "#a3f3c8",
+                        "surface-container-highest": "#d0e8da",
+                        "on-tertiary-container": "#ccffe1",
+                        "on-error": "#ffffff",
+                        "surface": "#e7fff1",
+                        "on-secondary-fixed-variant": "#005233",
+                        "on-primary": "#ffffff",
+                        "primary-fixed-dim": "#88d7ad",
+                        "primary-container": "#2d7d5a",
+                        "on-secondary-fixed": "#002112",
+                        "background": "#e7fff1",
+                        "error": "#ba1a1a",
+                        "on-primary-container": "#cfffe2",
+                        "surface-container": "#dcf4e5",
+                        "surface-variant": "#d0e8da",
+                        "surface-tint": "#166b4a",
+                        "secondary": "#006c45",
+                        "on-secondary-container": "#007148",
+                        "inverse-on-surface": "#dff6e8",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#006442",
+                        "tertiary-container": "#007f56",
+                        "on-primary-fixed-variant": "#005235"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {},
+                    fontFamily: {
+                        "headline": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"],
+                        "cairo": ["Cairo", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Cairo', sans-serif; }
+        .font-inter { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col md:flex-row">
+<!-- SideNavBar (Web) -->
+<nav class="fixed right-0 top-0 h-full flex flex-col p-4 z-40 shadow-xl bg-[#F4F6F7] dark:bg-[#1A1A2E] docked right-0 w-[260px] border-l border-[#076443]/10 dark:border-[#88D7AD]/10 hidden md:flex">
+<div class="mb-8 flex flex-col items-center mt-4">
+<div class="w-16 h-16 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container shadow-md mb-3">
+<span class="material-symbols-outlined text-3xl">local_pharmacy</span>
+</div>
+<h1 class="text-xl font-black text-[#076443] dark:text-[#88D7AD] font-headline">PharmaCare</h1>
+<p class="text-sm text-on-surface-variant/70 mt-1">صيدلية الشفاء</p>
+</div>
+<ul class="flex-1 space-y-2 mt-4 font-['Cairo'] text-right">
+<li>
+<a class="flex flex-row-reverse items-center gap-3 bg-[#2D7D5A] text-white rounded-lg p-3 my-1 transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-semibold text-[15px]">لوحة التحكم</span>
+</a>
+</li>
+<li>
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-medium text-[15px]">المخزون</span>
+</a>
+</li>
+<li>
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="point_of_sale">point_of_sale</span>
+<span class="font-medium text-[15px]">نقطة البيع</span>
+</a>
+</li>
+<li>
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+<span class="font-medium text-[15px]">المشتريات</span>
+</a>
+</li>
+<li>
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span class="font-medium text-[15px]">الزبائن</span>
+</a>
+</li>
+<li>
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span class="font-medium text-[15px]">الموردين</span>
+</a>
+</li>
+<li>
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-medium text-[15px]">التقارير</span>
+</a>
+</li>
+<li>
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="manage_accounts">manage_accounts</span>
+<span class="font-medium text-[15px]">المستخدمين</span>
+</a>
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-medium text-[15px]">الإعدادات</span>
+</a>
+</li>
+</ul>
+<div class="mt-auto border-t border-outline-variant/30 pt-4">
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-medium text-[15px]">تسجيل الخروج</span>
+</a>
+</div>
+</nav>
+<div class="flex-1 flex flex-col md:mr-64 relative min-h-screen">
+<!-- TopAppBar -->
+<header class="docked full-width top-0 z-40 bg-[#e7fff1] dark:bg-[#0b1f17] shadow-[0_4px_20px_-10px_rgba(7,100,67,0.05)] sticky">
+<div class="flex flex-row-reverse items-center justify-between px-6 py-3 w-full">
+<div class="flex items-center gap-3 flex-row-reverse md:hidden">
+<span class="material-symbols-outlined text-[#076443] text-3xl">menu</span>
+<span class="text-xl font-black text-[#076443] dark:text-[#52C994] font-cairo">نظام الصيدلية</span>
+</div>
+<div class="hidden md:block">
+<span class="text-xl font-black text-[#076443] dark:text-[#52C994] font-cairo">نظام الصيدلية</span>
+</div>
+<div class="flex items-center gap-4 flex-row-reverse">
+<div class="relative group">
+<input class="w-64 bg-surface-container-high border-none rounded-xl py-2 px-4 text-on-surface placeholder:text-on-surface-variant focus:ring-2 focus:ring-secondary focus:bg-surface-container-lowest transition-all font-cairo text-sm text-right pr-10" placeholder="بحث سريع..." type="text"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+</div>
+<div class="flex items-center gap-2 flex-row-reverse">
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-[#076443] dark:text-[#52C994] hover:bg-white/50 dark:hover:bg-white/10 transition-colors scale-95 active:scale-90 transition-transform relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-[#076443] dark:text-[#52C994] hover:bg-white/50 dark:hover:bg-white/10 transition-colors scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-primary-container overflow-hidden shrink-0 cursor-pointer border-2 border-surface">
+<img alt="صورة المستخدم" class="w-full h-full object-cover" data-alt="close up of a confident medical professional looking at camera in clinical setting soft bright lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDME-gMWQbNwyDM5QmFu1Tbun7e9bfY4hfenlaoHoVP4eanGjrpq4TipHwWwqP1p_z7V0vgtok1Qtpq_u6C0fp8hrUh9PvDQ9VH-G6Fo3O3s1ASiNGGJgtpCAVCZLQWBIFjDDF3AF-a9bnEp09Bih24Uov0JRY3K_xVCgE8yEgVOdFB2qKhb-E23FEa_xfY0SB1liV1PERE9nFL2IqXk6HNT_Py1FVkqn3PfUQQ1h4zcJPdkBL2LqrfkHL07LgOo1gBgvPmt1BfGeMe"/>
+</div>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 p-6 lg:p-8 overflow-y-auto">
+<div class="max-w-7xl mx-auto">
+<header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h2 class="text-3xl md:text-4xl font-bold text-on-surface mb-2 font-cairo">التقارير التحليلية</h2>
+<p class="text-on-surface-variant font-cairo">نظرة شاملة على الأداء المالي والتشغيلي للصيدلية.</p>
+</div>
+<button class="bg-primary hover:bg-primary-container text-on-primary font-cairo py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 shadow-[0_4px_14px_0_rgba(7,100,67,0.39)] shadow-primary/30">
+<span class="material-symbols-outlined">download</span>
+<span>تصدير التقرير الشامل</span>
+</button>
+</header>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+<!-- Card 1: Sales Report -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_20px_40px_-12px_rgba(7,100,67,0.08)] hover:-translate-y-1 transition-transform duration-300 relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex justify-between items-start mb-6 relative z-10">
+<div class="w-14 h-14 bg-primary-container rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container text-3xl" style="font-variation-settings: 'FILL' 1;">monitoring</span>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-dim">
+<span class="material-symbols-outlined">ios_share</span>
+</button>
+</div>
+<h3 class="text-xl font-bold text-on-surface mb-2 font-cairo relative z-10">تقرير المبيعات</h3>
+<p class="text-sm text-on-surface-variant mb-6 font-cairo relative z-10 h-10">تحليل تفصيلي لحركة المبيعات اليومية والشهرية.</p>
+<div class="flex items-center justify-between border-t border-surface-dim pt-4 relative z-10">
+<span class="text-xs text-on-surface-variant font-cairo font-medium bg-surface-container px-3 py-1 rounded-full">آخر تحديث: اليوم</span>
+<button class="text-primary font-bold text-sm flex items-center gap-1 hover:text-primary-container transition-colors group/btn">
+<span>عرض التفاصيل</span>
+<span class="material-symbols-outlined text-sm transform group-hover/btn:-translate-x-1 transition-transform rtl:rotate-180">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Card 2: Best Sellers -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_20px_40px_-12px_rgba(7,100,67,0.08)] hover:-translate-y-1 transition-transform duration-300 relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex justify-between items-start mb-6 relative z-10">
+<div class="w-14 h-14 bg-secondary-container rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container text-3xl" style="font-variation-settings: 'FILL' 1;">local_pharmacy</span>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-dim">
+<span class="material-symbols-outlined">ios_share</span>
+</button>
+</div>
+<h3 class="text-xl font-bold text-on-surface mb-2 font-cairo relative z-10">الأدوية الأكثر مبيعاً</h3>
+<p class="text-sm text-on-surface-variant mb-6 font-cairo relative z-10 h-10">إحصائيات الأصناف الأعلى طلباً لتوجيه المشتريات.</p>
+<div class="flex items-center justify-between border-t border-surface-dim pt-4 relative z-10">
+<span class="text-xs text-on-surface-variant font-cairo font-medium bg-surface-container px-3 py-1 rounded-full">أسبوعي</span>
+<button class="text-primary font-bold text-sm flex items-center gap-1 hover:text-primary-container transition-colors group/btn">
+<span>عرض التفاصيل</span>
+<span class="material-symbols-outlined text-sm transform group-hover/btn:-translate-x-1 transition-transform rtl:rotate-180">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Card 3: Profit & Loss -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_20px_40px_-12px_rgba(7,100,67,0.08)] hover:-translate-y-1 transition-transform duration-300 relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-tertiary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex justify-between items-start mb-6 relative z-10">
+<div class="w-14 h-14 bg-tertiary-container rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-on-tertiary-container text-3xl" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-dim">
+<span class="material-symbols-outlined">ios_share</span>
+</button>
+</div>
+<h3 class="text-xl font-bold text-on-surface mb-2 font-cairo relative z-10">الأرباح والخسائر</h3>
+<p class="text-sm text-on-surface-variant mb-6 font-cairo relative z-10 h-10">بيان شامل للإيرادات والمصروفات وصافي الدخل.</p>
+<div class="flex items-center justify-between border-t border-surface-dim pt-4 relative z-10">
+<span class="text-xs text-on-surface-variant font-cairo font-medium bg-surface-container px-3 py-1 rounded-full">شهري</span>
+<button class="text-primary font-bold text-sm flex items-center gap-1 hover:text-primary-container transition-colors group/btn">
+<span>عرض التفاصيل</span>
+<span class="material-symbols-outlined text-sm transform group-hover/btn:-translate-x-1 transition-transform rtl:rotate-180">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Card 4: Expired Drugs -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_20px_40px_-12px_rgba(7,100,67,0.08)] hover:-translate-y-1 transition-transform duration-300 relative overflow-hidden group border-r-4 border-error/50">
+<div class="absolute inset-0 bg-gradient-to-br from-error/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex justify-between items-start mb-6 relative z-10">
+<div class="w-14 h-14 bg-error-container rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-on-error-container text-3xl" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<button class="text-on-surface-variant hover:text-error transition-colors p-2 rounded-full hover:bg-surface-dim">
+<span class="material-symbols-outlined">ios_share</span>
+</button>
+</div>
+<h3 class="text-xl font-bold text-on-surface mb-2 font-cairo relative z-10">أدوية منتهية الصلاحية</h3>
+<p class="text-sm text-on-surface-variant mb-6 font-cairo relative z-10 h-10">قائمة بالأدوية التالفة أو القريبة من انتهاء الصلاحية.</p>
+<div class="flex items-center justify-between border-t border-surface-dim pt-4 relative z-10">
+<span class="text-xs text-error font-cairo font-medium bg-error-container/50 px-3 py-1 rounded-full">تنبيه عالي</span>
+<button class="text-error font-bold text-sm flex items-center gap-1 hover:text-error/80 transition-colors group/btn">
+<span>عرض التفاصيل</span>
+<span class="material-symbols-outlined text-sm transform group-hover/btn:-translate-x-1 transition-transform rtl:rotate-180">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Card 5: Customer Debts -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_20px_40px_-12px_rgba(7,100,67,0.08)] hover:-translate-y-1 transition-transform duration-300 relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-surface-tint/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex justify-between items-start mb-6 relative z-10">
+<div class="w-14 h-14 bg-surface-container-highest rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface text-3xl" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-dim">
+<span class="material-symbols-outlined">ios_share</span>
+</button>
+</div>
+<h3 class="text-xl font-bold text-on-surface mb-2 font-cairo relative z-10">ديون الزبائن</h3>
+<p class="text-sm text-on-surface-variant mb-6 font-cairo relative z-10 h-10">سجل المدفوعات الآجلة والذمم المالية للعملاء.</p>
+<div class="flex items-center justify-between border-t border-surface-dim pt-4 relative z-10">
+<span class="text-xs text-on-surface-variant font-cairo font-medium bg-surface-container px-3 py-1 rounded-full">محدث</span>
+<button class="text-primary font-bold text-sm flex items-center gap-1 hover:text-primary-container transition-colors group/btn">
+<span>عرض التفاصيل</span>
+<span class="material-symbols-outlined text-sm transform group-hover/btn:-translate-x-1 transition-transform rtl:rotate-180">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Card 6: Supplier Payables -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_20px_40px_-12px_rgba(7,100,67,0.08)] hover:-translate-y-1 transition-transform duration-300 relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-primary-fixed/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex justify-between items-start mb-6 relative z-10">
+<div class="w-14 h-14 bg-primary-fixed rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-fixed text-3xl" style="font-variation-settings: 'FILL' 1;">storefront</span>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-dim">
+<span class="material-symbols-outlined">ios_share</span>
+</button>
+</div>
+<h3 class="text-xl font-bold text-on-surface mb-2 font-cairo relative z-10">مستحقات الموردين</h3>
+<p class="text-sm text-on-surface-variant mb-6 font-cairo relative z-10 h-10">كشف حساب الالتزامات المالية للشركات والموزعين.</p>
+<div class="flex items-center justify-between border-t border-surface-dim pt-4 relative z-10">
+<span class="text-xs text-on-surface-variant font-cairo font-medium bg-surface-container px-3 py-1 rounded-full">ربع سنوي</span>
+<button class="text-primary font-bold text-sm flex items-center gap-1 hover:text-primary-container transition-colors group/btn">
+<span>عرض التفاصيل</span>
+<span class="material-symbols-outlined text-sm transform group-hover/btn:-translate-x-1 transition-transform rtl:rotate-180">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

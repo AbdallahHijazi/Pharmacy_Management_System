@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+
+<html class="light" dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PharmaCare - الإعدادات</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed": "#83f9c0",
+                        "surface-container": "#dcf4e5",
+                        "surface-container-highest": "#d0e8da",
+                        "surface-container-low": "#e1f9eb",
+                        "secondary-fixed-dim": "#74daa4",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#ccffe1",
+                        "on-secondary-fixed": "#002112",
+                        "on-tertiary-fixed": "#002113",
+                        "on-secondary-container": "#007148",
+                        "outline": "#6f7a72",
+                        "on-tertiary": "#ffffff",
+                        "surface-variant": "#d0e8da",
+                        "on-surface": "#0b1f17",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#a3f3c8",
+                        "primary-container": "#2d7d5a",
+                        "error": "#ba1a1a",
+                        "inverse-on-surface": "#dff6e8",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#e7fff1",
+                        "surface-tint": "#166b4a",
+                        "secondary-container": "#8df4bc",
+                        "on-background": "#0b1f17",
+                        "on-surface-variant": "#3f4943",
+                        "tertiary-container": "#007f56",
+                        "on-primary-container": "#cfffe2",
+                        "inverse-primary": "#88d7ad",
+                        "tertiary-fixed-dim": "#66dca5",
+                        "surface-bright": "#e7fff1",
+                        "surface-container-high": "#d6eee0",
+                        "on-primary": "#ffffff",
+                        "surface": "#e7fff1",
+                        "surface-dim": "#c8e0d2",
+                        "on-primary-fixed": "#002113",
+                        "secondary-fixed": "#90f7bf",
+                        "on-primary-fixed-variant": "#005235",
+                        "primary-fixed-dim": "#88d7ad",
+                        "on-tertiary-fixed-variant": "#005235",
+                        "inverse-surface": "#20342b",
+                        "on-secondary-fixed-variant": "#005233",
+                        "tertiary": "#006442",
+                        "on-secondary": "#ffffff",
+                        "primary": "#076443",
+                        "secondary": "#006c45",
+                        "outline-variant": "#bec9c0",
+                        "error-container": "#ffdad6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.5rem",
+                        "xl": "0.5rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-inter { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .ghost-input:focus {
+            outline: 2px solid #52C994;
+            outline-offset: -2px;
+        }
+        .ambient-shadow {
+            box-shadow: 0 20px 40px -12px rgba(7, 100, 67, 0.08);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-row">
+<!-- SideNavBar (Web) -->
+<nav class="fixed right-0 top-0 h-full flex flex-col p-4 z-40 shadow-xl bg-[#F4F6F7] dark:bg-[#1A1A2E] docked right-0 w-[260px] border-l border-[#076443]/10 dark:border-[#88D7AD]/10 hidden md:flex">
+<div class="mb-8 flex flex-col items-center mt-4">
+<div class="w-16 h-16 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container shadow-md mb-3">
+<span class="material-symbols-outlined text-3xl">local_pharmacy</span>
+</div>
+<h1 class="text-xl font-black text-[#076443] dark:text-[#88D7AD] font-headline">PharmaCare</h1>
+<p class="text-sm text-on-surface-variant/70 mt-1">صيدلية الشفاء</p>
+</div>
+<ul class="flex-1 space-y-2 mt-4 font-['Cairo'] text-right">
+<li>
+<a class="flex flex-row-reverse items-center gap-3 bg-[#2D7D5A] text-white rounded-lg p-3 my-1 transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-semibold text-[15px]">لوحة التحكم</span>
+</a>
+</li>
+<li>
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-medium text-[15px]">المخزون</span>
+</a>
+</li>
+<li>
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="point_of_sale">point_of_sale</span>
+<span class="font-medium text-[15px]">نقطة البيع</span>
+</a>
+</li>
+<li>
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+<span class="font-medium text-[15px]">المشتريات</span>
+</a>
+</li>
+<li>
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span class="font-medium text-[15px]">الزبائن</span>
+</a>
+</li>
+<li>
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span class="font-medium text-[15px]">الموردين</span>
+</a>
+</li>
+<li>
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-medium text-[15px]">التقارير</span>
+</a>
+</li>
+<li>
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="manage_accounts">manage_accounts</span>
+<span class="font-medium text-[15px]">المستخدمين</span>
+</a>
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-medium text-[15px]">الإعدادات</span>
+</a>
+</li>
+</ul>
+<div class="mt-auto border-t border-outline-variant/30 pt-4">
+<a class="flex flex-row-reverse items-center gap-3 text-[#0B1F17] dark:text-[#88D7AD] p-3 my-1 hover:bg-[#2D7D5A]/20 dark:hover:bg-[#1A5235]/50 rounded-lg transition-colors duration-300 ease-in-out w-full" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-medium text-[15px]">تسجيل الخروج</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-w-0 md:mr-[280px] bg-background">
+<!-- TopNavBar -->
+<header class="sticky top-0 z-40 w-full bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border-b border-emerald-100/10 dark:border-zinc-800/50 shadow-sm flex flex-row-reverse justify-between items-center h-20 px-8 focus-within:ring-2 focus-within:ring-emerald-500/20">
+<div class="flex items-center gap-4">
+<!-- Mobile Menu Button -->
+<button class="md:hidden text-emerald-800 dark:text-emerald-400 p-2 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+</div>
+<div class="flex-1 max-w-md mx-8 flex flex-row-reverse items-center bg-surface-container-highest rounded-full px-4 py-2 transition-all focus-within:ring-2 focus-within:ring-emerald-500/20">
+<span class="material-symbols-outlined text-outline mr-2" data-icon="search">search</span>
+<input class="w-full bg-transparent border-none focus:ring-0 text-sm font-['Cairo'] text-right placeholder:text-outline text-on-surface font-['Cairo'] text-sm font-medium" dir="rtl" placeholder="بحث..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded-full text-emerald-800 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 rounded-full text-emerald-800 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
+<span class="material-symbols-outlined" data-icon="contrast">contrast</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-container overflow-hidden ml-2 border-2 border-surface-container cursor-pointer hover:opacity-80 transition-opacity">
+<img alt="الصيدلاني المناوب" class="w-full h-full object-cover" data-alt="headshot of a medical professional" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQRBjw7DZ5TOGs-ZWwf9m_vXlOPXkkgAetAk9-XvP6qpXzdMNsXSAdK_ZbbNq2ymM2VNxACt623RWhvK3muVoHzTgR1IXXcoYW4n_Mn5RdE1QWuYv9ukggi3Pi24Da1c8Mh94USCKzGXbKzk2wzvgCmBAfGu2XnwTgtWLzlNFq4uYvX5_uSTWyDLCr8dXN-bYwfMRUd-Xwz8Gb26ZWhuUM0Z8CLp_wRNA4jRsnwqcqZ9HFcVGyUZL9Fb7GkELERAW5-HD6ozeLBvMp"/>
+</div>
+</div>
+</header>
+<!-- Settings Content -->
+<div class="p-8 max-w-7xl mx-auto w-full flex-1 overflow-y-auto">
+<header class="mb-10 flex justify-between items-end">
+<div>
+<h2 class="text-[1.5rem] font-headline font-bold text-primary mb-2">الإعدادات</h2>
+<p class="text-on-surface-variant text-sm font-body">تكوين النظام وتفضيلات الصيدلية.</p>
+</div>
+<div class="flex gap-3">
+<button class="px-6 py-2 rounded-lg bg-surface-container-high text-on-secondary-container text-sm font-medium hover:bg-surface-variant transition-colors">إلغاء</button>
+<button class="px-6 py-2 rounded-lg bg-primary text-on-primary text-sm font-medium shadow-[0_4px_12px_rgba(7,100,67,0.2)] hover:bg-primary-container transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="save">save</span>حفظ التغييرات
+                    </button>
+</div>
+</header>
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+<!-- Column 1: Info & Printing -->
+<div class="xl:col-span-1 flex flex-col gap-6">
+<!-- Section: Pharmacy Info -->
+<section class="bg-surface-container-lowest rounded-xl p-6 ambient-shadow border border-surface-container-highest">
+<div class="flex items-center gap-3 mb-6 border-b-0">
+<span class="material-symbols-outlined text-primary bg-surface-container p-2 rounded-lg" data-icon="storefront">storefront</span>
+<h3 class="text-lg font-bold text-on-surface">معلومات الصيدلية</h3>
+</div>
+<div class="space-y-5">
+<div class="flex flex-col gap-1.5">
+<label class="text-[0.75rem] font-label text-on-surface-variant font-medium">اسم الصيدلية</label>
+<input class="w-full bg-surface-container-high text-on-surface border-none rounded-lg p-3 text-sm ghost-input transition-all" type="text" value="صيدلية الشفاء"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-[0.75rem] font-label text-on-surface-variant font-medium">العنوان</label>
+<input class="w-full bg-surface-container-high text-on-surface border-none rounded-lg p-3 text-sm ghost-input transition-all" type="text" value="شارع الاستقلال, البناء 4"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-[0.75rem] font-label text-on-surface-variant font-medium">رقم الهاتف</label>
+<input class="w-full bg-surface-container-high text-on-surface border-none rounded-lg p-3 text-sm font-inter text-left ghost-input transition-all" dir="ltr" type="tel" value="011-234-5678"/>
+</div>
+</div>
+</section>
+<!-- Section: Currency -->
+<section class="bg-surface-container-lowest rounded-xl p-6 ambient-shadow border border-surface-container-highest">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary bg-surface-container p-2 rounded-lg" data-icon="currency_exchange">currency_exchange</span>
+<h3 class="text-lg font-bold text-on-surface">العملة</h3>
+</div>
+<div class="space-y-5">
+<div class="flex items-center justify-between bg-surface-container-low p-3 rounded-lg border border-surface-container-highest">
+<span class="text-sm font-medium text-on-surface">العملة الافتراضية</span>
+<div class="flex bg-surface-container-high rounded-lg p-1">
+<button class="px-4 py-1.5 rounded-md bg-primary text-on-primary text-sm shadow-sm transition-all">SYP</button>
+<button class="px-4 py-1.5 rounded-md text-on-surface-variant text-sm hover:bg-surface-variant transition-all font-inter">USD</button>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-[0.75rem] font-label text-on-surface-variant font-medium">سعر الصرف (SYP لـ 1 USD)</label>
+<div class="relative">
+<input class="w-full bg-surface-container-high text-on-surface border-none rounded-lg p-3 pr-10 text-sm font-inter text-left ghost-input transition-all" dir="ltr" type="number" value="14500"/>
+<span class="material-symbols-outlined absolute right-3 top-3 text-on-surface-variant text-lg" data-icon="payments">payments</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Column 2 & 3: Appearance, Alerts, Backup -->
+<div class="xl:col-span-2 flex flex-col gap-6">
+<!-- Section: Appearance (Bento Style) -->
+<section class="bg-surface-container-low rounded-xl p-6 relative overflow-hidden border border-surface-container-highest">
+<!-- Decorative Background Blob -->
+<div class="absolute -top-24 -left-24 w-64 h-64 bg-primary-fixed opacity-20 rounded-full blur-3xl pointer-events-none"></div>
+<div class="flex items-center gap-3 mb-6 relative z-10">
+<span class="material-symbols-outlined text-primary bg-surface-container-lowest p-2 rounded-lg shadow-sm" data-icon="palette">palette</span>
+<h3 class="text-lg font-bold text-on-surface">المظهر</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+<!-- Theme Colors -->
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm border border-surface-container-highest">
+<label class="block text-sm font-bold text-on-surface mb-4">نسق الألوان</label>
+<div class="grid grid-cols-3 gap-3">
+<button class="flex flex-col items-center gap-2 p-2 rounded-lg border-2 border-primary bg-surface-container-low transition-all">
+<div class="w-8 h-8 rounded-full bg-[#076443] shadow-inner"></div>
+<span class="text-[0.65rem] font-label text-on-surface text-center">Healthcare Green</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-surface-container transition-all">
+<div class="w-8 h-8 rounded-full bg-[#1e40af] shadow-inner"></div>
+<span class="text-[0.65rem] font-label text-on-surface-variant text-center">Medical Blue</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-surface-container transition-all">
+<div class="w-8 h-8 rounded-full bg-[#6b21a8] shadow-inner"></div>
+<span class="text-[0.65rem] font-label text-on-surface-variant text-center">Clinical Purple</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-surface-container transition-all">
+<div class="w-8 h-8 rounded-full bg-[#0f766e] shadow-inner"></div>
+<span class="text-[0.65rem] font-label text-on-surface-variant text-center">Sky Teal</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-surface-container transition-all">
+<div class="w-8 h-8 rounded-full bg-[#18181b] shadow-inner"></div>
+<span class="text-[0.65rem] font-label text-on-surface-variant text-center">Dark Mode</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-surface-container transition-all">
+<div class="w-8 h-8 rounded-full bg-[#52525b] shadow-inner"></div>
+<span class="text-[0.65rem] font-label text-on-surface-variant text-center">Neutral Gray</span>
+</button>
+</div>
+</div>
+<!-- Typography & Layout -->
+<div class="flex flex-col gap-4">
+<div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm flex-1 border border-surface-container-highest">
+<label class="block text-sm font-bold text-on-surface mb-4">حجم الخط</label>
+<div class="flex items-center gap-4 bg-surface-container-high rounded-lg p-2 px-4">
+<span class="text-xs text-on-surface-variant font-inter">A</span>
+<input class="w-full accent-primary h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer" max="3" min="1" type="range" value="2"/>
+<span class="text-lg text-on-surface-variant font-inter">A</span>
+</div>
+<p class="text-[0.7rem] text-on-surface-variant mt-3 text-center">الحجم الحالي: متوسط</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Row 2: Alerts & Backup (Split) -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Section: Alerts -->
+<section class="bg-surface-container-lowest rounded-xl p-6 ambient-shadow border border-surface-container-highest">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-error bg-error-container p-2 rounded-lg" data-icon="notifications_active">notifications_active</span>
+<h3 class="text-lg font-bold text-on-surface">التنبيهات</h3>
+</div>
+<div class="space-y-5">
+<div class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg border border-surface-container-highest hover:border-surface-variant transition-colors">
+<div class="flex flex-col">
+<span class="text-sm font-bold text-on-surface">تحذير انتهاء الصلاحية</span>
+<span class="text-[0.7rem] text-on-surface-variant">قبل كم يوم يتم التنبيه</span>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-lowest rounded-md px-2 py-1 shadow-sm border border-surface-container-highest">
+<input class="w-12 bg-transparent border-none text-center p-1 text-sm font-inter text-primary font-bold ghost-input" dir="ltr" type="number" value="90"/>
+<span class="text-xs text-on-surface-variant">يوم</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg border border-surface-container-highest hover:border-surface-variant transition-colors">
+<div class="flex flex-col">
+<span class="text-sm font-bold text-on-surface">حد النقص في المخزون</span>
+<span class="text-[0.7rem] text-on-surface-variant">التنبيه عند وصول الكمية إلى</span>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-lowest rounded-md px-2 py-1 shadow-sm border border-surface-container-highest">
+<input class="w-12 bg-transparent border-none text-center p-1 text-sm font-inter text-primary font-bold ghost-input" dir="ltr" type="number" value="5"/>
+<span class="text-xs text-on-surface-variant">علبة</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Section: Backup -->
+<section class="bg-surface-container-lowest rounded-xl p-6 ambient-shadow border border-surface-container-highest">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-tertiary bg-tertiary-fixed p-2 rounded-lg" data-icon="cloud_sync">cloud_sync</span>
+<h3 class="text-lg font-bold text-on-surface">النسخ الاحتياطي</h3>
+</div>
+<div class="space-y-5">
+<div class="flex flex-col gap-1.5">
+<label class="text-[0.75rem] font-label text-on-surface-variant font-medium">مسار الحفظ المحلي</label>
+<div class="flex gap-2">
+<input class="w-full bg-surface-container-high text-on-surface border-none rounded-lg p-3 text-sm font-inter text-left ghost-input transition-all" dir="ltr" readonly="" type="text" value="D:\PharmacyBackups"/>
+<button class="bg-surface-container-high text-primary px-4 rounded-lg hover:bg-surface-variant transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-sm" data-icon="folder_open">folder_open</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between bg-surface-container-low p-3 rounded-lg mt-2 border border-surface-container-highest">
+<span class="text-sm font-medium text-on-surface">النسخ التلقائي</span>
+<select class="bg-surface-container-lowest border border-surface-container-highest text-sm text-primary font-bold rounded-md py-1.5 pl-8 pr-3 focus:ring-2 focus:ring-primary/20 shadow-sm">
+<option>يومياً</option>
+<option>أسبوعياً</option>
+<option>شهرياً</option>
+</select>
+</div>
+<button class="w-full mt-2 py-2.5 rounded-lg border border-primary text-primary text-sm font-medium hover:bg-primary/5 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="backup">backup</span>إنشاء نسخة الآن
+                                </button>
+</div>
+</section>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,6 @@
+{
+  "Pharmacy.Application, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "c:\\Projects\\PharmacyProjectClean\\Pharmacy.Application",
+  "Pharmacy.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "c:\\Projects\\PharmacyProjectClean\\Pharmacy.Domain",
+  "Pharmacy.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "c:\\Projects\\PharmacyProjectClean\\Pharmacy.Infrastructure",
+  "PharmacyProjectApi, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "c:\\Projects\\PharmacyProjectClean\\PharmacyProjectApi"
+}
