@@ -8,4 +8,11 @@ services:
       - key: ASPNETCORE_ENVIRONMENT
         value: Development
       - key: ConnectionStrings__DefaultConnection
-        value: "Server=dummy;Database=dummy;User Id=dummy;Password=dummy;"
+        fromDatabase:
+          name: pharmacy-db
+          property: connectionString
+
+databases:
+  - name: pharmacy-db
+    plan: free
+    region: oregon

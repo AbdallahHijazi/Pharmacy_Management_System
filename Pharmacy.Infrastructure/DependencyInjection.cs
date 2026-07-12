@@ -18,8 +18,11 @@ namespace Pharmacy.Infrastructure
     {
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
+            //services.AddDbContext<AppDbContext>(options =>
+            //        options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
             services.AddDbContext<AppDbContext>(options =>
-                    options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+                    options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+
             services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
